@@ -16,6 +16,7 @@ Section EVENTSCOMMON.
   | Choose (X: Type): eventE X
   | Take X: eventE X
   | Syscall (fn: gname) (args: Any.t) (rvs: Any.t -> Prop): eventE Any.t
+  | Spwan_t (mn: option mname) (fn: gname) (args: Any.t): eventE nat
   .
 
   (* Notation "'Choose' X" := (trigger (Choose X)) (at level 50, only parsing). *)
@@ -111,6 +112,8 @@ End EVENTSCOMMON.
 Module EventsL.
 Section EVENTSL.
 
+  Notation thread_id := nat.
+  
   Inductive callE: Type -> Type :=
   | Call (mn: option mname) (fn: gname) (args: Any.t): callE Any.t
   .
@@ -120,11 +123,16 @@ Section EVENTSL.
   | PGet (mn: mname): pE Any.t
   .
 
+  Inductive schE: Type -> Type :=
+  | Spwan (mn: option mname) (fn: gname) (args: Any.t): schE nat
+  | Yield: schE unit
+  .
+
   (*** TODO: we don't want to require "mname" here ***)
   (*** use dummy mname? ***)
   (* Definition FPut E `{rE -< E} (mn: mname) (fr: GRA): itree E unit := *)
 
-  Definition Es: Type -> Type := (callE +' pE +' eventE).
+  Definition Es: Type -> Type := (schE +' callE +' pE +' eventE).
 
   (* Inductive mdE: Type -> Type := *)
   (* | MPut (mn: mname) (r: GRA): mdE unit *)
@@ -146,6 +154,103 @@ Section EVENTSL.
   (********************************************************************)
   (*************************** Interpretation *************************)
   (********************************************************************)
+  
+  Definition interp_schE_aux {R} :
+    itree Es R -> itree (callE +' pE +' eventE) ((itree Es R) + R).
+  Proof.
+    eapply ITree.iter.
+    intros itr.
+    apply observe in itr; destruct itr as [r | itr | X e k].
+    - (* Ret *)
+      exact (Ret (inr (inr r))).
+    - (* Tau *)
+      exact (Ret (inl itr)).
+    - (* Vis *)
+      destruct e as [|[|[]]].
+      + (* schE *)
+        destruct s.
+        * (* Spwan *)
+          exact (Vis (inr1 (inr1 (Spwan_t mn fn args))) (fun x => Ret (inl (k x)))).
+        * (* Yield *)
+          exact (Ret (inr (inl (k tt)))).
+      + (* callE *)
+        exact (Vis (inl1 c) (fun x => Ret (inl (k x)))).
+      + (* pE *)
+        exact (Vis (inr1 (inl1 p)) (fun x => Ret (inl (k x)))).
+      + (* eventE *)
+        exact (Vis (inr1 (inr1 e)) (fun x => Ret (inl (k x)))).
+  Defined.
+
+  Variant schedulerE (RT : Type) : Type -> Type :=
+  | Execute : thread_id -> schedulerE RT (option RT)
+  .
+  
+  Notation threads RT := (alist thread_id (itree Es RT)).
+  Notation tids := (alist thread_id unit).
+  Definition scheduler RT R := itree (schedulerE RT +' eventE) R.
+
+  Definition new_itr (RT: Type) (r: RT) mn fn args: itree Es RT :=
+    v <- trigger (Call mn fn args);;
+    Ret r.
+  
+  Definition interp_sched RT R : threads RT * thread_id * scheduler RT R -> itree (callE +' pE +' eventE) R.
+  Proof.
+    eapply ITree.iter. intros [[ts max_tid] sch].
+    destruct (observe sch) as [r | sch' | X [e|e] ktr].
+    - exact (Ret (inr r)).
+    - exact (Ret (inl (ts, max_tid, sch'))).
+    - destruct e.
+      destruct (alist_find n ts) as [t|].
+      * exact (r <- interp_schE_aux t;;
+               match r with
+               | inl t' => Ret (inl (alist_add n t' ts, max_tid, ktr None))
+               | inr r => Ret (inl (alist_remove n ts, max_tid, ktr (Some r)))
+               end).
+      * exact triggerUB.
+    - destruct e.
+      * (* Choose *)
+        exact (Vis (inr1 (inr1 (Choose X))) (fun x => Ret (inl (ts, max_tid, ktr x)))).
+      * (* Take *)
+        exact (Vis (inr1 (inr1 (Take X))) (fun x => Ret (inl (ts, max_tid, ktr x)))).
+      * (* Syscall *)
+        exact (Vis (inr1 (inr1 (Syscall fn args rvs))) (fun x => Ret (inl (ts, max_tid, ktr x)))).
+      * (* Spwan *)
+        (* remember (ITree.trigger (subevent RT (Call mn fn args))) as new_itr. *)
+        (* remember (trigger (Call mn fn args)) as new_itr2. *)
+        (* exact (Ret (inl (alist_add max_tid new_itr ts, max_tid + 1, ktr max_tid))). *)
+        exact (Vis (inr1 (inr1 (Spwan_t mn fn args))) (fun x => Ret (inl (ts, max_tid, ktr x)))).
+  Defined.
+
+  Definition sched_nondet_body {R} q tid r : scheduler R (thread_id * tids + R) :=
+    match r with
+    | None =>
+        tid' <- ITree.trigger (inr1 (Choose thread_id));;
+        match alist_pop tid' (alist_add tid tt q) with
+        | None => triggerNB
+        | Some (_, q') => Ret (inl (tid', q'))
+        end
+    | Some r =>
+        if true
+        then Ret (inr r)
+        else
+          tid' <- ITree.trigger (inr1 (Choose thread_id));;
+          match alist_pop tid' q with
+          | None => triggerNB
+          | Some (_, q') => Ret (inl (tid', q'))
+          end
+    end.
+
+  Definition sched_nondet R0 : thread_id * tids -> scheduler R0 R0 :=
+    ITree.iter (fun '(tid, q) =>
+                  r <- ITree.trigger (inl1 (Execute _ tid));;
+                  sched_nondet_body q tid r).
+
+  Definition alist_key_set K V (t: alist K V): alist K unit :=
+    List.map (fun x => (fst x, tt)) t.
+
+  Definition interp_schE
+    R ths tid : itree (callE +' pE +' eventE) R :=
+    interp_sched (ths, 1, sched_nondet _ (tid, alist_remove tid (alist_key_set ths))).
 
   Definition handle_pE {E}: pE ~> stateT p_state (itree E) :=
     fun _ e mps =>
@@ -160,8 +265,8 @@ Section EVENTSL.
   (* Definition interp_Es A (prog: callE ~> itree Es) (itr0: itree Es A) (rst0: r_state) (pst0: p_state): itree eventE _ := *)
   (*   interp_pE (interp_rE (interp_mrec prog itr0) rst0) pst0 *)
   (* . *)
-  Definition interp_Es A (prog: callE ~> itree Es) (itr0: itree Es A) (st0: p_state): itree eventE (p_state * _)%type :=
-    '(st1, v) <- interp_pE (interp_mrec prog itr0) st0;;
+  Definition interp_Es A (prog: callE ~> itree (callE +' pE +' eventE)) (itr0: itree Es A) (st0: p_state): itree eventE (p_state * _)%type :=
+    '(st1, v) <- interp_pE (interp_mrec prog (interp_schE (alist_add 0 itr0 []) 0)) st0;;
     Ret (st1, v)
   .
 
