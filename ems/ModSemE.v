@@ -118,13 +118,12 @@ Section EVENTSL.
   Inductive pE: Type -> Type :=
   | PPut (mn: mname) (p: Any.t): pE unit
   | PGet (mn: mname): pE Any.t
-  (* | Spawn_t (fn: gname) (args: Any.t): pE nat (* Only available by schE *) *)
   .
 
   Inductive schE: Type -> Type :=
   | Spawn (fn: gname) (args: Any.t): schE nat
   | Yield: schE unit
-  | getpid: schE nat
+  | Getpid: schE nat
   .
 
   (*** TODO: we don't want to require "mname" here ***)
@@ -184,64 +183,58 @@ Section EVENTSL.
           exact (Vis (inr1 e) (fun x => Ret (inl (tid, k x)))).
     Defined.
 
-    Variant schedulerE : Type -> Type :=
-    | Execute : nat -> schedulerE (Any.t + nat + unit).
-    
     Notation threads := (alist nat (itree (schE +' pE +' eventE) Any.t)).
-    
-    Definition interp_sched: threads * nat * (itree (schedulerE +' eventE) Any.t) ->
-                             itree (pE +' eventE) Any.t.
+
+    Inductive executeE : Type -> Type :=
+    | Execute : nat -> executeE (Any.t + nat + unit).
+
+    Definition interp_executeE:
+      (callE ~> itree Es) * threads * nat * (itree (executeE +' eventE) Any.t) ->
+      itree (pE +' eventE) Any.t.
     Proof.
-      eapply ITree.iter. intros [[ts next_tid] sch].
+      eapply ITree.iter. intros [[[prog ts] next_tid] sch].
       destruct (observe sch) as [r | sch' | X [e|e] ktr].
       - exact (Ret (inr r)).
-      - exact (Ret (inl (ts, next_tid, sch'))).
+      - exact (Ret (inl (prog, ts, next_tid, sch'))).
       - destruct e. rename n into tid.
         destruct (alist_find tid ts) as [t|].
         * exact (r <- interp_schE (tid, t);;
                  match r with
                  | inl (inl r) => (* finished *)
-                     Ret (inl (alist_remove tid ts, next_tid, ktr (inl (inl r))))
+                     let ts' := alist_remove tid ts in
+                     Ret (inl (prog, ts', next_tid, ktr (inl (inl r))))
                  | inl (inr (fn, args, k)) => (* spawn *)
-                     Ret (inl (alist_add tid (k next_tid) ts, next_tid + 1, ktr (inl (inr tid))))
+                     let new_itr := interp_mrec prog (prog Any.t (Call None fn args)) in
+                     let ts' := alist_add next_tid new_itr (alist_replace tid (k next_tid) ts) in
+                     Ret (inl (prog, ts', next_tid + 1, ktr (inl (inr tid))))
                  | inr t' => (* yield *)
-                     Ret (inl (alist_add tid t' ts, next_tid, ktr (inr tt)))
+                     let ts' := alist_replace tid t' ts in
+                     Ret (inl (prog, ts', next_tid, ktr (inr tt)))
                  end).
-        * exact triggerUB.
-      - exact (Vis (inr1 e) (fun x => Ret (inl (ts, next_tid, ktr x)))).
+        * exact triggerNB.
+      - exact (Vis (inr1 e) (fun x => Ret (inl (prog, ts, next_tid, ktr x)))).
     Defined.
 
-    Definition sched_nondet_body (ts: threads) (tid: nat) (retv: Any.t) :
-      itree eventE (nat * threads + Any.t) :=
-      match retv with
-      | None =>
-          tid' <- ITree.trigger (inr1 (Choose nat));;
-          match alist_pop tid' (alist_add tid tt ts) with
-          | None => triggerNB
-          | Some (_, q') => Ret (inl (tid', q'))
-          end
-      (* | spawn *)
-      | Some r =>
-          if true (* TODO *)
-          then Ret (inr r)
-          else
-            tid' <- ITree.trigger (inr1 (Choose nat));;
-            match alist_pop tid' ts with
-            | None => triggerNB
-            | Some (_, q') => Ret (inl (tid', q'))
-            end
-      end.
-
-    Definition sched_nondet : nat * threads -> itree (schedulerE +' eventE) Any.t :=
-      ITree.iter (fun '(ts, tid) =>
+    Definition sched_nondet: nat -> itree (executeE +' eventE) Any.t :=
+      ITree.iter (fun tid =>
                     retv <- ITree.trigger (inl1 (Execute tid));;
                     match retv with
-                    | None => 
-                    sched_nondet_body ts t).
+                    | inl (inl r) =>
+                        if true
+                        then Ret (inr r)
+                        else
+                          tid' <- ITree.trigger (inr1 (Choose nat));;
+                          Ret (inl tid')
+                    | inl (inr tid') =>
+                        Ret (inl tid')
+                    | inr tt =>
+                        tid' <- ITree.trigger (inr1 (Choose nat));;
+                        Ret (inl tid')
+                    end).
 
-    Definition interp_schE
-      R ths tid next_tid : itree (callE +' pE +' eventE) R :=
-      interp_sched (ths, next_tid, sched_nondet _ (tid, alist_remove tid (alist_key_set ths))).
+    Definition interp_scheduler
+      (prog: callE ~> itree Es) (ts: threads) (start_tid: nat) : itree (pE +' eventE) Any.t :=
+      interp_executeE (prog, ts, List.length ts, sched_nondet start_tid).
   End Scheduler.
 
   Definition handle_pE {E}: pE ~> stateT p_state (itree E) :=
@@ -257,10 +250,13 @@ Section EVENTSL.
   (* Definition interp_Es A (prog: callE ~> itree Es) (itr0: itree Es A) (rst0: r_state) (pst0: p_state): itree eventE _ := *)
   (*   interp_pE (interp_rE (interp_mrec prog itr0) rst0) pst0 *)
   (* . *)
-  Definition interp_Es A (prog: callE ~> itree Es) (itr0: itree Es A) (st0: p_state): itree eventE (p_state * _)%type :=
-    '(st1, v) <- interp_pE (interp_mrec prog itr0) st0;;
+  Definition interp_Es (prog: callE ~> itree Es) (itr0: itree Es Any.t) (st0: p_state): itree eventE (p_state * _)%type :=
+    let itr1 := interp_mrec prog itr0 in
+    let itr2 := interp_scheduler prog (alist_add 0 itr1 []) 0 in
+    '(st1, v) <- interp_pE itr2 st0;;
     Ret (st1, v)
   .
+
 
 
 

@@ -24,14 +24,14 @@ Section PROOF.
       fun varg =>
         '(fn, args) <- varg↓?;;
         z <- trigger (Spawn fn args);; Ret Vundef.
-              
+
     Definition yieldF: (list val) -> itree Es val :=
       fun varg =>
-        z <- trigger yield;; Ret Vundef.
+        z <- trigger Yield;; Ret Vundef.
 
     Definition getpidF: (list val) -> itree Es val :=
       fun varg =>
-        z <- trigger gettid;; Ret (Vint z).
+        z <- trigger Gettid;; Ret (Vint z).
 
   End BODY.
 
