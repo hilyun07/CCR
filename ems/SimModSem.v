@@ -896,6 +896,8 @@ Proof.
     eapply sim_itree_flag_down. gbase. auto.
   }
   destruct s.
+  { admit. }
+  destruct s.
   { rewrite <- ! bind_trigger. resub. dependent destruction p.
     { guclo sim_itree_indC_spec. econs.
       guclo sim_itree_indC_spec. econs.
@@ -919,7 +921,7 @@ Proof.
       eapply sim_itree_progress_flag. gbase. auto.
     }
   }
-Qed.
+Admitted.
 
 
 
@@ -1116,120 +1118,121 @@ Section ADEQUACY.
     Let my_r := my_r0 \7/ my_r1.
     Let sim_lift: my_r <7= simg.
     Proof.
-      ginit.
-      { i. eapply cpn7_wcompat; eauto with paco. }
-      gcofix CIH. i. destruct PR.
-      { destruct H.
-        unfold sim_itree in SIM.
-        remember (st_src mn, itr_src).
-        remember (st_tgt mn, itr_tgt).
-        remember w0 in SIM at 2.
-        revert st_src itr_src st_tgt itr_tgt Heqp Heqp0 Heqw STATE.
+      (* ginit. *)
+      (* { i. eapply cpn7_wcompat; eauto with paco. } *)
+      (* gcofix CIH. i. destruct PR. *)
+      (* { destruct H. *)
+      (*   unfold sim_itree in SIM. *)
+      (*   remember (st_src mn, itr_src). *)
+      (*   remember (st_tgt mn, itr_tgt). *)
+      (*   remember w0 in SIM at 2. *)
+      (*   revert st_src itr_src st_tgt itr_tgt Heqp Heqp0 Heqw STATE. *)
 
-        (* TODO: why induction using sim_itree_ind doesn't work? *)
-        pattern o_src, o_tgt, w, p, p0.
-        match goal with
-        | |- ?P o_src o_tgt w p p0 => set P
-        end.
-        revert o_src o_tgt w p p0 SIM.
-        eapply (@sim_itree_ind world wf le Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; clarify.
+      (*   (* TODO: why induction using sim_itree_ind doesn't work? *) *)
+      (*   pattern o_src, o_tgt, w, p, p0. *)
+      (*   match goal with *)
+      (*   | |- ?P o_src o_tgt w p p0 => set P *)
+      (*   end. *)
+      (*   revert o_src o_tgt w p p0 SIM. *)
+      (*   eapply (@sim_itree_ind world wf le Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; clarify. *)
 
-        - rr in RET. des. step. splits; auto. econs; et.
-        - hexploit (fnsems_find_iff fn). i. des.
-          { steps. rewrite NONE. unfold unwrapU, triggerUB. step. ss. }
-          { steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both.
-            apply simg_progress_flag.
-            guclo bindC_spec. econs.
-            { gbase. eapply CIH. right. econs; ss. econs; et. refl. }
-            { i. ss. des. destruct vret_src, vret_tgt. des; clarify. inv SIM.
-              hexploit K; et. i. des. pclearbot.
-              steps. gbase. eapply CIH. left. econs; et.
-            }
-          }
-          { hexploit (SIM (Some mn, varg) (Some mn, varg)); et. i. des.
-            steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both.
-            apply simg_progress_flag.
-            guclo bindC_spec. econs.
-            { gbase. eapply CIH. left. econs; ss. et. }
-            { i. ss. destruct vret_src, vret_tgt. des; clarify. inv SIM0.
-              hexploit K; et. i. des. pclearbot.
-              steps. gbase. eapply CIH. left. econs; et.
-            }
-          }
-        - step. i. subst. apply simg_progress_flag.
-          hexploit (K x_tgt). i. des. pclearbot.
-          steps. gbase. eapply CIH. left. econs; et.
-        - ired_both. steps.
-        - des. force. exists x. steps. eapply IH; eauto.
-        - steps. i. hexploit K. i. des. steps. eapply IH; eauto.
-        - steps. eapply IH; eauto.
-          { unfold update. des_ifs. }
-          { i. unfold update. des_ifs. et. }
-        - steps. eapply IH; eauto.
-        - steps.
-        - steps. i. hexploit K. i. des. steps. eapply IH; eauto.
-        - des. force. exists x. steps. eapply IH; eauto.
-        - steps. eapply IH; eauto.
-          { unfold update. des_ifs. }
-          { i. unfold update. des_ifs. et. }
-        - steps. eapply IH; eauto.
-        - eapply simg_progress_flag. gbase. eapply CIH.
-          left. econs; eauto.
-      }
-      { destruct H. ides itr.
-        { steps. }
-        { steps. eapply simg_progress_flag. gbase. eapply CIH. right. econs; et. }
-        rewrite <- ! bind_trigger. destruct e.
-        { resub. destruct c. hexploit (fnsems_find_iff fn). i. des.
-          { steps. rewrite NONE. unfold unwrapU, triggerUB. step. ss. }
-          { inv SIM. steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both.
-            guclo bindC_spec. econs.
-            { eapply simg_progress_flag. gbase. eapply CIH.
-              right. econs; ss. econs; et. }
-            { i. ss. des. destruct vret_src, vret_tgt. des; clarify.
-              steps. eapply simg_progress_flag.
-              gbase. eapply CIH. right. econs; et. }
-          }
-          { inv SIM. hexploit (SIM0 (Some mn', args) (Some mn', args)); et. i. des.
-            steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both.
-            guclo bindC_spec. econs.
-            { eapply simg_progress_flag. gbase. eapply CIH. left. econs; ss. et. }
-            { i. ss. destruct vret_src, vret_tgt. des; clarify.
-              steps. eapply simg_progress_flag. gbase. eapply CIH. right. econs; et.
-              inv SIM. econs.
-              { etrans; et. }
-              { et. }
-              { et. }
-            }
-          }
-        }
-        destruct s.
-        { resub. destruct p.
-          { steps. eapply simg_progress_flag.
-            gbase. eapply CIH. right. econs; et.
-            inv SIM. econs; et.
-            { unfold update. des_ifs. }
-            { ii. unfold update. des_ifs. et. }
-          }
-          { steps. eapply simg_progress_flag.
-            gbase. eapply CIH. right.
-            replace (st_tgt mn') with (st_src mn'); et.
-            { econs; et. }
-            { inv SIM. et. }
-          }
-        }
-        { resub. destruct e.
-          { steps. force. exists x. steps. eapply simg_progress_flag.
-            gbase. eapply CIH; et. right. econs; et.
-          }
-          { steps. force. exists x. steps. eapply simg_progress_flag.
-            gbase. eapply CIH; et. right. econs; et.
-          }
-          { steps. subst. eapply simg_progress_flag.
-            gbase. eapply CIH; et. right. econs; et. }
-        }
-      }
-    Qed.
+      (*   - rr in RET. des. step. splits; auto. econs; et. *)
+      (*   - hexploit (fnsems_find_iff fn). i. des. *)
+      (*     { steps. rewrite NONE. unfold unwrapU, triggerUB. step. ss. } *)
+      (*     { steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both. *)
+      (*       apply simg_progress_flag. *)
+      (*       guclo bindC_spec. econs. *)
+      (*       { gbase. eapply CIH. right. econs; ss. econs; et. refl. } *)
+      (*       { i. ss. des. destruct vret_src, vret_tgt. des; clarify. inv SIM. *)
+      (*         hexploit K; et. i. des. pclearbot. *)
+      (*         steps. gbase. eapply CIH. left. econs; et. *)
+      (*       } *)
+      (*     } *)
+      (*     { hexploit (SIM (Some mn, varg) (Some mn, varg)); et. i. des. *)
+      (*       steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both. *)
+      (*       apply simg_progress_flag. *)
+      (*       guclo bindC_spec. econs. *)
+      (*       { gbase. eapply CIH. left. econs; ss. et. } *)
+      (*       { i. ss. destruct vret_src, vret_tgt. des; clarify. inv SIM0. *)
+      (*         hexploit K; et. i. des. pclearbot. *)
+      (*         steps. gbase. eapply CIH. left. econs; et. *)
+      (*       } *)
+      (*     } *)
+      (*   - step. i. subst. apply simg_progress_flag. *)
+      (*     hexploit (K x_tgt). i. des. pclearbot. *)
+      (*     steps. gbase. eapply CIH. left. econs; et. *)
+      (*   - ired_both. steps. *)
+      (*   - des. force. exists x. steps. eapply IH; eauto. *)
+      (*   - steps. i. hexploit K. i. des. steps. eapply IH; eauto. *)
+      (*   - steps. eapply IH; eauto. *)
+      (*     { unfold update. des_ifs. } *)
+      (*     { i. unfold update. des_ifs. et. } *)
+      (*   - steps. eapply IH; eauto. *)
+      (*   - steps. *)
+      (*   - steps. i. hexploit K. i. des. steps. eapply IH; eauto. *)
+      (*   - des. force. exists x. steps. eapply IH; eauto. *)
+      (*   - steps. eapply IH; eauto. *)
+      (*     { unfold update. des_ifs. } *)
+      (*     { i. unfold update. des_ifs. et. } *)
+      (*   - steps. eapply IH; eauto. *)
+      (*   - eapply simg_progress_flag. gbase. eapply CIH. *)
+      (*     left. econs; eauto. *)
+      (* } *)
+      (* { destruct H. ides itr. *)
+      (*   { steps. } *)
+      (*   { steps. eapply simg_progress_flag. gbase. eapply CIH. right. econs; et. } *)
+      (*   rewrite <- ! bind_trigger. destruct e. *)
+      (*   { resub. destruct c. hexploit (fnsems_find_iff fn). i. des. *)
+      (*     { steps. rewrite NONE. unfold unwrapU, triggerUB. step. ss. } *)
+      (*     { inv SIM. steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both. *)
+      (*       guclo bindC_spec. econs. *)
+      (*       { eapply simg_progress_flag. gbase. eapply CIH. *)
+      (*         right. econs; ss. econs; et. } *)
+      (*       { i. ss. des. destruct vret_src, vret_tgt. des; clarify. *)
+      (*         steps. eapply simg_progress_flag. *)
+      (*         gbase. eapply CIH. right. econs; et. } *)
+      (*     } *)
+      (*     { inv SIM. hexploit (SIM0 (Some mn', args) (Some mn', args)); et. i. des. *)
+      (*       steps. rewrite SRC. rewrite TGT. unfold unwrapU. ired_both. *)
+      (*       guclo bindC_spec. econs. *)
+      (*       { eapply simg_progress_flag. gbase. eapply CIH. left. econs; ss. et. } *)
+      (*       { i. ss. destruct vret_src, vret_tgt. des; clarify. *)
+      (*         steps. eapply simg_progress_flag. gbase. eapply CIH. right. econs; et. *)
+      (*         inv SIM. econs. *)
+      (*         { etrans; et. } *)
+      (*         { et. } *)
+      (*         { et. } *)
+      (*       } *)
+      (*     } *)
+      (*   } *)
+      (*   destruct s. *)
+      (*   { resub. destruct p. *)
+      (*     { steps. eapply simg_progress_flag. *)
+      (*       gbase. eapply CIH. right. econs; et. *)
+      (*       inv SIM. econs; et. *)
+      (*       { unfold update. des_ifs. } *)
+      (*       { ii. unfold update. des_ifs. et. } *)
+      (*     } *)
+      (*     { steps. eapply simg_progress_flag. *)
+      (*       gbase. eapply CIH. right. *)
+      (*       replace (st_tgt mn') with (st_src mn'); et. *)
+      (*       { econs; et. } *)
+      (*       { inv SIM. et. } *)
+      (*     } *)
+      (*   } *)
+      (*   { resub. destruct e. *)
+      (*     { steps. force. exists x. steps. eapply simg_progress_flag. *)
+      (*       gbase. eapply CIH; et. right. econs; et. *)
+      (*     } *)
+      (*     { steps. force. exists x. steps. eapply simg_progress_flag. *)
+      (*       gbase. eapply CIH; et. right. econs; et. *)
+      (*     } *)
+      (*     { steps. subst. eapply simg_progress_flag. *)
+      (*       gbase. eapply CIH; et. right. econs; et. } *)
+      (*   } *)
+      (* } *)
+    (* Qed. *)
+    Admitted.
 
     Context `{CONF: EMSConfig}.
 
@@ -1242,30 +1245,31 @@ Section ADEQUACY.
         (Beh.of_program (ModSemL.compile ms_tgt (Some P)))
         <1=
         (Beh.of_program (ModSemL.compile ms_src (Some Q))).
-    Proof.
-      eapply adequacy_global_itree; ss.
-      hexploit INIT. i. des. ginit.
-      { eapply cpn7_wcompat; eauto with paco. }
-      unfold ModSemL.initial_itr, assume.
-      hexploit (fnsems_find_iff "main"). i. des.
-      { steps. unshelve esplits; et. unfold ITree.map, unwrapU, triggerUB. steps.
-        rewrite NONE. steps. ss. }
-      { steps. unshelve esplits; et. unfold ITree.map, unwrapU. steps.
-        rewrite SRC. rewrite TGT.
-        steps. force. esplits; et. steps.
-        guclo bindC_spec. econs.
-        { eapply simg_progress_flag. gfinal. right. eapply sim_lift. right. econs; et. }
-        { i. destruct vret_src, vret_tgt. des; clarify. steps. }
-      }
-      { inv H. hexploit (SIM (None, initial_arg) (None, initial_arg)); et. i. des.
-        steps. force. esplits; et.
-        steps. unfold ITree.map, unwrapU. steps.
-        rewrite SRC. rewrite TGT. steps. guclo bindC_spec. econs.
-        { eapply simg_flag_down. gfinal. right. eapply sim_lift. left. econs; et. }
-        { i. destruct vret_src, vret_tgt. des; clarify. steps. }
-      }
-      Unshelve. all: try exact 0.
-    Qed.
+    (* Proof. *)
+    (*   eapply adequacy_global_itree; ss. *)
+    (*   hexploit INIT. i. des. ginit. *)
+    (*   { eapply cpn7_wcompat; eauto with paco. } *)
+    (*   unfold ModSemL.initial_itr, assume. *)
+    (*   hexploit (fnsems_find_iff "main"). i. des. *)
+    (*   { steps. unshelve esplits; et. unfold ITree.map, unwrapU, triggerUB. steps. *)
+    (*     rewrite NONE. steps. ss. } *)
+    (*   { steps. unshelve esplits; et. unfold ITree.map, unwrapU. steps. *)
+    (*     rewrite SRC. rewrite TGT. *)
+    (*     steps. force. esplits; et. steps. *)
+    (*     guclo bindC_spec. econs. *)
+    (*     { eapply simg_progress_flag. gfinal. right. eapply sim_lift. right. econs; et. } *)
+    (*     { i. destruct vret_src, vret_tgt. des; clarify. steps. } *)
+    (*   } *)
+    (*   { inv H. hexploit (SIM (None, initial_arg) (None, initial_arg)); et. i. des. *)
+    (*     steps. force. esplits; et. *)
+    (*     steps. unfold ITree.map, unwrapU. steps. *)
+    (*     rewrite SRC. rewrite TGT. steps. guclo bindC_spec. econs. *)
+    (*     { eapply simg_flag_down. gfinal. right. eapply sim_lift. left. econs; et. } *)
+    (*     { i. destruct vret_src, vret_tgt. des; clarify. steps. } *)
+    (*   } *)
+    (*   Unshelve. all: try exact 0. *)
+    (* Qed. *)
+    Admitted.
   End SEMPAIR.
 
   Theorem adequacy_local_strong md_src md_tgt

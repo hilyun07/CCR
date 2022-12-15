@@ -433,7 +433,7 @@ Section EVENTS.
   | PGet: pE Any.t
   .
 
-  Definition Es: Type -> Type := (callE +' pE+' eventE).
+  Definition Es: Type -> Type := (callE +' EventsL.schE +' pE +' eventE).
 
   Definition handle_pE (mn: mname): pE ~> EventsL.pE :=
     fun _ pe =>
@@ -452,6 +452,8 @@ Section EVENTS.
   Definition handle_all (mn: mname): Es ~> itree EventsL.Es.
     i. destruct X.
     { apply (handle_callE mn); assumption. }
+    destruct s.
+    { exact (trigger s). }
     destruct s.
     { exact (trigger (handle_pE mn p)). }
     exact (trigger e).
