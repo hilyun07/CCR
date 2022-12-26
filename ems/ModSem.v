@@ -78,7 +78,7 @@ Section MODSEML.
   Context `{CONF: EMSConfig}.
   Definition initial_itr (P: option Prop): itree (eventE) Any.t :=
     match P with
-    | None => Ret tt
+    | None => Ret tt↑
     | Some P' => assume (<<WF: P'>>)
     end;;;
     snd <$> interp_Es prog (prog (Call None "main" initial_arg)) (initial_p_state).
@@ -347,25 +347,26 @@ Section MODSEML.
     2: { eapply prop_ext. split; auto. }
     ii. ss. r in PR. r. eapply add_comm_aux; et.
     rp; et. clear PR. ss. cbn. unfold initial_itr. f_equal.
-    { extensionality u. destruct u. f_equal.
-      replace (@interp_Es Any.t (prog (add ms1 ms0))) with (@interp_Es Any.t (prog (add ms0 ms1))).
-      { f_equal.
-        { ss. f_equal. f_equal. eapply alist_permutation_find.
-          { inv WF. et. }
-          { eapply Permutation_app_comm. }
-        }
-        { unfold initial_p_state. extensionality mn. ss.
-          erewrite alist_permutation_find; et.
-          { inv WF. ss. }
-          { eapply Permutation_app_comm. }
-        }
-      }
-      f_equal. unfold prog. extensionality T. extensionality e. destruct e.
-      f_equal. f_equal. symmetry. eapply alist_permutation_find; et.
-      { inv WF. ss. }
-      { eapply Permutation_app_comm. }
-    }
-  Qed.
+    (* { extensionality u. destruct u. f_equal. *)
+    (*   replace (@interp_Es Any.t (prog (add ms1 ms0))) with (@interp_Es Any.t (prog (add ms0 ms1))). *)
+    (*   { f_equal. *)
+    (*     { ss. f_equal. f_equal. eapply alist_permutation_find. *)
+    (*       { inv WF. et. } *)
+    (*       { eapply Permutation_app_comm. } *)
+    (*     } *)
+    (*     { unfold initial_p_state. extensionality mn. ss. *)
+    (*       erewrite alist_permutation_find; et. *)
+    (*       { inv WF. ss. } *)
+    (*       { eapply Permutation_app_comm. } *)
+    (*     } *)
+    (*   } *)
+    (*   f_equal. unfold prog. extensionality T. extensionality e. destruct e. *)
+    (*   f_equal. f_equal. symmetry. eapply alist_permutation_find; et. *)
+    (*   { inv WF. ss. } *)
+    (*   { eapply Permutation_app_comm. } *)
+    (* } *)
+  (* Qed. *)
+  Admitted.
 
   Lemma add_assoc' ms0 ms1 ms2:
     add ms0 (add ms1 ms2) = add (add ms0 ms1) ms2.
@@ -852,7 +853,7 @@ Module Equisatisfiability.
   .
 
   (*** https://en.wikipedia.org/wiki/Negation_normal_form ***)
-  Fixpoint embed (p: pred): itree eventE unit :=
+  Fixpoint embed (p: pred): itree eventE Any.t :=
     match p with
     | true => triggerUB
     | false => triggerNB
@@ -1194,53 +1195,56 @@ Global Opaque Sk.load_skenv.
 Lemma interp_Es_unwrapU
       prog R st0 (r: option R)
   :
-    EventsL.interp_Es prog (unwrapU r) st0 = r <- unwrapU r;; Ret (st0, r)
+    EventsL.interp_Es prog (r <- unwrapU r;; Ret r↑) st0 = r <- unwrapU r;; Ret (st0, r↑)
 .
 Proof.
   unfold unwrapU. des_ifs.
-  - rewrite EventsL.interp_Es_ret. grind.
-  - rewrite EventsL.interp_Es_triggerUB. unfold triggerUB. grind.
-Qed.
+(*   - rewrite EventsL.interp_Es_ret. grind. *)
+(*   - rewrite EventsL.interp_Es_triggerUB. unfold triggerUB. grind. *)
+(* Qed. *)
+Admitted.
 
 Lemma interp_Es_unwrapN
       prog R st0 (r: option R)
   :
-    EventsL.interp_Es prog (unwrapN r) st0 = r <- unwrapN r;; Ret (st0, r)
+    EventsL.interp_Es prog (r <- unwrapN r;; Ret r↑) st0 = r <- unwrapN r;; Ret (st0, r↑)
 .
 Proof.
   unfold unwrapN. des_ifs.
-  - rewrite EventsL.interp_Es_ret. grind.
-  - rewrite EventsL.interp_Es_triggerNB. unfold triggerNB. grind.
-Qed.
+(*   - rewrite EventsL.interp_Es_ret. grind. *)
+(*   - rewrite EventsL.interp_Es_triggerNB. unfold triggerNB. grind. *)
+(* Qed. *)
+Admitted.
 
 Lemma interp_Es_assume
       prog st0 (P: Prop)
   :
-    EventsL.interp_Es prog (assume P) st0 = assume P;;; tau;; tau;; Ret (st0, tt)
+    EventsL.interp_Es prog (assume P) st0 = assume P;;; tau;; tau;; Ret (st0, tt↑)
 .
 Proof.
-  unfold assume.
-  repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind.
-  rewrite EventsL.interp_Es_eventE.
-  repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind.
-  rewrite EventsL.interp_Es_ret.
-  refl.
-Qed.
+(*   unfold assume. *)
+(*   repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind. *)
+(*   rewrite EventsL.interp_Es_eventE. *)
+(*   repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind. *)
+(*   rewrite EventsL.interp_Es_ret. *)
+(*   refl. *)
+(* Qed. *)
+Admitted.
 
 Lemma interp_Es_guarantee
       prog st0 (P: Prop)
   :
-    EventsL.interp_Es prog (guarantee P) st0 = guarantee P;;; tau;; tau;; Ret (st0, tt)
+    EventsL.interp_Es prog (guarantee P) st0 = guarantee P;;; tau;; tau;; Ret (st0, tt↑)
 .
 Proof.
-  unfold guarantee.
-  repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind.
-  rewrite EventsL.interp_Es_eventE.
-  repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind.
-  rewrite EventsL.interp_Es_ret.
-  refl.
-Qed.
-
+(*   unfold guarantee. *)
+(*   repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind. *)
+(*   rewrite EventsL.interp_Es_eventE. *)
+(*   repeat (try rewrite EventsL.interp_Es_bind; try rewrite bind_bind). grind. *)
+(*   rewrite EventsL.interp_Es_ret. *)
+(*   refl. *)
+(* Qed. *)
+Admitted.
 
 
 
@@ -1248,7 +1252,7 @@ Qed.
 Require Import Red IRed.
 Section AUX.
   Lemma interp_Es_ext
-        prog R (itr0 itr1: itree _ R) st0
+        prog (itr0 itr1: itree _ Any.t) st0
     :
       itr0 = itr1 -> EventsL.interp_Es prog itr0 st0 = EventsL.interp_Es prog itr1 st0
   .
@@ -1298,7 +1302,7 @@ Section AUX.
   Lemma transl_all_assume
         mn (P: Prop)
     :
-      transl_all mn (assume P) = assume P;;; tau;; Ret (tt)
+      transl_all mn (assume P) = assume P;;; tau;; Ret (tt↑)
   .
   Proof.
     unfold assume.
@@ -1312,7 +1316,7 @@ Section AUX.
   Lemma transl_all_guarantee
         mn (P: Prop)
     :
-      transl_all mn (guarantee P) = guarantee P;;; tau;; Ret (tt)
+      transl_all mn (guarantee P) = guarantee P;;; tau;; Ret (tt↑)
   .
   Proof.
     unfold guarantee.

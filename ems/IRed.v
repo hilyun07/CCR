@@ -385,7 +385,7 @@ Section RESUM.
     :
       (resum_itr (E:=E) (F:=F) (assume P))
       =
-      (assume P;;; tau;; Ret tt)
+      (assume P;;; tau;; Ret tt↑)
   .
   Proof.
     unfold resum_itr, assume. grind. rewrite unfold_interp; cbn. grind.
@@ -396,7 +396,7 @@ Section RESUM.
     :
       (resum_itr (E:=E) (F:=F) (guarantee P))
       =
-      (guarantee P;;; tau;; Ret tt).
+      (guarantee P;;; tau;; Ret tt↑).
   Proof.
     unfold resum_itr, guarantee. grind. rewrite unfold_interp; cbn. grind.
   Qed.
@@ -471,8 +471,8 @@ Section TEST.
   Hypothesis x_NB: forall R, (x triggerNB) = (triggerNB: itree _ R).
   Hypothesis x_unwrapU: forall R (i: option R), (x (unwrapU i)) = (unwrapU i).
   Hypothesis x_unwrapN: forall R (i: option R), (x (unwrapN i)) = (unwrapN i).
-  Hypothesis x_assume: forall P, (x (assume P)) = assume P >>= (fun _ => tau;; Ret tt).
-  Hypothesis x_guarantee: forall P, (x (guarantee P)) = guarantee P >>= (fun _ => tau;; Ret tt).
+  Hypothesis x_assume: forall P, (x (assume P)) = assume P >>= (fun _ => tau;; Ret tt↑).
+  Hypothesis x_guarantee: forall P, (x (guarantee P)) = guarantee P >>= (fun _ => tau;; Ret tt↑).
   Hypothesis x_ext: forall R (i0 i1: itree _ R), i0 = i1 -> (x i0) = (x i1).
 
   Global Program Instance x_rdb: red_database (mk_box x) :=
@@ -502,8 +502,8 @@ Section TEST.
   Hypothesis y_NB: forall R, (y triggerNB) = (triggerNB: itree _ R).
   Hypothesis y_unwrapU: forall R (i: option R), (y (unwrapU i)) = (unwrapU i).
   Hypothesis y_unwrapN: forall R (i: option R), (y (unwrapN i)) = (unwrapN i).
-  Hypothesis y_assume: forall P, (y (assume P)) = assume P >>= (fun _ => tau;; Ret tt).
-  Hypothesis y_guarantee: forall P, (y (guarantee P)) = guarantee P >>= (fun _ => tau;; Ret tt).
+  Hypothesis y_assume: forall P, (y (assume P)) = assume P >>= (fun _ => tau;; Ret tt↑).
+  Hypothesis y_guarantee: forall P, (y (guarantee P)) = guarantee P >>= (fun _ => tau;; Ret tt↑).
   Hypothesis y_ext: forall R (i0 i1: itree _ R), i0 = i1 -> (y i0) = (y i1).
 
   Global Program Instance y_rdb: red_database (mk_box y) :=
@@ -533,8 +533,8 @@ Section TEST.
   Hypothesis z_NB: forall R, (z triggerNB) = (triggerNB: itree _ R).
   Hypothesis z_unwrapU: forall R (i: option R), (z (unwrapU i)) = (unwrapU i).
   Hypothesis z_unwrapN: forall R (i: option R), (z (unwrapN i)) = (unwrapN i).
-  Hypothesis z_assume: forall P, (z (assume P)) = assume P >>= (fun _ => tau;; Ret tt).
-  Hypothesis z_guarantee: forall P, (z (guarantee P)) = guarantee P >>= (fun _ => tau;; Ret tt).
+  Hypothesis z_assume: forall P, (z (assume P)) = assume P >>= (fun _ => tau;; Ret tt↑).
+  Hypothesis z_guarantee: forall P, (z (guarantee P)) = guarantee P >>= (fun _ => tau;; Ret tt↑).
   Hypothesis z_ext: forall R (i0 i1: itree _ R), i0 = i1 -> (z i0) = (z i1).
 
   Global Program Instance z_rdb: red_database (mk_box z) :=
@@ -600,8 +600,8 @@ Section TEST.
   Hypothesis xx_NB: forall R p q, (xx p triggerNB q) = (triggerNB: itree _ R).
   Hypothesis xx_unwrapU: forall R p q (i: option R), (xx p (unwrapU i) q) = (unwrapU i).
   Hypothesis xx_unwrapN: forall R p q (i: option R), (xx p (unwrapN i) q) = (unwrapN i).
-  Hypothesis xx_assume: forall P p q, (xx p (assume P) q) = assume P >>= (fun _ => tau;; Ret tt).
-  Hypothesis xx_guarantee: forall P p q, (xx p (guarantee P) q) = guarantee P >>= (fun _ => tau;; Ret tt).
+  Hypothesis xx_assume: forall P p q, (xx p (assume P) q) = assume P >>= (fun _ => tau;; Ret tt↑).
+  Hypothesis xx_guarantee: forall P p q, (xx p (guarantee P) q) = guarantee P >>= (fun _ => tau;; Ret tt↑).
   Hypothesis xx_exxt: forall R p q (i0 i1: itree _ R), i0 = i1 -> (xx p i0 q) = (xx p i1 q).
 
   Global Program Instance xx_rdb: red_database (mk_box xx) :=

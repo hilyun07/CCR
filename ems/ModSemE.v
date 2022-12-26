@@ -41,8 +41,8 @@ Section EVENTSCOMMON.
     | None => triggerUB
     end.
 
-  Definition assume {E} `{eventE -< E} (P: Prop): itree E unit := trigger (Take P) ;;; Ret tt.
-  Definition guarantee {E} `{eventE -< E} (P: Prop): itree E unit := trigger (Choose P) ;;; Ret tt.
+  Definition assume {E} `{eventE -< E} (P: Prop): itree E Any.t := trigger (Take P) ;;; Ret tt↑.
+  Definition guarantee {E} `{eventE -< E} (P: Prop): itree E Any.t := trigger (Choose P) ;;; Ret tt↑.
 
   (* Notation "'unint?'" := (unwrapA <*> unint) (at level 57, only parsing). *)
   (* Notation "'unint﹗'" := (unwrapG <*> unint) (at level 57, only parsing). *)
@@ -153,7 +153,6 @@ Section EVENTSL.
   (*************************** Interpretation *************************)
   (********************************************************************)
   Section Scheduler.
-    (* run interaction tree until scheE (really finished, spawn, and yield) *)
     Definition interp_schE {E}:
       nat * itree (schE +' pE +' eventE) E ->
       itree (pE +' eventE) (E + (string * Any.t * (nat -> itree (schE +' pE +' eventE) E))
@@ -183,14 +182,14 @@ Section EVENTSL.
           exact (Vis (inr1 e) (fun x => Ret (inl (tid, k x)))).
     Defined.
 
-    Notation threads E := (alist nat (itree (schE +' pE +' eventE) E)).
+    Notation threads := (alist nat (itree (schE +' pE +' eventE) Any.t)).
 
-    Inductive executeE {E} : Type -> Type :=
-    | Execute : nat -> executeE ((list nat) * (E + nat + unit)).
+    Inductive executeE : Type -> Type :=
+    | Execute : nat -> executeE ((list nat) * (Any.t + nat + unit)).
 
-    Definition interp_executeE {E}:
-      (callE ~> itree Es) * (threads E) * nat * (itree ((@executeE E) +' eventE) E) ->
-      itree (pE +' eventE) E.
+    Definition interp_executeE:
+      (callE ~> itree Es) * threads * nat * (itree (executeE +' eventE) Any.t) ->
+      itree (pE +' eventE) Any.t.
     Proof.
       eapply ITree.iter. intros [[[prog ts] next_tid] sch].
       destruct (observe sch) as [r | sch' | X [e|e] ktr].
@@ -204,8 +203,7 @@ Section EVENTSL.
                      let ts' := alist_remove tid ts in
                      Ret (inl (prog, ts', next_tid, ktr (List.map fst ts, (inl (inl r)))))
                  | inl (inr (fn, args, k)) => (* spawn *)
-                     let new_itr := interp_mrec prog (v <- (prog _ (Call None fn args));;
-                                                      triggerNB) in
+                     let new_itr := interp_mrec prog (prog _ (Call None fn args)) in
                      let ts' := alist_add next_tid new_itr (alist_replace tid (k next_tid) ts) in
                      Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts, (inl (inr tid)))))
                  | inr t' => (* yield *)
@@ -216,7 +214,7 @@ Section EVENTSL.
       - exact (Vis (inr1 e) (fun x => Ret (inl (prog, ts, next_tid, ktr x)))).
     Defined.
 
-    Definition sched_nondet {E} : nat -> itree (executeE +' eventE) E :=
+    Definition sched_nondet : nat -> itree (executeE +' eventE) Any.t :=
       ITree.iter (fun tid => 
                     '(ts, retv) <- ITree.trigger (inl1 (Execute tid));;
                     match retv with
@@ -233,8 +231,8 @@ Section EVENTSL.
                         Ret (inl tid')
                     end).
 
-    Definition interp_scheduler {E}
-      (prog: callE ~> itree Es) (ts: threads E) (start_tid: nat) : itree (pE +' eventE) E :=
+    Definition interp_scheduler
+      (prog: callE ~> itree Es) (ts: threads) (start_tid: nat) : itree (pE +' eventE) Any.t :=
       interp_executeE (prog, ts, List.length ts, sched_nondet start_tid).
   End Scheduler.
 
@@ -252,7 +250,7 @@ Section EVENTSL.
   (*   interp_pE (interp_rE (interp_mrec prog itr0) rst0) pst0 *)
   (* . *)
 
-  Definition interp_Es E (prog: callE ~> itree Es) (itr0: itree Es E) (st0: p_state): itree eventE (p_state * _)%type :=
+  Definition interp_Es (prog: callE ~> itree Es) (itr0: itree Es Any.t) (st0: p_state): itree eventE (p_state * _)%type :=
     let itr1 := interp_mrec prog itr0 in
     let itr2 := interp_scheduler prog (alist_add 0 itr1 []) 0 in
     '(st1, v) <- interp_pE itr2 st0;;
@@ -263,31 +261,57 @@ Section EVENTSL.
 
 
   Lemma interp_Es_bind
-        A B
-        (itr: itree Es A) (ktr: A -> itree Es B)
+        A
+        (itr: itree Es A) (ktr: A -> itree Es Any.t)
         (prog: callE ~> itree Es)
         st0
     :
       interp_Es prog (v <- itr ;; ktr v) st0 =
-      '(st1, v) <- interp_Es prog (itr) st0 ;; interp_Es prog (ktr v) st1
+      '(st1, v) <- interp_Es prog (v <- itr;; Ret v↑) st0;; v <- unwrapU v↓ ;; interp_Es prog (ktr v) st1
   .
-  (* Proof. unfold interp_Es, interp_pE. des_ifs. grind. Qed. *)
+  Proof.
+    unfold interp_Es at 1. unfold interp_pE, interp_scheduler, interp_mrec. ss.
   Admitted.
 
   Lemma interp_Es_tau
         (prog: callE ~> itree Es)
-        A
-        (itr: itree Es A)
+        (itr: itree Es Any.t)
         st0
     :
       interp_Es prog (tau;; itr) st0 = tau;; interp_Es prog itr st0
   .
-  (* Proof. unfold interp_Es, interp_pE. des_ifs. grind. Qed. *)
+  (* Proof. *)
+  (*   unfold interp_Es at 1. unfold interp_scheduler. *)
+  (*   grind. eapply bisimulation_is_eq. *)
+  (*   unfold sched_nondet. *)
+  (*   remember (fun tid : nat => *)
+  (*         ` x_ : list nat * (Any.t + nat + ()) <- ITree.trigger (Execute tid|)%sum;; *)
+  (*         (let (ts, retv) := x_ in *)
+  (*          match retv with *)
+  (*          | inl (inl r) => *)
+  (*              match ts with *)
+  (*              | [] => Ret (inr r) *)
+  (*              | _ :: _ => ` tid' : nat <- ITree.trigger (|Choose nat)%sum;; Ret (inl tid') *)
+  (*              end *)
+  (*          | inl (inr tid') => Ret (inl tid') *)
+  (*          | inr () => ` tid' : nat <- ITree.trigger (|Choose nat)%sum;; Ret (inl tid') *)
+  (*          end)) as f. *)
+  (*   assert(H: ITree.iter f 0 = *)
+  (*        ITree.bind (f 0) (fun lr => ITree.on_left lr l (Tau (ITree.iter f l)))). *)
+  (*   { eapply bisimulation_is_eq. rewrite unfold_iter. reflexivity. } *)
+  (*   rewrite H. clear H. *)
+  (*   rewrite Heqf. grind. *)
+  (*   fold sched_nondet. unfold interp_executeE. rewrite unfold_iter. fold interp_executeE. *)
+  (*   grind. unfold interp_schE. rewrite unfold_iter. grind. *)
+  (*   fold (@interp_schE Any.t). unfold interp_pE. grind. *)
+  (*   unfold interp_Es, interp_pE, interp_scheduler. ss. *)
+  (*   unfold interp_executeE at 2. ss. rewrite unfold_iter. fold interp_executeE. *)
+  (*   grind. *)
+  (* Qed. *)
   Admitted.
 
   Lemma interp_Es_ret
-        T
-        prog st0 (v: T)
+        prog st0 (v: Any.t)
     :
       interp_Es prog (Ret v) st0 = Ret (st0, v)
   .
@@ -295,9 +319,9 @@ Section EVENTSL.
   Admitted.
 
   Lemma interp_Es_callE
-        p st0 T
+        p st0
         (* (e: Es Σ) *)
-        (e: callE T)
+        (e: callE Any.t)
     :
       interp_Es p (trigger e) st0 = tau;; (interp_Es p (p _ e) st0)
   .
@@ -307,8 +331,7 @@ Section EVENTSL.
   Lemma interp_Es_pE
         p st0
         (* (e: Es Σ) *)
-        T
-        (e: pE T)
+        (e: pE Any.t)
     :
       interp_Es p (trigger e) st0 =
       '(st1, r) <- handle_pE e st0;;
@@ -323,8 +346,7 @@ Section EVENTSL.
   Lemma interp_Es_eventE
         p st0
         (* (e: Es Σ) *)
-        T
-        (e: eventE T)
+        (e: eventE Any.t)
     :
       interp_Es p (trigger e) st0 = r <- trigger e;; tau;; tau;; Ret (st0, r)
   .
@@ -337,9 +359,8 @@ Section EVENTSL.
   Lemma interp_Es_triggerUB
         (prog: callE ~> itree Es)
         st0
-        A
     :
-      (interp_Es prog (triggerUB) st0: itree eventE (_ * A)) = triggerUB
+      (interp_Es prog (triggerUB) st0: itree eventE (_ * Any.t)) = triggerUB
   .
   (* Proof. *)
   (*   unfold interp_Es, interp_pE, pure_state, triggerUB. grind. *)
@@ -349,9 +370,8 @@ Section EVENTSL.
   Lemma interp_Es_triggerNB
         (prog: callE ~> itree Es)
         st0
-        A
     :
-      (interp_Es prog (triggerNB) st0: itree eventE (_ * A)) = triggerNB
+      (interp_Es prog (triggerNB) st0: itree eventE (_ * Any.t)) = triggerNB
   .
   (* Proof. *)
   (*   unfold interp_Es, interp_pE, pure_state, triggerNB. grind. *)
