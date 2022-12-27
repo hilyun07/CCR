@@ -390,7 +390,7 @@ Section PROOFS.
   Lemma interp_imp_assume
         ge le0 p
     :
-      interp_imp ge (assume p) le0 = assume p;;; tau;; tau;; Ret (le0, ()).
+      interp_imp ge (assume p) le0 = assume p;;; tau;; tau;; Ret (le0, tt↑).
   Proof.
     unfold interp_imp, interp_GlobEnv, interp_ImpState.
     unfold assume. grind. rewrite interp_trigger. grind.
@@ -400,7 +400,7 @@ Section PROOFS.
   Lemma interp_imp_guarantee
         ge le0 p
     :
-      interp_imp ge (guarantee p) le0 = guarantee p;;; tau;; tau;; Ret (le0, ()).
+      interp_imp ge (guarantee p) le0 = guarantee p;;; tau;; tau;; Ret (le0, tt↑).
   Proof.
     unfold interp_imp, interp_GlobEnv, interp_ImpState.
     unfold guarantee. grind. rewrite interp_trigger. grind.

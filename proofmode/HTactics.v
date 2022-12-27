@@ -559,7 +559,7 @@ Section HLEMMAS.
         stb itr_tgt ctx
 
         (POST: gpaco8 (_sim_itree wf le) (cpn8 (_sim_itree wf le)) r rg _ _ eqr true n a
-                      (mp_src0, k_src (ctx, ()))
+                      (mp_src0, k_src (ctx, tt↑))
                       (itr_tgt))
     :
       gpaco8 (_sim_itree wf le) (cpn8 (_sim_itree wf le)) r rg _ _ eqr m n a

@@ -405,149 +405,149 @@ Section CANCEL.
   Qed.
 
 
-  Let adequacy_type_aux
-      (NODUP: NoDup (List.map fst ms_tgt.(ModSemL.initial_mrs))):
-    forall RT
-           mrs0 frs ctx0
-           st_src0 st_tgt0 (i0: itree (hCallE +' pE +' eventE) RT)
-           mn cur
-           (ZIP: st_tgt0 = zip_state st_src0 mrs0)
-           (CTX: ctx0 = frs ⋅ rsum_minus mn mrs0)
+  (* Let adequacy_type_aux *)
+  (*     (NODUP: NoDup (List.map fst ms_tgt.(ModSemL.initial_mrs))): *)
+  (*   forall *)
+  (*          mrs0 frs ctx0 *)
+  (*          st_src0 st_tgt0 (i0: itree (hCallE +' EventsL.schE +' pE +' eventE) Any.t) *)
+  (*          mn cur *)
+  (*          (ZIP: st_tgt0 = zip_state st_src0 mrs0) *)
+  (*          (CTX: ctx0 = frs ⋅ rsum_minus mn mrs0) *)
 
-           (MIN: List.In mn (List.map fst ms_tgt.(ModSemL.initial_mrs)))
-           (NODUP: NoDup (List.map fst ms_tgt.(ModSemL.initial_mrs)))
-    ,
-      simg (fun '(st_src1, v_src) '(st_tgt1, v_tgt) =>
-              exists mrs1,
-                (<<ZIP: st_tgt1 = zip_state st_src1 mrs1>>) /\
-                (<<RET: (v_tgt: Σ * RT) = (frs ⋅ rsum_minus mn mrs1, v_src)>>))
-           false false
-           (EventsL.interp_Es (ModSemL.prog ms_mid) (transl_all mn (interp_hCallE_mid (stb sk) cur i0)) st_src0)
-           (EventsL.interp_Es (ModSemL.prog ms_tgt) (transl_all mn (interp_hCallE_tgt mn (stb sk) cur i0 ctx0)) st_tgt0)
-  .
-  Proof.
-    Opaque subevent.
-    ginit.
-    { i. eapply cpn7_wcompat; eauto with paco. }
-    gcofix CIH. i; subst.
-    ides i0; try rewrite ! unfold_interp; cbn; mred.
-    { steps. }
-    { steps. deflag. gbase. eapply CIH; [..|M]; Mskip et. ss. }
-    rewrite <- bind_trigger. destruct e; cycle 1.
-    {
-      destruct s; ss.
-      {
-        destruct p; ss.
-        - resub. steps.
-          erewrite zip_state_get; et. steps. deflag.
-          gbase. eapply CIH; ss.
-          extensionality mn0. unfold update, zip_state. des_ifs.
-          exfalso. eapply in_map_iff in MIN. des. destruct x. subst.
-          eapply alist_find_none in Heq. et.
-        - resub. steps.
-          erewrite zip_state_get; et. steps. deflag.
-          gbase. eapply CIH; ss.
-      }
-      { dependent destruction e.
-        - resub. ired_both. force_r. steps. esplits; eauto. steps. deflag.
-          gbase. eapply CIH; [..|M]; Mskip et. ss.
-        - resub. steps. esplits; eauto. steps. deflag. gbase. eapply CIH; [..|M]; Mskip et. ss.
-        - resub. steps. deflag. gbase. eapply CIH; [..|M]; Mskip et. ss.
-      }
-    }
-    dependent destruction h. resub.
-    set (ModSemL.prog ms_mid) as p_mid in *.
-    set (ModSemL.prog ms_tgt) as p_tgt in *.
-    ss.
-    seal_left.
+  (*          (MIN: List.In mn (List.map fst ms_tgt.(ModSemL.initial_mrs))) *)
+  (*          (NODUP: NoDup (List.map fst ms_tgt.(ModSemL.initial_mrs))) *)
+  (*   , *)
+  (*     simg (fun '(st_src1, v_src) '(st_tgt1, v_tgt) => *)
+  (*             exists mrs1, *)
+  (*               (<<ZIP: st_tgt1 = zip_state st_src1 mrs1>>) /\ *)
+  (*               (<<RET: (v_tgt: Σ * Any.t) = (frs ⋅ rsum_minus mn mrs1, v_src)>>)) *)
+  (*          false false *)
+  (*          (EventsL.interp_Es (ModSemL.prog ms_mid) (transl_all mn (interp_hCallE_mid (stb sk) cur i0)) st_src0) *)
+  (*          (EventsL.interp_Es (ModSemL.prog ms_tgt) (transl_all mn (interp_hCallE_tgt mn (stb sk) cur i0 ctx0)) st_tgt0) *)
+  (* . *)
+  (* Proof. *)
+  (*   Opaque subevent. *)
+  (*   ginit. *)
+  (*   { i. eapply cpn7_wcompat; eauto with paco. } *)
+  (*   gcofix CIH. i; subst. *)
+  (*   ides i0; try rewrite ! unfold_interp; cbn; mred. *)
+  (*   { steps. } *)
+  (*   { steps. deflag. gbase. eapply CIH; [..|M]; Mskip et. ss. } *)
+  (*   rewrite <- bind_trigger. destruct e; cycle 1. *)
+  (*   { *)
+  (*     destruct s; ss. *)
+  (*     { *)
+  (*       destruct p; ss. *)
+  (*       - resub. steps. *)
+  (*         erewrite zip_state_get; et. steps. deflag. *)
+  (*         gbase. eapply CIH; ss. *)
+  (*         extensionality mn0. unfold update, zip_state. des_ifs. *)
+  (*         exfalso. eapply in_map_iff in MIN. des. destruct x. subst. *)
+  (*         eapply alist_find_none in Heq. et. *)
+  (*       - resub. steps. *)
+  (*         erewrite zip_state_get; et. steps. deflag. *)
+  (*         gbase. eapply CIH; ss. *)
+  (*     } *)
+  (*     { dependent destruction e. *)
+  (*       - resub. ired_both. force_r. steps. esplits; eauto. steps. deflag. *)
+  (*         gbase. eapply CIH; [..|M]; Mskip et. ss. *)
+  (*       - resub. steps. esplits; eauto. steps. deflag. gbase. eapply CIH; [..|M]; Mskip et. ss. *)
+  (*       - resub. steps. deflag. gbase. eapply CIH; [..|M]; Mskip et. ss. *)
+  (*     } *)
+  (*   } *)
+  (*   dependent destruction h. resub. *)
+  (*   set (ModSemL.prog ms_mid) as p_mid in *. *)
+  (*   set (ModSemL.prog ms_tgt) as p_tgt in *. *)
+  (*   ss. *)
+  (*   seal_left. *)
 
-    steps. hexploit (stb_find_iff fn). i. des.
-    { rewrite NONE. steps. }
-    { rewrite FIND. unfold HoareCall, ASSUME, ASSERT, mput, mget. steps.
-      erewrite zip_state_get; et. steps.
-      des; clarify. destruct tbr; ss.
-      { exfalso. hexploit TRIVIAL; et. intro T. rewrite T in *. hexploit x4; ss. }
-      seal_right. unseal_left. steps. rewrite FIND. steps. esplits; et.
-      steps. esplits; et.
-      { destruct cur; ss. hexploit x5; ss. intro T. rewrite T in *; ss. }
-      steps. rewrite FINDMID. steps.
-    }
-    unfold HoareCall, ASSUME, ASSERT, mput, mget.
+  (*   steps. hexploit (stb_find_iff fn). i. des. *)
+  (*   { rewrite NONE. steps. } *)
+  (*   { rewrite FIND. unfold HoareCall, ASSUME, ASSERT, mput, mget. steps. *)
+  (*     erewrite zip_state_get; et. steps. *)
+  (*     des; clarify. destruct tbr; ss. *)
+  (*     { exfalso. hexploit TRIVIAL; et. intro T. rewrite T in *. hexploit x4; ss. } *)
+  (*     seal_right. unseal_left. steps. rewrite FIND. steps. esplits; et. *)
+  (*     steps. esplits; et. *)
+  (*     { destruct cur; ss. hexploit x5; ss. intro T. rewrite T in *; ss. } *)
+  (*     steps. rewrite FINDMID. steps. *)
+  (*   } *)
+  (*   unfold HoareCall, ASSUME, ASSERT, mput, mget. *)
 
-    (*** exploiting both_tau ***)
-    rewrite STB. ss. mred. force_r.
-    destruct (classic (tbr = true /\ forall x, f.(measure) x = ord_top)).
-    { des. subst. steps.
-      erewrite zip_state_get; et. rewrite Any.pair_split. steps.
-      hexploit H0; et. i. rewrite H in *. ss. des. hexploit x4; ss. }
-    rename H into TRIVIAL.
-    unseal_left. ired_both. rewrite STB. steps. esplit.
-    { ii. subst. eapply TRIVIAL; ss. } steps.
-    erewrite zip_state_get; et. rewrite Any.pair_split. steps.
+  (*   (*** exploiting both_tau ***) *)
+  (*   rewrite STB. ss. mred. force_r. *)
+  (*   destruct (classic (tbr = true /\ forall x, f.(measure) x = ord_top)). *)
+  (*   { des. subst. steps. *)
+  (*     erewrite zip_state_get; et. rewrite Any.pair_split. steps. *)
+  (*     hexploit H0; et. i. rewrite H in *. ss. des. hexploit x4; ss. } *)
+  (*   rename H into TRIVIAL. *)
+  (*   unseal_left. ired_both. rewrite STB. steps. esplit. *)
+  (*   { ii. subst. eapply TRIVIAL; ss. } steps. *)
+  (*   erewrite zip_state_get; et. rewrite Any.pair_split. steps. *)
 
-    match goal with
-    | |- _ ?i_tgt => replace i_tgt with (Ret tt;;; i_tgt)
-    end.
-    2: { mred. auto. }
-    deflag. guclo bindC_spec. econs.
-    { instantiate (1:= fun '(st_src, o) (_: unit) => st_src = st_src0 /\ o = (f.(measure) x)).
-      destruct tbr.
-      { steps. des. destruct (measure f x); ss.
-        { exists n. steps. }
-        { exfalso. hexploit x4; ss. }
-      }
-      { steps. des. splits; auto. symmetry. auto. }
-    }
-    i. destruct vret_src, vret_tgt. des; subst.
+  (*   match goal with *)
+  (*   | |- _ ?i_tgt => replace i_tgt with (Ret tt;;; i_tgt) *)
+  (*   end. *)
+  (*   2: { mred. auto. } *)
+  (*   deflag. guclo bindC_spec. econs. *)
+  (*   { instantiate (1:= fun '(st_src, o) (_: unit) => st_src = st_src0 /\ o = (f.(measure) x)). *)
+  (*     destruct tbr. *)
+  (*     { steps. des. destruct (measure f x); ss. *)
+  (*       { exists n. steps. } *)
+  (*       { exfalso. hexploit x4; ss. } *)
+  (*     } *)
+  (*     { steps. des. splits; auto. symmetry. auto. } *)
+  (*   } *)
+  (*   i. destruct vret_src, vret_tgt. des; subst. *)
 
-    steps. esplits; eauto. steps. unfold unwrapU.
-    rewrite FINDMID. rewrite FINDTGT. rewrite ! bind_ret_l.
+  (*   steps. esplits; eauto. steps. unfold unwrapU. *)
+  (*   rewrite FINDMID. rewrite FINDTGT. rewrite ! bind_ret_l. *)
 
-    guclo bindC_spec. econs.
+  (*   guclo bindC_spec. econs. *)
 
-    { instantiate (1:= fun '(st_src1, vret_src) '(st_tgt1, vret_tgt) =>
-                         exists (mrs1: r_state) rret,
-                           (<<ZIP: st_tgt1 = zip_state st_src1 mrs1>>) /\
-                           (<<POST: f.(postcond) (Some mn) x vret_src vret_tgt rret>>) /\
-                           (<<RWF: URA.wf (rret ⋅ (c1 ⋅ (frs ⋅ rsum_minus mn mrs1) ⋅ (mrs1 mn)))>>)).
-      fold sk. fold sk. set (mn0:=SModSem.mn (SMod.get_modsem md sk)) in *.
-      fold Any_tgt in x3.
-      unfold fun_to_src, fun_to_tgt, compose. des_ifs. unfold HoareFun, ASSUME, ASSERT, mget, mput.
-      rename x3 into PRECOND. rename c0 into rarg.
-      steps. exists x.
-      steps. eexists (rarg, c1 ⋅ (frs ⋅ rsum_minus mn0 (update mrs0 mn c))). steps.
-      erewrite ! zip_state_mput; et. steps.
-      erewrite zip_state_get; et. steps.
-      assert (RWF0: URA.wf (rarg ⋅ ε ⋅ (c1 ⋅ (frs ⋅ rsum_minus mn0 (update mrs0 mn c))) ⋅ update mrs0 mn c mn0)).
-      { r_wf x0. symmetry. eapply rsum_minus_update; et. }
-      unshelve esplits; eauto. steps.
-      exists varg_src.
-      steps. esplits; eauto. steps. unshelve esplits; eauto. steps.
-      deflag. guclo bindC_spec. econs.
-      { gbase. eapply CIH; ss.
-        { instantiate (1:=c1 ⋅ frs). r_solve. }
-      }
-      { ii. ss. des_ifs_safe. des; ss. clarify.
-        steps. rewrite zip_state_get; et.
-        rewrite Any.pair_split. steps.
-        esplits; ss; et.
-        { assert(URA.wf (c2 ⋅ (c1 ⋅ frs ⋅ rsum_minus mn0 mrs1) ⋅ c0)).
-          { eapply (@URA.wf_mon _ _ c3). r_wf x3. }
-          r_wf H. symmetry. eapply rsum_minus_update; et. }
-      }
-    }
-    { ii. ss. des_ifs_safe. des. subst.
-      steps. eexists (rret, frs ⋅ rsum_minus mn mrs1). steps.
-      rewrite zip_state_get; et.
-      rewrite Any.pair_split. steps. rewrite Any.upcast_downcast. steps.
-      unshelve esplits; et.
-      { r_wf RWF. }
-      steps. exists t. steps. unshelve esplits; et.
-      steps. deflag. gbase. eapply CIH; et.
-    }
-  Unshelve.
-    all: try (by exact 0).
-  Qed.
+  (*   { instantiate (1:= fun '(st_src1, vret_src) '(st_tgt1, vret_tgt) => *)
+  (*                        exists (mrs1: r_state) rret, *)
+  (*                          (<<ZIP: st_tgt1 = zip_state st_src1 mrs1>>) /\ *)
+  (*                          (<<POST: f.(postcond) (Some mn) x vret_src vret_tgt rret>>) /\ *)
+  (*                          (<<RWF: URA.wf (rret ⋅ (c1 ⋅ (frs ⋅ rsum_minus mn mrs1) ⋅ (mrs1 mn)))>>)). *)
+  (*     fold sk. fold sk. set (mn0:=SModSem.mn (SMod.get_modsem md sk)) in *. *)
+  (*     fold Any_tgt in x3. *)
+  (*     unfold fun_to_src, fun_to_tgt, compose. des_ifs. unfold HoareFun, ASSUME, ASSERT, mget, mput. *)
+  (*     rename x3 into PRECOND. rename c0 into rarg. *)
+  (*     steps. exists x. *)
+  (*     steps. eexists (rarg, c1 ⋅ (frs ⋅ rsum_minus mn0 (update mrs0 mn c))). steps. *)
+  (*     erewrite ! zip_state_mput; et. steps. *)
+  (*     erewrite zip_state_get; et. steps. *)
+  (*     assert (RWF0: URA.wf (rarg ⋅ ε ⋅ (c1 ⋅ (frs ⋅ rsum_minus mn0 (update mrs0 mn c))) ⋅ update mrs0 mn c mn0)). *)
+  (*     { r_wf x0. symmetry. eapply rsum_minus_update; et. } *)
+  (*     unshelve esplits; eauto. steps. *)
+  (*     exists varg_src. *)
+  (*     steps. esplits; eauto. steps. unshelve esplits; eauto. steps. *)
+  (*     deflag. guclo bindC_spec. econs. *)
+  (*     { gbase. eapply CIH; ss. *)
+  (*       { instantiate (1:=c1 ⋅ frs). r_solve. } *)
+  (*     } *)
+  (*     { ii. ss. des_ifs_safe. des; ss. clarify. *)
+  (*       steps. rewrite zip_state_get; et. *)
+  (*       rewrite Any.pair_split. steps. *)
+  (*       esplits; ss; et. *)
+  (*       { assert(URA.wf (c2 ⋅ (c1 ⋅ frs ⋅ rsum_minus mn0 mrs1) ⋅ c0)). *)
+  (*         { eapply (@URA.wf_mon _ _ c3). r_wf x3. } *)
+  (*         r_wf H. symmetry. eapply rsum_minus_update; et. } *)
+  (*     } *)
+  (*   } *)
+  (*   { ii. ss. des_ifs_safe. des. subst. *)
+  (*     steps. eexists (rret, frs ⋅ rsum_minus mn mrs1). steps. *)
+  (*     rewrite zip_state_get; et. *)
+  (*     rewrite Any.pair_split. steps. rewrite Any.upcast_downcast. steps. *)
+  (*     unshelve esplits; et. *)
+  (*     { r_wf RWF. } *)
+  (*     steps. exists t. steps. unshelve esplits; et. *)
+  (*     steps. deflag. gbase. eapply CIH; et. *)
+  (*   } *)
+  (* Unshelve. *)
+  (*   all: try (by exact 0). *)
+  (* Qed. *)
 
   Opaque EventsL.interp_Es.
 
@@ -569,54 +569,55 @@ Section CANCEL.
     Beh.of_program (@ModL.compile _ CONFT (Mod.add_list mds_tgt)) <1=
     Beh.of_program (@ModL.compile _ midConf (Mod.add_list mds_mid)).
   Proof.
-    eapply adequacy_global_itree; ss.
-    ginit.
-    { eapply cpn7_wcompat; eauto with paco. }
-    unfold ModSemL.initial_itr, ModSemL.initial_itr. Local Opaque ModSemL.prog. ss.
-    unfold ITree.map.
+  (*   eapply adequacy_global_itree; ss. *)
+  (*   ginit. *)
+  (*   { eapply cpn7_wcompat; eauto with paco. } *)
+  (*   unfold ModSemL.initial_itr, ModSemL.initial_itr. Local Opaque ModSemL.prog. ss. *)
+  (*   unfold ITree.map. *)
 
-    hexploit (stb_find_iff "main"). i. destruct H as [[_ ?]|?]; des; clarify.
-    { Local Transparent ModSemL.prog.
-      seal_right. ss. unfold ms_mid in FINDMID. rewrite FINDMID. steps.
-      Local Opaque ModSemL.prog. }
-    rename f into main_fsb. hexploit MAINM; et.
-    i. des.
+  (*   hexploit (stb_find_iff "main"). i. destruct H as [[_ ?]|?]; des; clarify. *)
+  (*   { Local Transparent ModSemL.prog. *)
+  (*     seal_right. ss. unfold ms_mid in FINDMID. rewrite FINDMID. steps. *)
+  (*     Local Opaque ModSemL.prog. } *)
+  (*   rename f into main_fsb. hexploit MAINM; et. *)
+  (*   i. des. *)
 
-    unfold assume.
-    steps. unfold ModL.wf in *. des.
-    assert (NODUP: List.NoDup (map fst ms_tgt.(ModSemL.initial_mrs))).
-    { inv WF. rewrite fst_initial_mrs_eq. unfold ms_mid. auto. }
-    esplits; et.
-    { inv WF. econs; auto. rewrite fns_eq. auto. }
-    { rewrite sk_eq. auto. }
+  (*   unfold assume. *)
+  (*   steps. unfold ModL.wf in *. des. *)
+  (*   assert (NODUP: List.NoDup (map fst ms_tgt.(ModSemL.initial_mrs))). *)
+  (*   { inv WF. rewrite fst_initial_mrs_eq. unfold ms_mid. auto. } *)
+  (*   esplits; et. *)
+  (*   { inv WF. econs; auto. rewrite fns_eq. auto. } *)
+  (*   { rewrite sk_eq. auto. } *)
 
-    hexploit initial_mrs_exist; auto. i. des.
-    steps. fold ms_tgt ms_mid. rewrite <- INITIALZIP.
+  (*   hexploit initial_mrs_exist; auto. i. des. *)
+  (*   steps. fold ms_tgt ms_mid. rewrite <- INITIALZIP. *)
 
-    Local Transparent ModSemL.prog. ss.
-    unfold Any_src, Any_mid, Any_tgt in *. rewrite FINDTGT. rewrite FINDMID. steps.
-    eexists. steps. unfold ASSUME, ASSERT, mput, mget. steps.
-    eexists (entry_r, rsum_minus (SModSem.mn (SMod.get_modsem md sk)) initial_mrs).
-    steps. rewrite zip_state_get; et. steps.
-    assert (RWF: URA.wf (entry_r ⋅ ε ⋅ rsum_minus (SModSem.mn (SMod.get_modsem md sk)) initial_mrs ⋅ initial_mrs (SModSem.mn (SMod.get_modsem md sk)))).
-    { r_wf WFR. eapply INITIALRSUM; et. }
-    unshelve esplits; et.
-    steps.
-    eexists. steps. unshelve esplits; et. steps.
-    guclo bindC_spec. econs.
-    { deflag. gfinal. right. fold simg.
-      eapply adequacy_type_aux; ss.
-      { r_solve. }
-    }
-    i. ss.
-    destruct vret_src as [mps_src v_src].
-    destruct vret_tgt as [mps_tgt [? v_tgt]]. des. clarify.
-    steps. rewrite zip_state_get; et.
-    rewrite Any.pair_split. steps.
-    { eapply RET; [|et]. eapply URA.wf_mon.
-      instantiate (1:=(c1 ⋅ ε ⋅ rsum_minus (SModSem.mn (SMod.get_modsem md sk)) mrs1) ⋅ c).
-      r_wf x0. }
-    Unshelve. all: try (exact 0).
-  Qed.
+  (*   Local Transparent ModSemL.prog. ss. *)
+  (*   unfold Any_src, Any_mid, Any_tgt in *. rewrite FINDTGT. rewrite FINDMID. steps. *)
+  (*   eexists. steps. unfold ASSUME, ASSERT, mput, mget. steps. *)
+  (*   eexists (entry_r, rsum_minus (SModSem.mn (SMod.get_modsem md sk)) initial_mrs). *)
+  (*   steps. rewrite zip_state_get; et. steps. *)
+  (*   assert (RWF: URA.wf (entry_r ⋅ ε ⋅ rsum_minus (SModSem.mn (SMod.get_modsem md sk)) initial_mrs ⋅ initial_mrs (SModSem.mn (SMod.get_modsem md sk)))). *)
+  (*   { r_wf WFR. eapply INITIALRSUM; et. } *)
+  (*   unshelve esplits; et. *)
+  (*   steps. *)
+  (*   eexists. steps. unshelve esplits; et. steps. *)
+  (*   guclo bindC_spec. econs. *)
+  (*   { deflag. gfinal. right. fold simg. *)
+  (*     eapply adequacy_type_aux; ss. *)
+  (*     { r_solve. } *)
+  (*   } *)
+  (*   i. ss. *)
+  (*   destruct vret_src as [mps_src v_src]. *)
+  (*   destruct vret_tgt as [mps_tgt [? v_tgt]]. des. clarify. *)
+  (*   steps. rewrite zip_state_get; et. *)
+  (*   rewrite Any.pair_split. steps. *)
+  (*   { eapply RET; [|et]. eapply URA.wf_mon. *)
+  (*     instantiate (1:=(c1 ⋅ ε ⋅ rsum_minus (SModSem.mn (SMod.get_modsem md sk)) mrs1) ⋅ c). *)
+  (*     r_wf x0. } *)
+  (*   Unshelve. all: try (exact 0). *)
+  (* Qed. *)
+  Admitted.
 
 End CANCEL.

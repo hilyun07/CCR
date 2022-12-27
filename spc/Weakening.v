@@ -117,6 +117,8 @@ Section PROOF.
       steps. deflag. gbase. eapply CIH; ss.
     }
     destruct s.
+    { admit. } (* schE *)
+    destruct s.
     { resub. destruct p.
       { ired_both. force_l. force_r. ired_both.
         force_l. force_r. ired_both. steps. deflag.
@@ -132,7 +134,7 @@ Section PROOF.
       { steps. deflag. gbase. eapply CIH; ss. }
     }
     Unshelve. all: ss. all: try exact 0.
-  Qed.
+  Admitted.
 
   Variable fsp_src fsp_tgt: fspec.
   Hypothesis fsp_weaker: fspec_weaker fsp_src fsp_tgt.

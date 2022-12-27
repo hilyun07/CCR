@@ -306,7 +306,7 @@ Section KMODSEM.
     :
       (transl_itr_mid (assume P))
       =
-      (assume P;;; tau;; Ret tt)
+      (assume P;;; tau;; Ret tt↑)
   .
   Proof.
     unfold assume. rewrite transl_itr_mid_bind. rewrite transl_itr_mid_triggere. grind. eapply transl_itr_mid_ret.
@@ -317,7 +317,7 @@ Section KMODSEM.
     :
       (transl_itr_mid (guarantee P))
       =
-      (guarantee P;;; tau;; Ret tt).
+      (guarantee P;;; tau;; Ret tt↑).
   Proof.
     unfold guarantee. rewrite transl_itr_mid_bind. rewrite transl_itr_mid_triggere. grind. eapply transl_itr_mid_ret.
   Qed.

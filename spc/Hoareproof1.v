@@ -232,31 +232,32 @@ Section CANCEL.
            (EventsL.interp_Es p_mid (transl_all mn (interp_hCallE_mid stb (ord_pure o0) (_APC at_most))) st_tgt0)
   .
   Proof.
-    ginit.
-    { i. eapply cpn7_wcompat; eauto with paco. }
-    (* induction *)
-    intros ? ?. remember (mk_opair o0 at_most) as fuel. move fuel at top. revert at_most o0 Heqfuel.
-    pattern fuel. eapply well_founded_induction. { eapply wf_opair_lt. } clear fuel.
-    intros fuel IH. i.
+  (*   ginit. *)
+  (*   { i. eapply cpn7_wcompat; eauto with paco. } *)
+  (*   (* induction *) *)
+  (*   intros ? ?. remember (mk_opair o0 at_most) as fuel. move fuel at top. revert at_most o0 Heqfuel. *)
+  (*   pattern fuel. eapply well_founded_induction. { eapply wf_opair_lt. } clear fuel. *)
+  (*   intros fuel IH. i. *)
 
-    rewrite unfold_APC. steps.
-    destruct x.
-    { steps. }
-    steps. hexploit (stb_find_iff s). i. des.
-    { rewrite NONE. steps. }
-    { rewrite FIND. steps. exfalso. eapply x1; et. }
-    rewrite STB. steps.
-    steps. rewrite FINDMID. unfold fun_to_mid. steps.
-   rewrite idK_spec at 1.
-    guclo bindC_spec. econs.
-    { unfold APC. steps. eapply simg_flag_down.
-      eapply IH; auto. econs. left. auto.
-    }
+  (*   rewrite unfold_APC. steps. *)
+  (*   destruct x. *)
+  (*   { steps. } *)
+  (*   steps. hexploit (stb_find_iff s). i. des. *)
+  (*   { rewrite NONE. steps. } *)
+  (*   { rewrite FIND. steps. exfalso. eapply x1; et. } *)
+  (*   rewrite STB. steps. *)
+  (*   steps. rewrite FINDMID. unfold fun_to_mid. steps. *)
+  (*  rewrite idK_spec at 1. *)
+  (*   guclo bindC_spec. econs. *)
+  (*   { unfold APC. steps. eapply simg_flag_down. *)
+  (*     eapply IH; auto. econs. left. auto. *)
+  (*   } *)
 
-    i. ss. destruct vret_tgt as [? []]. destruct vret_src as [? []]. ss. des; subst.
-    unfold idK. steps. eapply simg_flag_down.
-    eapply IH; et. econs; et. right; split; et. refl.
-  Qed.
+  (*   i. ss. destruct vret_tgt as [? []]. destruct vret_src as [? []]. ss. des; subst. *)
+  (*   unfold idK. steps. eapply simg_flag_down. *)
+  (*   eapply IH; et. econs; et. right; split; et. refl. *)
+  (* Qed. *)
+  Admitted.
 
   Let adequacy_type_aux_APC:
     forall o0 st_src0 st_tgt0 mn
@@ -266,20 +267,21 @@ Section CANCEL.
            (EventsL.interp_Es p_mid (transl_all mn (interp_hCallE_mid stb (ord_pure o0) APC)) st_tgt0)
   .
   Proof.
-    ginit.
-    { i. eapply cpn7_wcompat; eauto with paco. }
-    i. unfold APC. steps. eapply simg_flag_down.
-    gfinal. right.
-    eapply adequacy_type_aux__APC.
-    Unshelve. all: try exact 0.
-  Qed.
+    (* ginit. *)
+    (* { i. eapply cpn7_wcompat; eauto with paco. } *)
+    (* i. unfold APC. steps. eapply simg_flag_down. *)
+    (* gfinal. right. *)
+    (* eapply adequacy_type_aux__APC. *)
+    (* Unshelve. all: try exact 0. *)
+  (* Qed. *)
+  Admitted.
 
   Lemma idK_spec2: forall E A B (a: A) (itr: itree E B), itr = Ret a >>= fun _ => itr. Proof. { i. ired. ss. } Qed.
 
   Let adequacy_type_aux:
     forall
       o0
-      A (body: itree _ A) st_src0 st_tgt0 mn
+      (body: itree _ Any.t) st_src0 st_tgt0 mn
       (SIM: st_tgt0 = st_src0)
     ,
       simg eq
@@ -288,57 +290,58 @@ Section CANCEL.
            (EventsL.interp_Es p_mid (transl_all mn (interp_hCallE_mid stb o0 body)) st_tgt0)
   .
   Proof.
-    ginit.
-    { i. eapply cpn7_wcompat; eauto with paco. }
-    gcofix CIH. i. ides body.
-    { steps. }
-    { steps. eapply simg_progress_flag. gbase. eapply CIH; ss. }
+  (*   ginit. *)
+  (*   { i. eapply cpn7_wcompat; eauto with paco. } *)
+  (*   gcofix CIH. i. ides body. *)
+  (*   { steps. } *)
+  (*   { steps. eapply simg_progress_flag. gbase. eapply CIH; ss. } *)
 
-    destruct e; cycle 1.
-    { rewrite <- bind_trigger. resub. steps.
-      destruct s; ss.
-      { destruct p; resub; ss.
-        - steps. eapply simg_progress_flag. gbase. eapply CIH; ss; et.
-        - steps. eapply simg_progress_flag. gbase. eapply CIH; ss; et.
-      }
-      { dependent destruction e; resub; ss.
-        - steps. steps_strong. exists x. steps. eapply simg_progress_flag. gbase. eapply CIH; et.
-        - steps. steps_strong. exists x. steps. eapply simg_progress_flag. gbase. eapply CIH; et.
-        - steps_strong. eapply simg_progress_flag. gbase. eapply CIH; et.
-      }
-    }
-    dependent destruction h.
-    rewrite <- bind_trigger. resub.
-    ired_both. hexploit (stb_find_iff fn). i. des.
-    { rewrite NONE. steps. }
-    { rewrite FIND. steps. destruct tbr.
-      { exfalso. eapply x; ss. }
-      steps. rewrite FINDSRC. steps.
-    }
-    rewrite STB. steps. destruct tbr.
-    (* PURE *)
-    { Local Opaque ord_lt. ired_both. steps.
-      rewrite FINDMID. unfold fun_to_mid. ired_both.
-      rewrite idK_spec2 at 1.
-      guclo bindC_spec. econs.
-      { eapply simg_flag_down. gfinal. right. eapply paco7_mon. { eapply adequacy_type_aux_APC. } ii; ss. }
-      i. steps. steps_strong. exists x2. steps. eapply simg_progress_flag.
-      gbase. eapply CIH. ss.
-    }
+  (*   destruct e; cycle 1. *)
+  (*   { rewrite <- bind_trigger. resub. steps. *)
+  (*     destruct s; ss. *)
+  (*     { destruct p; resub; ss. *)
+  (*       - steps. eapply simg_progress_flag. gbase. eapply CIH; ss; et. *)
+  (*       - steps. eapply simg_progress_flag. gbase. eapply CIH; ss; et. *)
+  (*     } *)
+  (*     { dependent destruction e; resub; ss. *)
+  (*       - steps. steps_strong. exists x. steps. eapply simg_progress_flag. gbase. eapply CIH; et. *)
+  (*       - steps. steps_strong. exists x. steps. eapply simg_progress_flag. gbase. eapply CIH; et. *)
+  (*       - steps_strong. eapply simg_progress_flag. gbase. eapply CIH; et. *)
+  (*     } *)
+  (*   } *)
+  (*   dependent destruction h. *)
+  (*   rewrite <- bind_trigger. resub. *)
+  (*   ired_both. hexploit (stb_find_iff fn). i. des. *)
+  (*   { rewrite NONE. steps. } *)
+  (*   { rewrite FIND. steps. destruct tbr. *)
+  (*     { exfalso. eapply x; ss. } *)
+  (*     steps. rewrite FINDSRC. steps. *)
+  (*   } *)
+  (*   rewrite STB. steps. destruct tbr. *)
+  (*   (* PURE *) *)
+  (*   { Local Opaque ord_lt. ired_both. steps. *)
+  (*     rewrite FINDMID. unfold fun_to_mid. ired_both. *)
+  (*     rewrite idK_spec2 at 1. *)
+  (*     guclo bindC_spec. econs. *)
+  (*     { eapply simg_flag_down. gfinal. right. eapply paco7_mon. { eapply adequacy_type_aux_APC. } ii; ss. } *)
+  (*     i. steps. steps_strong. exists x2. steps. eapply simg_progress_flag. *)
+  (*     gbase. eapply CIH. ss. *)
+  (*   } *)
 
-    (* IMPURE *)
-    { Local Opaque ord_lt. unfold guarantee. steps.
-      rewrite FINDMID. rewrite FINDSRC.
-      unfold fun_to_mid2, cfunN, fun_to_mid. steps.
-      guclo bindC_spec. econs.
-      { eapply simg_progress_flag. gbase. eapply CIH. ss. }
-      i. subst. steps.
-      steps.
-      eapply simg_progress_flag. gbase. eapply CIH. ss.
-    }
-    Unshelve. all: ss.
-  Qed.
-
+  (*   (* IMPURE *) *)
+  (*   { Local Opaque ord_lt. unfold guarantee. steps. *)
+  (*     rewrite FINDMID. rewrite FINDSRC. *)
+  (*     unfold fun_to_mid2, cfunN, fun_to_mid. steps. *)
+  (*     guclo bindC_spec. econs. *)
+  (*     { eapply simg_progress_flag. gbase. eapply CIH. ss. } *)
+  (*     i. subst. steps. *)
+  (*     steps. *)
+  (*     eapply simg_progress_flag. gbase. eapply CIH. ss. *)
+  (*   } *)
+  (*   Unshelve. all: ss. *)
+  (* Qed. *)
+  Admitted.
+  
   Lemma sk_eq:
     ModL.sk (Mod.add_list mds_mid) = ModL.sk (Mod.add_list mds_mid2).
   Proof.
@@ -402,18 +405,19 @@ Section CANCEL.
     steps.
 
     (* stb main *)
-    hexploit (stb_find_iff "main"). i. des.
-    { unfold ms_mid2 in FINDSRC. rewrite FINDSRC. steps. }
-    { unfold ms_mid2 in FINDSRC. rewrite FINDSRC. steps. }
+  (*   hexploit (stb_find_iff "main"). i. des. *)
+  (*   { unfold ms_mid2 in FINDSRC. rewrite FINDSRC. steps. } *)
+  (*   { unfold ms_mid2 in FINDSRC. rewrite FINDSRC. steps. } *)
 
-    fold ms_mid2. fold ms_mid.
-    rewrite FINDSRC. rewrite FINDMID. steps.
-    unfold fun_to_mid2, fun_to_mid, cfunN. steps.
-    guclo bindC_spec. econs.
-    { eapply simg_flag_down. gfinal. right. eapply adequacy_type_aux. ss.
-      unfold initial_p_state.
-      rewrite initial_mrs_eq. auto. }
-    { i. subst. steps. }
-  Qed.
+  (*   fold ms_mid2. fold ms_mid. *)
+  (*   rewrite FINDSRC. rewrite FINDMID. steps. *)
+  (*   unfold fun_to_mid2, fun_to_mid, cfunN. steps. *)
+  (*   guclo bindC_spec. econs. *)
+  (*   { eapply simg_flag_down. gfinal. right. eapply adequacy_type_aux. ss. *)
+  (*     unfold initial_p_state. *)
+  (*     rewrite initial_mrs_eq. auto. } *)
+  (*   { i. subst. steps. } *)
+  (* Qed. *)
+  Admitted.
 
 End CANCEL.

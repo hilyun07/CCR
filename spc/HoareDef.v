@@ -179,20 +179,20 @@ Variant hCallE: Type -> Type :=
 .
 
 Variant hAPCE: Type -> Type :=
-| hAPC: hAPCE unit
+| hAPC: hAPCE Any.t
 .
 
-Notation Es' := (hCallE +' pE +' eventE).
+Notation Es' := (hCallE +' EventsL.schE +' pE +' eventE).
 
 Definition hEs := (hAPCE +' Es).
 
-Definition hcall {X Y} (fn: gname) (varg: X): itree (hCallE +' pE +' eventE) Y :=
+Definition hcall {X Y} (fn: gname) (varg: X): itree (hCallE +' EventsL.schE +' pE +' eventE) Y :=
   vret <- trigger (hCall false fn varg↑);; vret <- vret↓ǃ;; Ret vret.
 
-Program Fixpoint _APC (at_most: Ord.t) {wf Ord.lt at_most}: itree Es' unit :=
+Program Fixpoint _APC (at_most: Ord.t) {wf Ord.lt at_most}: itree Es' Any.t :=
   break <- trigger (Choose _);;
   if break: bool
-  then Ret tt
+  then Ret tt↑
   else
     n <- trigger (Choose Ord.t);;
     trigger (Choose (n < at_most)%ord);;;
@@ -206,7 +206,7 @@ Next Obligation.
   eapply Ord.lt_well_founded.
 Qed.
 
-Definition APC: itree Es' unit :=
+Definition APC: itree Es' Any.t :=
   at_most <- trigger (Choose _);;
   _APC at_most
 .
@@ -215,7 +215,7 @@ Lemma unfold_APC:
   forall at_most, _APC at_most =
                   break <- trigger (Choose _);;
                   if break: bool
-                  then Ret tt
+                  then Ret tt↑
                   else
                     n <- trigger (Choose Ord.t);;
                     guarantee (n < at_most)%ord;;;
@@ -280,7 +280,7 @@ Section CANCEL.
   Variable stb: gname -> option fspec.
 
   Definition handle_hAPCE_src: hAPCE ~> itree Es :=
-    fun _ '(hAPC) => Ret tt.
+    fun _ '(hAPC) => Ret tt↑.
 
   Definition interp_hEs_src: itree hEs ~> itree Es :=
     interp (case_ handle_hAPCE_src trivial_Handler)
@@ -321,7 +321,7 @@ Section CANCEL.
                   trivial_Handler)
   .
 
-  Definition body_to_mid2 {X} (body: X -> itree (hCallE +' pE +' eventE) Any.t): X -> itree Es Any.t :=
+  Definition body_to_mid2 {X} (body: X -> itree (hCallE +' EventsL.schE +' pE +' eventE) Any.t): X -> itree Es Any.t :=
     (@interp_hCallE_mid2 _) ∘ body
   .
 
@@ -345,7 +345,7 @@ Section CANCEL.
                   ((fun T X => trigger X): _ ~> itree Es))
   .
 
-  Definition body_to_mid (ord_cur: ord) {X} (body: X -> itree (hCallE +' pE +' eventE) Any.t): X -> itree Es Any.t :=
+  Definition body_to_mid (ord_cur: ord) {X} (body: X -> itree (hCallE +' EventsL.schE +' pE +' eventE) Any.t): X -> itree Es Any.t :=
     fun varg_mid => interp_hCallE_mid ord_cur (body varg_mid)
   .
 
@@ -375,12 +375,14 @@ Section CANCEL.
   Definition interp_hCallE_tgt (ord_cur: ord): itree Es' ~> stateT Σ (itree Es) :=
     interp_state (case_ (bif:=sum1) (handle_hCallE_tgt ord_cur)
                         (case_ (bif:=sum1)
-                               ((fun T X s => x <- handle_pE_tgt X;; Ret (s, x)): _ ~> stateT Σ (itree Es))
-                               ((fun T X s => x <- trigger X;; Ret (s, x)): _ ~> stateT Σ (itree Es))))
+                               ((fun T (X: EventsL.schE T) s => x <- trigger X;; Ret (s, x)): _ ~> stateT Σ (itree Es))
+                               (case_ (bif:=sum1)
+                                      ((fun T (X: pE T) s => x <- handle_pE_tgt X;; Ret (s, x)): pE ~> stateT Σ (itree Es))
+                                      ((fun T (X: eventE T) s => x <- trigger X;; Ret (s, x)): _ ~> stateT Σ (itree Es)))))
   .
 
   Definition body_to_tgt (ord_cur: ord)
-             {X} (body: X -> itree (hCallE +' pE +' eventE) Any_src): X -> stateT Σ (itree Es) Any_src :=
+             {X} (body: X -> itree (hCallE +' EventsL.schE +' pE +' eventE) Any_src): X -> stateT Σ (itree Es) Any_src :=
     (@interp_hCallE_tgt ord_cur _) ∘ body.
 
 
@@ -852,7 +854,7 @@ Context `{Σ: GRA.t}.
 (* itree reduction *)
 Lemma interp_tgt_bind
       (R S: Type)
-      (s : itree (hCallE +' pE +' eventE) R) (k : R -> itree (hCallE +' pE +' eventE) S)
+      (s : itree (hCallE +' EventsL.schE +' pE +' eventE) R) (k : R -> itree (hCallE +' EventsL.schE +' pE +' eventE) S)
       mn stb o ctx
   :
     (interp_hCallE_tgt mn stb o (s >>= k)) ctx
@@ -941,7 +943,7 @@ Lemma interp_tgt_unwrapU mn stb o ctx
       (R: Type)
       (i: option R)
   :
-    (interp_hCallE_tgt mn stb o (@unwrapU (hCallE +' pE +' eventE) _ _ i) ctx)
+    (interp_hCallE_tgt mn stb o (@unwrapU (hCallE +' EventsL.schE +' pE +' eventE) _ _ i) ctx)
     =
     r <- (unwrapU i);; Ret (ctx, r).
 Proof.
@@ -960,7 +962,7 @@ Lemma interp_tgt_unwrapN mn stb o ctx
       (R: Type)
       (i: option R)
   :
-    (interp_hCallE_tgt mn stb o (@unwrapN (hCallE +' pE +' eventE) _ _ i) ctx)
+    (interp_hCallE_tgt mn stb o (@unwrapN (hCallE +' EventsL.schE +' pE +' eventE) _ _ i) ctx)
     =
     r <- (unwrapN i);; Ret (ctx, r).
 Proof.
@@ -980,7 +982,7 @@ Lemma interp_tgt_assume mn stb o ctx
   :
     (interp_hCallE_tgt mn stb o (assume P) ctx)
     =
-    (assume P;;; tau;; Ret (ctx, tt))
+    (assume P;;; tau;; Ret (ctx, tt↑))
 .
 Proof.
   unfold assume. rewrite interp_tgt_bind. rewrite interp_tgt_triggere. grind. eapply interp_tgt_ret.
@@ -991,7 +993,7 @@ Lemma interp_tgt_guarantee mn stb o ctx
   :
     (interp_hCallE_tgt mn stb o (guarantee P) ctx)
     =
-    (guarantee P;;; tau;; Ret (ctx, tt)).
+    (guarantee P;;; tau;; Ret (ctx, tt↑)).
 Proof.
   unfold guarantee. rewrite interp_tgt_bind. rewrite interp_tgt_triggere. grind. eapply interp_tgt_ret.
 Qed.
@@ -1036,7 +1038,7 @@ Variable stb: gname -> option fspec.
 (* itree reduction *)
 Lemma interp_mid_bind
       (R S: Type)
-      (s : itree (hCallE +' pE +' eventE) R) (k : R -> itree (hCallE +' pE +' eventE) S)
+      (s : itree (hCallE +' EventsL.schE +' pE +' eventE) R) (k : R -> itree (hCallE +' EventsL.schE +' pE +' eventE) S)
       o
   :
     (interp_hCallE_mid stb o (s >>= k))
@@ -1128,7 +1130,7 @@ Lemma interp_mid_unwrapU o
       (R: Type)
       (i: option R)
   :
-    (interp_hCallE_mid stb o (@unwrapU (hCallE +' pE +' eventE) _ _ i))
+    (interp_hCallE_mid stb o (@unwrapU (hCallE +' EventsL.schE +' pE +' eventE) _ _ i))
     =
     (unwrapU i).
 Proof.
@@ -1147,7 +1149,7 @@ Lemma interp_mid_unwrapN o
       (R: Type)
       (i: option R)
   :
-    (interp_hCallE_mid stb o (@unwrapN (hCallE +' pE +' eventE) _ _ i))
+    (interp_hCallE_mid stb o (@unwrapN (hCallE +' EventsL.schE +' pE +' eventE) _ _ i))
     =
     (unwrapN i).
 Proof.
@@ -1167,7 +1169,7 @@ Lemma interp_mid_assume o
   :
     (interp_hCallE_mid stb o (assume P))
     =
-    (assume P;;; tau;; Ret tt)
+    (assume P;;; tau;; Ret tt↑)
 .
 Proof.
   unfold assume. rewrite interp_mid_bind. rewrite interp_mid_triggere. grind. eapply interp_mid_ret.
@@ -1178,7 +1180,7 @@ Lemma interp_mid_guarantee o
   :
     (interp_hCallE_mid stb o (guarantee P))
     =
-    (guarantee P;;; tau;; Ret tt).
+    (guarantee P;;; tau;; Ret tt↑).
 Proof.
   unfold guarantee. rewrite interp_mid_bind. rewrite interp_mid_triggere. grind. eapply interp_mid_ret.
 Qed.
@@ -1222,7 +1224,7 @@ Variable stb: gname -> option fspec.
 (* itree reduction *)
 Lemma interp_mid2_bind
       (R S: Type)
-      (s : itree (hCallE +' pE +' eventE) R) (k : R -> itree (hCallE +' pE +' eventE) S)
+      (s : itree (hCallE +' EventsL.schE +' pE +' eventE) R) (k : R -> itree (hCallE +' EventsL.schE +' pE +' eventE) S)
   :
     (interp_hCallE_mid2 (s >>= k))
     =
@@ -1313,7 +1315,7 @@ Lemma interp_mid2_unwrapU
       (R: Type)
       (i: option R)
   :
-    (interp_hCallE_mid2 (@unwrapU (hCallE +' pE +' eventE) _ _ i))
+    (interp_hCallE_mid2 (@unwrapU (hCallE +' EventsL.schE +' pE +' eventE) _ _ i))
     =
     (unwrapU i).
 Proof.
@@ -1332,7 +1334,7 @@ Lemma interp_mid2_unwrapN
       (R: Type)
       (i: option R)
   :
-    (interp_hCallE_mid2 (@unwrapN (hCallE +' pE +' eventE) _ _ i))
+    (interp_hCallE_mid2 (@unwrapN (hCallE +' EventsL.schE +' pE +' eventE) _ _ i))
     =
     (unwrapN i).
 Proof.
@@ -1352,7 +1354,7 @@ Lemma interp_mid2_assume
   :
     (interp_hCallE_mid2 (assume P))
     =
-    (assume P;;; tau;; Ret tt)
+    (assume P;;; tau;; Ret tt↑)
 .
 Proof.
   unfold assume. rewrite interp_mid2_bind. rewrite interp_mid2_triggere. grind. eapply interp_mid2_ret.
@@ -1363,7 +1365,7 @@ Lemma interp_mid2_guarantee
   :
     (interp_hCallE_mid2 (guarantee P))
     =
-    (guarantee P;;; tau;; Ret tt).
+    (guarantee P;;; tau;; Ret tt↑).
 Proof.
   unfold guarantee. rewrite interp_mid2_bind. rewrite interp_mid2_triggere. grind. eapply interp_mid2_ret.
 Qed.
@@ -1550,7 +1552,7 @@ Lemma interp_src_assume
   :
     (interp_hEs_src (assume P))
     =
-    (assume P;;; tau;; Ret tt)
+    (assume P;;; tau;; Ret tt↑)
 .
 Proof.
   unfold assume. rewrite interp_src_bind. rewrite interp_src_triggere. grind. eapply interp_src_ret.
@@ -1561,7 +1563,7 @@ Lemma interp_src_guarantee
   :
     (interp_hEs_src (guarantee P))
     =
-    (guarantee P;;; tau;; Ret tt).
+    (guarantee P;;; tau;; Ret tt↑).
 Proof.
   unfold guarantee. rewrite interp_src_bind. rewrite interp_src_triggere. grind. eapply interp_src_ret.
 Qed.
@@ -1746,7 +1748,7 @@ Lemma interp_hEs_tgt_assume
   :
     (interp_hEs_tgt (assume P))
     =
-    (assume P;;; tau;; Ret tt)
+    (assume P;;; tau;; Ret tt↑)
 .
 Proof.
   unfold assume. rewrite interp_hEs_tgt_bind. rewrite interp_hEs_tgt_triggere. grind. eapply interp_hEs_tgt_ret.
@@ -1757,7 +1759,7 @@ Lemma interp_hEs_tgt_guarantee
   :
     (interp_hEs_tgt (guarantee P))
     =
-    (guarantee P;;; tau;; Ret tt).
+    (guarantee P;;; tau;; Ret tt↑).
 Proof.
   unfold guarantee. rewrite interp_hEs_tgt_bind. rewrite interp_hEs_tgt_triggere. grind. eapply interp_hEs_tgt_ret.
 Qed.
@@ -1883,7 +1885,7 @@ Ltac ired_both := ired_l; ired_r.
     unfold fun_to_tgt, cfunN; ss.
 
 
-Notation Es' := (hCallE +' pE +' eventE).
+Notation Es' := (hCallE +' EventsL.schE +' pE +' eventE).
 
 Module IPCNotations.
   Notation ";;; t2" :=
