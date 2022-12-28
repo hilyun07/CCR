@@ -241,6 +241,8 @@ Section MODAUX.
         steps. destruct e.
         { destruct c. resub. steps. deflag. gbase. eapply CIH. }
         destruct s.
+        { admit. }
+        destruct s.
         { resub. destruct p.
           { steps. deflag. gbase. eapply CIH. }
           { steps. deflag. gbase. eapply CIH. }
@@ -255,7 +257,8 @@ Section MODAUX.
     { ss. }
     { exists tt. ss. }
     Unshelve. all: try exact 0.
-  Qed.
+  (* Qed. *)
+  Admitted.
 
   Theorem adequacy_rmtau
           md
@@ -277,6 +280,8 @@ Section MODAUX.
       { rewrite <- bind_trigger. resub. steps. destruct e.
         { destruct c. resub. steps. deflag. gbase. eapply CIH. }
         destruct s.
+        { admit. }
+        destruct s.
         { resub. destruct p.
           { steps. deflag. gbase. eapply CIH. }
           { steps. deflag. gbase. eapply CIH. }
@@ -291,7 +296,8 @@ Section MODAUX.
     { ss. }
     { exists tt. ss. }
     Unshelve. all: try exact 0.
-  Qed.
+  (* Qed. *)
+  Admitted.
 End MODAUX.
 
 
@@ -622,6 +628,8 @@ Section ADQ.
     destruct e; cycle 1.
     {
       destruct s; ss.
+      { admit. }
+      destruct s.
       { resub. rewrite massage_itr_pe. destruct p; ss.
         - steps. deflag. gbase. eapply CIH; et.
         - steps. deflag. gbase. eapply CIH; et.
@@ -673,7 +681,8 @@ Section ADQ.
       Unshelve.
       all: try (exact Ord.O).
       all: try (exact 0%nat).
-  Qed.
+  (* Qed. *)
+  Admitted.
 
   Lemma my_lemma1_aux
         mn ske
@@ -949,76 +958,77 @@ Section ADQ.
       destruct e.
       { resub. destruct c. gsteps.
         hexploit (stb_find_iff_mid fn). i. des.
-        { rewrite SRC. rewrite TGT. gsteps. }
-        { rewrite SRC. rewrite TGT. gsteps.
-          unfold my_if, sumbool_to_bool. des_ifs.
-          unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps.
-          guclo bindC_spec. econs.
-          { apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-          i. subst. destruct vret_tgt as [mp0 retv].
-          gsteps.
-          apply simg_progress_flag. gbase. eapply CIH. left. econs. auto.
-        }
-        { rewrite SRC. rewrite TGT. gsteps.
-          unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps.
-          guclo bindC_spec. econs.
-          { apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-          i. subst. destruct vret_tgt as [mp0 retv].
-          gsteps.
-          apply simg_progress_flag. gbase. eapply CIH. left. econs. auto.
-        }
-      }
-      destruct s; resub.
-      { destruct p.
-        { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-        { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-      }
-      { destruct e.
-        { mred. gforce_r. gsteps. exists x. gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-        { mred. gforce_l. gsteps. exists x. gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-        { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-      }
-    }
-    { destruct H. ides itr.
-      { ired_both. gsteps. }
-      { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-      rewrite <- bind_trigger. destruct e.
-      { resub. destruct c. gsteps.
-        gsteps. hexploit (stb_find_iff_mid fn). i. des.
-        { rewrite SRC. rewrite TGT. gsteps. }
-        { rewrite SRC. rewrite TGT. gsteps.
-          unfold my_if, sumbool_to_bool. des_ifs.
-          unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps.
-          guclo bindC_spec. econs.
-          { apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-          i. subst. destruct vret_tgt as [mp0 retv].
-          gsteps.
-          apply simg_progress_flag. gbase. eapply CIH. right. econs. auto.
-        }
-        { rewrite SRC. rewrite TGT. gsteps.
-          unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps.
-          guclo bindC_spec. econs.
-          { apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-          i. subst. destruct vret_tgt as [mp0 retv].
-          gsteps.
-          apply simg_progress_flag. gbase. eapply CIH. right. econs. auto.
-        }
-      }
-      destruct s.
-      { resub. destruct p.
-        { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-        { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-      }
-      { resub. destruct e.
-        { mred. gforce_r. gsteps. exists x. gsteps.
-          apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-        { mred. gforce_l. gsteps. exists x. gsteps.
-          apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-        { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. }
-      }
-    }
-    Unshelve. all: try (exact 0).
-  Qed.
+  (*       { rewrite SRC. rewrite TGT. gsteps. } *)
+  (*       { rewrite SRC. rewrite TGT. gsteps. *)
+  (*         unfold my_if, sumbool_to_bool. des_ifs. *)
+  (*         unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps. *)
+  (*         guclo bindC_spec. econs. *)
+  (*         { apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*         i. subst. destruct vret_tgt as [mp0 retv]. *)
+  (*         gsteps. *)
+  (*         apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. *)
+  (*       } *)
+  (*       { rewrite SRC. rewrite TGT. gsteps. *)
+  (*         unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps. *)
+  (*         guclo bindC_spec. econs. *)
+  (*         { apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*         i. subst. destruct vret_tgt as [mp0 retv]. *)
+  (*         gsteps. *)
+  (*         apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. *)
+  (*       } *)
+  (*     } *)
+  (*     destruct s; resub. *)
+  (*     { destruct p. *)
+  (*       { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*       { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*     } *)
+  (*     { destruct e. *)
+  (*       { mred. gforce_r. gsteps. exists x. gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*       { mred. gforce_l. gsteps. exists x. gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*       { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*     } *)
+  (*   } *)
+  (*   { destruct H. ides itr. *)
+  (*     { ired_both. gsteps. } *)
+  (*     { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*     rewrite <- bind_trigger. destruct e. *)
+  (*     { resub. destruct c. gsteps. *)
+  (*       gsteps. hexploit (stb_find_iff_mid fn). i. des. *)
+  (*       { rewrite SRC. rewrite TGT. gsteps. } *)
+  (*       { rewrite SRC. rewrite TGT. gsteps. *)
+  (*         unfold my_if, sumbool_to_bool. des_ifs. *)
+  (*         unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps. *)
+  (*         guclo bindC_spec. econs. *)
+  (*         { apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*         i. subst. destruct vret_tgt as [mp0 retv]. *)
+  (*         gsteps. *)
+  (*         apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. *)
+  (*       } *)
+  (*       { rewrite SRC. rewrite TGT. gsteps. *)
+  (*         unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps. *)
+  (*         guclo bindC_spec. econs. *)
+  (*         { apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*         i. subst. destruct vret_tgt as [mp0 retv]. *)
+  (*         gsteps. *)
+  (*         apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. *)
+  (*       } *)
+  (*     } *)
+  (*     destruct s. *)
+  (*     { resub. destruct p. *)
+  (*       { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*       { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*     } *)
+  (*     { resub. destruct e. *)
+  (*       { mred. gforce_r. gsteps. exists x. gsteps. *)
+  (*         apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*       { mred. gforce_l. gsteps. exists x. gsteps. *)
+  (*         apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*       { gsteps. apply simg_progress_flag. gbase. eapply CIH. right. econs. auto. } *)
+  (*     } *)
+  (*   } *)
+  (*   Unshelve. all: try (exact 0). *)
+  (* Qed. *)
+  Admitted.
 
   Lemma my_lemma2_sk
     :
@@ -1092,25 +1102,26 @@ Section ADQ.
     }
     unfold ITree.map. gsteps.
     hexploit (stb_find_iff_mid "main"). i. des.
-    { rewrite SRC. rewrite TGT. gsteps. }
-    { rewrite SRC. rewrite TGT. gsteps.
-      unfold my_if, sumbool_to_bool. des_ifs.
-      unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps.
-      guclo bindC_spec. econs.
-      { apply simg_progress_flag. gfinal. right.
-        rewrite my_lemma2_initial_state. eapply my_lemma2_aux. left. econs. ss. }
-      i. subst. gsteps.
-    }
-    { rewrite SRC. rewrite TGT. gsteps.
-      unfold my_if, sumbool_to_bool. des_ifs.
-      unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps.
-      guclo bindC_spec. econs.
-      { apply simg_progress_flag. gfinal. right.
-        rewrite my_lemma2_initial_state. eapply my_lemma2_aux. right. econs. ss. }
-      i. subst. gsteps.
-    }
-    Unshelve. all: try (exact 0).
-  Qed.
+  (*   { rewrite SRC. rewrite TGT. gsteps. } *)
+  (*   { rewrite SRC. rewrite TGT. gsteps. *)
+  (*     unfold my_if, sumbool_to_bool. des_ifs. *)
+  (*     unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps. *)
+  (*     guclo bindC_spec. econs. *)
+  (*     { apply simg_progress_flag. gfinal. right. *)
+  (*       rewrite my_lemma2_initial_state. eapply my_lemma2_aux. left. econs. ss. } *)
+  (*     i. subst. gsteps. *)
+  (*   } *)
+  (*   { rewrite SRC. rewrite TGT. gsteps. *)
+  (*     unfold my_if, sumbool_to_bool. des_ifs. *)
+  (*     unfold fun_to_src, body_to_src. rewrite Any.pair_split. gsteps. *)
+  (*     guclo bindC_spec. econs. *)
+  (*     { apply simg_progress_flag. gfinal. right. *)
+  (*       rewrite my_lemma2_initial_state. eapply my_lemma2_aux. right. econs. ss. } *)
+  (*     i. subst. gsteps. *)
+  (*   } *)
+  (*   Unshelve. all: try (exact 0). *)
+  (* Qed. *)
+  Admitted.
 
   Lemma my_lemma3_aux md
     :
@@ -1135,6 +1146,8 @@ Section ADQ.
       rewrite <- bind_trigger. destruct e.
       { resub. destruct c. steps. deflag. gbase. eapply CIH. }
       destruct s.
+      { admit. }
+      destruct s.
       { resub. destruct p.
         { steps. deflag. gbase. eapply CIH. }
         { steps. deflag. gbase. eapply CIH. }
@@ -1148,7 +1161,8 @@ Section ADQ.
     { ss. }
     { exists tt. ss. }
   Unshelve. all: try (exact 0).
-  Qed.
+  (* Qed. *)
+  Admitted.
 
   Lemma my_lemma3:
     Beh.of_program (ModL.compile (Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ List.map (SMod.to_src ∘ massage_md false) umds))) <1=
@@ -1557,6 +1571,8 @@ Section ADQ.
       steps. deflag. gbase. eapply CIH.
     }
     destruct s.
+    { admit. }
+    destruct s.
     { resub. destruct p.
       { steps. deflag. gbase. eapply CIH. }
       { steps. deflag. gbase. eapply CIH. }
@@ -1567,7 +1583,8 @@ Section ADQ.
       { steps. deflag. gbase. eapply CIH. }
     }
     Unshelve. all: ss; try (exact 0).
-  Qed.
+  (* Qed. *)
+  Admitted.
 End ADQ.
 
 Section ADQ.

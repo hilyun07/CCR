@@ -18,25 +18,21 @@ Section PROOF.
 
   Section BODY.
     Context {Es: Type -> Type}.
-    Context `{has_pE: pE -< Es}.
-    Context `{has_eventE: eventE -< Es}.
+    Context `{has_evnetE: eventE -< Es}.
     Context `{has_schE: EventsL.schE -< Es}.
-    Definition spawnF: (list val) -> itree Es val :=
+    Context `{has_callE: callE -< Es}.
+    Definition spawnF: (string * list val) -> itree Es val :=
       fun varg =>
-        match varg with
-        | fn::args =>
-            fn <- 
-            z <- trigger (EventsL.Spawn fn args);; Ret (Vint z)
-        | _ => triggerUB
-        end.
+        let '(fn, args) := varg in
+        pid <- trigger (EventsL.Spawn fn args↑);; Ret (Vint (Z.of_nat pid)).
 
     Definition yieldF: (list val) -> itree Es val :=
       fun varg =>
-        z <- trigger Yield;; Ret Vundef.
+        z <- trigger EventsL.Yield;; Ret Vundef.
 
     Definition getpidF: (list val) -> itree Es val :=
       fun varg =>
-        z <- trigger Gettid;; Ret (Vint z).
+        pid <- trigger EventsL.Getpid;; Ret (Vint (Z.of_nat pid)).
 
   End BODY.
 

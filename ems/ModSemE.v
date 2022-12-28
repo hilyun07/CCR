@@ -202,15 +202,15 @@ Section EVENTSL.
                  match r with
                  | inl (inl r) => (* finished *)
                      let ts' := alist_remove tid ts in
-                     Ret (inl (prog, ts', next_tid, ktr (List.map fst ts, (inl (inl r)))))
+                     Ret (inl (prog, ts', next_tid, ktr (List.map fst ts', (inl (inl r)))))
                  | inl (inr (fn, args, k)) => (* spawn *)
                      let new_itr := interp_mrec prog (v <- (prog _ (Call None fn args));;
                                                       triggerNB) in
                      let ts' := alist_add next_tid new_itr (alist_replace tid (k next_tid) ts) in
-                     Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts, (inl (inr tid)))))
+                     Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts', (inl (inr tid)))))
                  | inr t' => (* yield *)
                      let ts' := alist_replace tid t' ts in
-                     Ret (inl (prog, ts', next_tid, ktr (List.map fst ts, (inr tt))))
+                     Ret (inl (prog, ts', next_tid, ktr (List.map fst ts', (inr tt))))
                  end).
         * exact triggerNB.
       - exact (Vis (inr1 e) (fun x => Ret (inl (prog, ts, next_tid, ktr x)))).
@@ -254,7 +254,7 @@ Section EVENTSL.
 
   Definition interp_Es E (prog: callE ~> itree Es) (itr0: itree Es E) (st0: p_state): itree eventE (p_state * _)%type :=
     let itr1 := interp_mrec prog itr0 in
-    let itr2 := interp_scheduler prog (alist_add 0 itr1 []) 0 in
+    let itr2 := interp_scheduler prog [(0, itr1)] 0 in
     '(st1, v) <- interp_pE itr2 st0;;
     Ret (st1, v)
   .

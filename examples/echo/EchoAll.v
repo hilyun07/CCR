@@ -132,19 +132,19 @@ End PROOF.
 
 
 Require Import SimSTS2 Imp2Csharpminor Imp2Asm.
-Require Import Imp2AsmProof.
-Section PROOF.
-  Context `{builtins : builtinsTy}.
-  Hypothesis source_linking: exists impl, link_imps echo_progs = Some impl.
+(* Require Import Imp2AsmProof. *)
+(* Section PROOF. *)
+(*   Context `{builtins : builtinsTy}. *)
+(*   Hypothesis source_linking: exists impl, link_imps echo_progs = Some impl. *)
 
-  Theorem echo_compile_correct
-          (asms : Coqlib.nlist Asm.program)
-          (COMP: Forall2 (fun imp asm => compile_imp imp = Errors.OK asm) echo_progs asms)
-    :
-      exists asml, (Linking.link_list asms = Some asml) /\
-                   (improves2_program (ModL.compile echo_spec) (Asm.semantics asml)).
-  Proof.
-    hexploit compile_behavior_improves; [et|et|]. i. des. esplits; [et|].
-    eapply improves_combine; [|et]. eapply echo_closed_correct.
-  Qed.
-End PROOF.
+(*   Theorem echo_compile_correct *)
+(*           (asms : Coqlib.nlist Asm.program) *)
+(*           (COMP: Forall2 (fun imp asm => compile_imp imp = Errors.OK asm) echo_progs asms) *)
+(*     : *)
+(*       exists asml, (Linking.link_list asms = Some asml) /\ *)
+(*                    (improves2_program (ModL.compile echo_spec) (Asm.semantics asml)). *)
+(*   Proof. *)
+(*     hexploit compile_behavior_improves; [et|et|]. i. des. esplits; [et|]. *)
+(*     eapply improves_combine; [|et]. eapply echo_closed_correct. *)
+(*   Qed. *)
+(* End PROOF. *)
