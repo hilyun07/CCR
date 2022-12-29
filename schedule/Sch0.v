@@ -32,7 +32,8 @@ Section PROOF.
 
     Definition getpidF: (list val) -> itree Es val :=
       fun varg =>
-        pid <- trigger EventsL.Getpid;; Ret (Vint (Z.of_nat pid)).
+        pid <- trigger EventsL.Getpid;;
+        Ret (Vint (Z.of_nat pid)).
 
   End BODY.
 

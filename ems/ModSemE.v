@@ -172,7 +172,6 @@ Section EVENTSL.
           destruct s.
           * (* Spawn *)
             exact (Ret (inr (inl (inr (fn, args, fun x => k x))))).
-            (* exact (Vis (inl1 (Spawn_t fn args)) (fun x => Ret (inl (tid, k x)))). *)
           * (* Yield *)
             exact (Ret (inr (inr (k tt)))).
           * (* GetTid *)
@@ -204,8 +203,8 @@ Section EVENTSL.
                      let ts' := alist_remove tid ts in
                      Ret (inl (prog, ts', next_tid, ktr (List.map fst ts', (inl (inl r)))))
                  | inl (inr (fn, args, k)) => (* spawn *)
-                     let new_itr := interp_mrec prog (v <- (prog _ (Call None fn args));;
-                                                      triggerNB) in
+                     let new_itr := interp_mrec prog (_ <- (prog _ (Call None fn args));;
+                                                      v <- trigger (inr1 (Choose E));; Ret v) in
                      let ts' := alist_add next_tid new_itr (alist_replace tid (k next_tid) ts) in
                      Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts', (inl (inr tid)))))
                  | inr t' => (* yield *)

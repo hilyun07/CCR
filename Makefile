@@ -26,6 +26,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
          echo "-R proofmode $(COQMODULE)"; \
          echo "-R imp $(COQMODULE)"; \
          echo "-R mem $(COQMODULE)"; \
+         echo "-R schedule $(COQMODULE)"; \
          echo "-R examples $(COQMODULE)"; \
          echo "-R extract $(COQMODULE)"; \
    echo $(COQTHEORIES)) > _CoqProject
