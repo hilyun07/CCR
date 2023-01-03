@@ -283,11 +283,13 @@ Section PROOF.
   .
 
   Variable csl: gname -> bool.
+  
 
   Definition SMemSem (sk: Sk.t): SModSem.t := {|
     SModSem.fnsems := MemSbtb;
     SModSem.mn := "Mem";
     SModSem.initial_mr := (GRA.embed (Auth.black (initial_mem_mr csl sk)));
+    (* SModSem.initial_mr := (GRA.embed (Auth.black (initial_mem_mr (fun s => csl s && beq_str (substring 0 2 s) "1.") sk))); *)
     SModSem.initial_st := tt↑;
   |}
   .

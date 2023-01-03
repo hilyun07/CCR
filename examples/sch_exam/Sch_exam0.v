@@ -22,6 +22,7 @@ Section PROOF.
       new_pid <- (parg Tint new_pid)?;;
       _ <- trigger (Syscall "print" [new_pid]↑ top1);;
       `_:unit <- ccallU "yield" ([]:list val);;
+      _ <- trigger (PPut (7%Z)↑);;
 
       `pid:val <- ccallU "getpid" ([]:list val);;
       pid <- (parg Tint pid)?;;
@@ -35,6 +36,9 @@ Section PROOF.
       `pid:val <- ccallU "getpid" ([]:list val);;
       pid <- (parg Tint pid)?;;
       _ <- trigger (Syscall "print" [pid]↑ top1);;
+      p <- trigger PGet;;
+      `p:Z <- p↓?;;
+      _ <- trigger (Syscall "print" [p]↑ top1);;
       Ret (Vint n).
 
   Definition Sch_examSem: ModSem.t := {|
