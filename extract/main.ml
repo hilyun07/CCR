@@ -80,13 +80,21 @@ let handle_Event = fun e k ->
        | Some args' -> args'
        | None -> []
      in
-     print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): ");
-     let n =
-       if (String.equal (cl2s str) ("print"))
-       then (print_endline ""; 0)
-       else (try int_of_string (read_line())
-             with Failure _ -> 0) in
-     k (Obj.repr (Any.upcast (Z.of_int n)))
+     if (String.equal (cl2s str) ("choose_from"))
+     then
+       (print_string("Choose from (" ^ string_of_zs argv ^ " ): ");
+        let tid =
+          (try int_of_string (read_line())
+           with Failure _ -> 0) in
+        k (Obj.repr (Any.upcast (Nat.of_int tid))))
+     else
+       (print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): ");
+        let n =
+          if (String.equal (cl2s str) ("print"))
+          then (print_endline ""; 0)
+          else (try int_of_string (read_line())
+                with Failure _ -> 0) in
+        k (Obj.repr (Any.upcast (Z.of_int n))))
 
 let rec run t =
   match observe t with

@@ -215,6 +215,11 @@ Section EVENTSL.
       - exact (Vis (inr1 e) (fun x => Ret (inl (prog, ts, next_tid, ktr x)))).
     Defined.
 
+    Definition choose_from {E} (l: list nat): itree (@executeE E +' eventE) nat :=
+      tid <- ITree.trigger (inr1 (Choose nat));;
+      guarantee(In tid l);;;
+      Ret tid.
+
     Definition sched_nondet {E} : nat -> itree (executeE +' eventE) E :=
       ITree.iter (fun tid => 
                     '(ts, retv) <- ITree.trigger (inl1 (Execute tid));;
@@ -222,13 +227,13 @@ Section EVENTSL.
                     | inl (inl r) =>
                         match ts with
                         | [] => Ret (inr r)
-                        | _ => tid' <- ITree.trigger (inr1 (Choose nat));;
+                        | _ => tid' <- choose_from(ts);;
                               Ret (inl tid')
                         end
                     | inl (inr tid') =>
                         Ret (inl tid')
                     | inr tt =>
-                        tid' <- ITree.trigger (inr1 (Choose nat));;
+                        tid' <- choose_from(ts);;
                         Ret (inl tid')
                     end).
 
