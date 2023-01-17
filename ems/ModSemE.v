@@ -9,6 +9,7 @@ Set Implicit Arguments.
 
 Notation gname := string (only parsing). (*** convention: not capitalized ***)
 Notation mname := string (only parsing). (*** convention: capitalized ***)
+Notation sname := string (only parsing). (*** convention: natural numbers ***)
 
 Section EVENTSCOMMON.
 
@@ -29,6 +30,10 @@ Section EVENTSCOMMON.
     v <- trigger (Choose void);; match v: void with end
   .
 
+  Definition triggerErr {E A} `{eventE -< E}: itree E A :=
+    trigger (Syscall "exit" ["There's an error"]↑ top1);;;triggerUB.
+  
+
   Definition unwrapN {E X} `{eventE -< E} (x: option X): itree E X :=
     match x with
     | Some x => Ret x
@@ -39,6 +44,12 @@ Section EVENTSCOMMON.
     match x with
     | Some x => Ret x
     | None => triggerUB
+    end.
+
+  Definition unwrapErr {E X} `{eventE -< E} (x: option X): itree E X :=
+    match x with
+    | Some x => Ret x
+    | None => triggerErr
     end.
 
   Definition assume {E} `{eventE -< E} (P: Prop): itree E Any.t := trigger (Take P) ;;; Ret tt↑.
@@ -77,8 +88,10 @@ End EVENTSCOMMON.
 
 Notation "f '?'" := (unwrapU f) (at level 9, only parsing).
 Notation "f 'ǃ'" := (unwrapN f) (at level 9, only parsing).
+Notation "f '#?'" := (unwrapErr f) (at level 9, only parsing).
 Notation "(?)" := (unwrapU) (only parsing).
 Notation "(ǃ)" := (unwrapN) (only parsing).
+Notation "(#?)" := (unwrapErr) (only parsing).
 Goal (tt ↑↓?) = Ret tt. rewrite Any.upcast_downcast. ss. Qed.
 Goal (tt ↑↓ǃ) = Ret tt. rewrite Any.upcast_downcast. ss. Qed.
 
@@ -90,7 +103,7 @@ Goal (tt ↑↓ǃ) = Ret tt. rewrite Any.upcast_downcast. ss. Qed.
 
 Section EVENTSCOMMON.
 
-  Definition p_state: Type := (mname -> Any.t).
+  Definition p_state: Type := (sname -> mname -> Any.t).
 
   (*** Same as State.pure_state, but does not use "Vis" directly ***)
   Definition pure_state {S E}: E ~> stateT S (itree E) := fun _ e s => x <- trigger e;; Ret (s, x).
@@ -112,16 +125,16 @@ Module EventsL.
 Section EVENTSL.
 
   Inductive callE: Type -> Type :=
-  | Call (mn: option mname) (fn: gname) (args: Any.t): callE Any.t
+  | Call (sn: sname) (mn: option mname) (fn: gname) (args: Any.t): callE Any.t
   .
 
   Inductive pE: Type -> Type :=
-  | PPut (mn: mname) (p: Any.t): pE unit
-  | PGet (mn: mname): pE Any.t
+  | PPut (sn: sname) (mn: mname) (p: Any.t): pE unit
+  | PGet (sn: sname) (mn: mname): pE Any.t
   .
 
   Inductive schE: Type -> Type :=
-  | Spawn (fn: gname) (args: Any.t): schE nat
+  | Spawn (sn: sname) (fn: gname) (args: Any.t): schE nat
   | Yield: schE unit
   | Getpid: schE nat
   .
@@ -155,7 +168,7 @@ Section EVENTSL.
   Section Scheduler.
     Definition interp_schE {E}:
       nat * itree (schE +' pE +' eventE) E ->
-      itree (pE +' eventE) (E + (string * Any.t * (nat -> itree (schE +' pE +' eventE) E))
+      itree (pE +' eventE) (E + (string * string * Any.t * (nat -> itree (schE +' pE +' eventE) E))
                             + (itree (schE +' pE +' eventE) E)).
     Proof.
       eapply ITree.iter.
@@ -170,7 +183,7 @@ Section EVENTSL.
         + (* schE *)
           destruct s.
           * (* Spawn *)
-            exact (Ret (inr (inl (inr (fn, args, fun x => k x))))).
+            exact (Ret (inr (inl (inr (sn, fn, args, fun x => k x))))).
             (* exact (Vis (inl1 (Spawn_t fn args)) (fun x => Ret (inl (tid, k x)))). *)
           * (* Yield *)
             exact (Ret (inr (inr (k tt)))).
@@ -202,8 +215,8 @@ Section EVENTSL.
                  | inl (inl r) => (* finished *)
                      let ts' := alist_remove tid ts in
                      Ret (inl (prog, ts', next_tid, ktr (List.map fst ts, (inl (inl r)))))
-                 | inl (inr (fn, args, k)) => (* spawn *)
-                     let new_itr := interp_mrec prog (prog _ (Call None fn args)) in
+                 | inl (inr (sn, fn, args, k)) => (* spawn *)
+                     let new_itr := interp_mrec prog (prog _ (Call sn None fn args)) in
                      let ts' := alist_add next_tid new_itr (alist_replace tid (k next_tid) ts) in
                      Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts, (inl (inr tid)))))
                  | inr t' => (* yield *)
@@ -239,9 +252,10 @@ Section EVENTSL.
   Definition handle_pE {E}: pE ~> stateT p_state (itree E) :=
     fun _ e mps =>
       match e with
-      | PPut mn p => Ret (update mps mn p, tt)
-      | PGet mn => Ret (mps, mps mn)
+      | PPut sn mn p => Ret (update mps sn (update (mps sn) mn p), tt)
+      | PGet sn mn => Ret (mps, mps sn mn)
       end.
+  
   Definition interp_pE {E}: itree (pE +' E) ~> stateT p_state (itree E) :=
     (* State.interp_state (case_ ((fun _ e s0 => resum_itr (handle_pE e s0)): _ ~> stateT _ _) State.pure_state). *)
     State.interp_state (case_ handle_pE pure_state).
