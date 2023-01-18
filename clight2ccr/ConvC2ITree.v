@@ -818,7 +818,7 @@ Section EVAL_EXPR_COMP.
       v2 <- eval_expr_c a2;;
       match v1, v2 with
       | Some v1, Some v2 =>
-        binary_op_c (Clight.genv_cenv ge) op
+        binary_op_c ce op
                     v1 (Clight.typeof a1)
                     v2 (Clight.typeof a2)
       | _, _ => Ret None
@@ -831,9 +831,9 @@ Section EVAL_EXPR_COMP.
         sem_cast_c v1 (Clight.typeof a) ty
       end
     | Esizeof ty1 ty =>
-      Ret (Some (Vptrofs (Ptrofs.repr (sizeof (Clight.genv_cenv ge) ty1))))
+      Ret (Some (Vptrofs (Ptrofs.repr (sizeof ce ty1))))
     | Ealignof ty1 ty =>
-      Ret (Some (Vptrofs (Ptrofs.repr (alignof (Clight.genv_cenv ge) ty1))))
+      Ret (Some (Vptrofs (Ptrofs.repr (alignof ce ty1))))
     | a =>
       v <- _eval_lvalue_c eval_expr_c a;;
       match v with
@@ -877,28 +877,28 @@ Definition id_list_disjoint_c: list ident -> list ident -> bool :=
     if (Coqlib.list_disjoint_dec ident_eq ids1 ids2)
     then true else false.
 
-Fixpoint alloc_variables_c (ge: genv) (e: env)
+Fixpoint alloc_variables_c (ce: composite_env) (e: env)
          (vars: list (ident * type))
   : itree eff env := 
   match vars with
   | [] => Ret e
   | (id, ty) :: vars' =>
-    v <- ccallU "alloc" (0%Z, sizeof ge ty);;
+    v <- ccallU "alloc" (0%Z, sizeof ce ty);;
     match v with
-    | Vptr b ofs => alloc_variables_c ge (PTree.set id (b, ty) e) vars'
+    | Vptr b ofs => alloc_variables_c ce (PTree.set id (b, ty) e) vars'
     | _ => triggerUB
     end
   end.
 
 Definition function_entry_c
-           (ge: genv) (f: function) (vargs: list val)
+           (ce: composite_env) (f: function) (vargs: list val)
   : itree eff (option (env * temp_env)) :=
   if (id_list_norepet_c (var_names (fn_vars f)) &&
       id_list_norepet_c (var_names (fn_params f)) &&
       id_list_disjoint_c (var_names (fn_params f))
                          (var_names (fn_temps f)))%bool
   then
-    e <- alloc_variables_c ge empty_env (fn_vars f);;
+    e <- alloc_variables_c ce empty_env (fn_vars f);;
     match
       bind_parameter_temps (fn_params f) vargs
                             (create_undef_temps
@@ -915,19 +915,20 @@ Section DECOMP.
     (itree eff (env * temp_env *
                 option bool (*break/continue*) * option val)).
 
-  Variable ge: genv.
+  Variable ce: composite_env.
+  Variable skenv: SkEnv.t.
 
   Definition _sassign_c e le a1 a2 :=
-    v <- eval_lvalue_c ge e le a1;;
+    v <- eval_lvalue_c ce skenv e le a1;;
     match v with
     | Some (loc, (ofs, bf)) =>
-      v2 <- eval_expr_c ge e le a2;; 
+      v2 <- eval_expr_c ce skenv e le a2;; 
       match v2 with
       | Some v2 =>
         v <- sem_cast_c v2 (typeof a2) (typeof a1);;
         match v with
         | Some v =>
-          assign_loc_c ge (typeof a1) loc ofs v
+          assign_loc_c ce (typeof a1) loc ofs v
         | None => Ret tt
         end
       | None => Ret tt
@@ -939,9 +940,9 @@ Section DECOMP.
     : itree eff val :=
     match Cop.classify_fun (typeof a) with
     | Cop.fun_case_f tyargs tyres cconv =>
-      vf <- (eval_expr_c ge e le a);;
+      vf <- (eval_expr_c ce skenv e le a);;
       vf <- vf?;;
-      vargs <- eval_exprlist_c ge e le al tyargs;;
+      vargs <- eval_exprlist_c ce skenv e le al tyargs;;
       vargs <- vargs?;;
       fd <- (Globalenvs.Genv.find_funct ge vf)?;;
       if type_eq (type_of_fundef fd)
