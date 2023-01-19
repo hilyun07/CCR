@@ -1249,7 +1249,7 @@ Section DECOMP_PROG.
 
   Definition modsem : ModSem.t := {|
     ModSem.fnsems := List.map (fun '(fn, f) => (string_of_ident fn, cfunU f)) (decomp_fundefs cprog_app.(prog_defs));
-    ModSem.mn := "mname";
+    ModSem.mn := mn;
     ModSem.initial_st := tt↑;
   |}.
 

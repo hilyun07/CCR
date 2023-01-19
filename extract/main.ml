@@ -8,15 +8,10 @@ open BinInt
 
 open ITreeDefinition
 open Any
-open ImpPrelude
 open ModSem
 open ModSemE
-
-open MutFG
-open Example0
-open EchoAll
+open Test
 (* open MWAll *)
-open Imp
 
 let cl2s = fun cl -> String.concat "" (List.map (String.make 1) cl)
 
@@ -45,19 +40,6 @@ let string_of_z n =
   string_of_int (Z.to_int n)
 
 let string_of_zs ns = List.fold_left (fun s i -> s ^ " " ^ string_of_z i) "" ns
-
-let string_of_val v =
-  match v with
-  | Vint n -> "Vint " ^ string_of_z n
-  | Vptr (ptr, ofs) -> "Vptr (" ^ string_of_nat ptr ^ ", " ^ string_of_z ofs ^ ")"
-  | Vundef -> "Vundef"
-
-let string_of_vals vs = List.fold_left (fun s i -> s ^ " " ^ string_of_val i) "" vs
-
-let string_of_any v =
-  match (Any.downcast v) with
-  | Some v' -> string_of_val v'
-  | None -> "fail"
 
 let handle_Event = fun e k ->
   match e with
@@ -90,7 +72,7 @@ let handle_Event = fun e k ->
 let rec run t =
   match observe t with
   | RetF r ->
-     print_endline ("Return: " ^ (string_of_any r))
+     print_endline ("Return: 1")
   | TauF t -> run t
   | VisF (e, k) -> handle_Event e (fun x -> run (k x))
 
@@ -108,9 +90,5 @@ let main =
   match int_of_string (read_line()) with
   (* | 1 -> run (mw_impl_itr) *)
   (* | 2 -> run (mw_abs_itr) *)
-  | 3 -> run (mutsum_imp)
-  | 4 -> run (mutsum)
-  | 5 -> run (echo_imp_itr)
-  | 6 -> run (echo_impl_itr)
-  | 7 -> run (echo_spec_itr)
+  | 3 -> run (test_itr)
   | _ -> print_endline "Invalid Number!"

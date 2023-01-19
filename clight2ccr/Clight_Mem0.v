@@ -90,21 +90,23 @@ Section PROOF.
   End BODY.
 
   Variable csl: gname -> bool.
-  Definition MemSem (sk: Sk.t): ModSem.t :=
+  Variable pgm: Clight.program.
+  
+  Definition MemSem : ModSem.t :=
     {|
-    ModSem.fnsems := [("alloc", cfunU allocF); ("free", cfunU freeF);
-                     ("load", cfunU loadF); ("loadbytes", cfunU loadbytesF);
-                     ("store", cfunU storeF); ("storebytes", cfunU storebytesF);
-                     ("valid_pointer", cfunU valid_pointerF)];
+      ModSem.fnsems := [("alloc", cfunU allocF); ("free", cfunU freeF);
+                        ("load", cfunU loadF); ("loadbytes", cfunU loadbytesF);
+                        ("store", cfunU storeF); ("storebytes", cfunU storebytesF);
+                        ("valid_pointer", cfunU valid_pointerF)];
       ModSem.mn := "Mem";
-      ModSem.initial_st := Mem.empty↑;
-      (* ModSem.initial_st := (Mem.load_mem csl sk)↑; *)
+      ModSem.initial_st := (Genv.init_mem pgm)↑;
+                                    (* ModSem.initial_st := (Mem.load_mem csl sk)↑; *)
     |}
   .
 
   Definition Mem: Mod.t := {|
-    Mod.get_modsem := MemSem;
-    Mod.sk := Sk.unit;
+    Mod.get_modsem := fun _ => MemSem;
+    Mod.sk := @Sk.unit Sk.gdefs;
   |}
   .
   
