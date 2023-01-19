@@ -944,99 +944,21 @@ Section DECOMP.
       vf <- vf?;;
       vargs <- eval_exprlist_c ce skenv e le al tyargs;;
       vargs <- vargs?;;
-      fd <- (Globalenvs.Genv.find_funct ge vf)?;;
-      if type_eq (type_of_fundef fd)
-                 (Tfunction tyargs tyres cconv)
-      then
-        match vf with
-        | Vptr b ofs =>
-          match Genv.find_funct_ptr ge b with
-          | Some (Internal f) =>
-              match Globalenvs.Genv.invert_symbol ge b with
-              | Some id => 
-                  v <- trigger (Call (string_of_ident id) vargs↑);;
-                  v <- v↓?;;
-                  Ret v
-              | None => triggerUB
-              end
-          | Some (External ef _ retty _) =>
-              match ef with
-              | EF_external fn _ =>
-                  if orb (fn =? "send") (fn =? "recv")
-                  then
-                    _ <- trigger (Call "yield" (@nil val)↑);;
-                    v <- trigger (Call fn vargs↑);;
-                    v <- v↓?;;
-                    Ret v
-                  else
-                    v <- trigger (Call fn vargs↑);;
-                    v <- v↓?;;
-                    Ret v
-              | EF_malloc => (* need check by yhkim *)
-                  match vargs with
-                  | nil => triggerUB
-                  | [v1] => match Archi.ptr64, v1 with
-                            | true, Vlong i =>
-                                b <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int64.unsigned i);;
-                                `_ : () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong i);;
-                                     Ret (Vptr b Ptrofs.zero)
-                            | false, Vint i => 
-                                b <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int.unsigned i);;
-                                `_ : () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vint i);;
-                                     Ret (Vptr b Ptrofs.zero)
-                            | _, _ => triggerUB
-                            end
-                  | _ => triggerUB
-                  end
-              | EF_free =>   (* needed consult by yhkim, can free know range of freeing offset? *)
-                  match vargs with
-                  | nil => triggerUB
-                  | [v1] =>
-                      match Archi.ptr64, v1 with
-                      | true, Vptr b ofs =>
-                          v <- ccallU "load" (Mptr, b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z);;
-                          match v with
-                          | Vlong i =>
-                              if (Int64.unsigned i >? 0)%Z
-                              then `_ : () <- ccallU "free" (b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z, (Ptrofs.unsigned ofs + Int64.unsigned i)%Z);;
-                                        Ret Vundef
-                              else triggerUB
-                          | _ => triggerUB
-                          end
-                      | false, Vptr b ofs =>
-                          v <- ccallU "load" (Mptr, b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z);;
-                          match v with
-                          | Vint i =>
-                              if (Int.unsigned i >? 0)%Z
-                              then `_ : () <- ccallU "free" (b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z, (Ptrofs.unsigned ofs + Int.unsigned i)%Z);;
-                                        Ret Vundef
-                              else triggerUB
-                          | _ => triggerUB
-                          end
-                      | true, Vlong i =>
-                          if (Z.eqb 0%Z (Int64.unsigned i)) then Ret Vundef
-                          else triggerUB
-                      | false, Vint i =>
-                          if (Z.eqb 0%Z (Int.unsigned i)) then Ret Vundef
-                          else triggerUB
-                      | _, _ => triggerUB
-                      end
-                  | _ => triggerUB
-                  end
-              | _ => triggerUB
-              end
-          | _ => triggerUB
+      match vf with
+      | Vptr b ofs =>
+          match SkEnv.blk2id skenv b with
+          | Some gn => ccallU gn vargs
+          | None => triggerUB
           end
-        | _ => triggerUB (* unreachable *)
-        end
-      else triggerUB
+      | _ => triggerUB (* unreachable *)
+      end
     | _ => triggerUB
     end.
 
   Definition _site_c
              (e: env) (le: temp_env) (a: expr)
     : itree eff (option bool) :=
-    v1 <- eval_expr_c ge e le a;;
+    v1 <- eval_expr_c ce skenv e le a;;
     match v1 with
     | Some v1 =>
       bool_val_c v1 (typeof a)
@@ -1105,16 +1027,23 @@ Section DECOMP.
       free_list_aux l'
     end.
   
+  Definition block_of_binding (ce : composite_env) (id_b_ty : ident * (block * type)) :=
+    let (_, p) := id_b_ty in let (b, ty) := p in (b, 0%Z, sizeof ce ty).
+
+  Definition blocks_of_env (ce : composite_env) : env -> list (block * Z * Z) :=
+    List.map (block_of_binding ce) ∘ PTree.elements.
+    
+  
   Definition _sreturn_c
              (retty: type)
              (e: env) (le: temp_env)
              (oa: option expr)
     : itree eff (option val) :=
-    free_list_aux (blocks_of_env ge e);;;
+    free_list_aux (blocks_of_env ce e);;;
     match oa with
     | None => Ret (Some Vundef)
     | Some a =>
-      v <- eval_expr_c ge e le a;;
+      v <- eval_expr_c ce skenv e le a;;
       match v with
       | None => Ret None
       | Some v =>
@@ -1134,7 +1063,7 @@ Section DECOMP.
       _sassign_c e le a1 a2;;;
       Ret (e, le, None, None)
     | Sset id a =>
-      v <- eval_expr_c ge e le a ;;
+      v <- eval_expr_c ce skenv e le a ;;
       match v with
       | Some v =>
         let le' := PTree.set id v le in
@@ -1195,7 +1124,7 @@ Section DECOMP.
            (f: Clight.function)
            (vargs: list val)
     : itree eff val :=
-    t <- function_entry_c ge f vargs;;
+    t <- function_entry_c ce f vargs;;
     match t with
     | None =>
       triggerUB
@@ -1220,10 +1149,12 @@ Section DECOMP_PROG.
 
   Variable cprog_app: Clight.program.
   Let ge: genv := Clight.globalenv cprog_app.
+  Let ce: composite_env := genv_cenv ge.
+  Variable skenv: SkEnv.t.
 
   Fixpoint decomp_fundefs
            (defs: list (ident * globdef Clight.fundef type))
-    : list (block * ident * (list val -> itree eff val)) :=
+    : list (ident * (list val -> itree eff val)) :=
     match defs with
     | [] => []
     | (id, gdef) :: defs' =>
@@ -1232,9 +1163,9 @@ Section DECOMP_PROG.
       | Gfun fd =>
         match fd with
         | Internal f =>
-          match Genv.find_symbol ge id with
-          | Some b =>
-            (b, id, decomp_func ge f) :: decomp_fundefs defs'
+          match SkEnv.id2blk skenv (string_of_ident id) with
+          | Some _ =>
+              (id, decomp_func ce skenv f) :: decomp_fundefs defs'
           | None => decomp_fundefs defs'
           end
         | _ => decomp_fundefs defs'
@@ -1242,19 +1173,30 @@ Section DECOMP_PROG.
       end
     end.
 
-  (* Definition modsem : ModSem.t := {| *)
-  (*   ModSem.fnsems := List.map (fun '(fn, f) => (fn, cfunU (decomp_fundefs f))) cprog_app.(prog_defs); *)
-  (*   ModSem.mn := "TT"; *)
-  (*   ModSem.initial_st := tt↑; *)
-  (* |}. *)
-
-  (* Definition get_mod (m : program) : Mod.t := {| *)
-  (*   Mod.get_modsem := fun ge => (modsem m (Sk.load_skenv ge)); *)
-  (*   Mod.sk := m.(defs); *)
-  (* |}. *)
-
 End DECOMP_PROG.
 End Clight.
+
+Section Clight2mod.
+
+Variable skenv: SkEnv.t.
+Variable mn: mname.
+
+Definition modsem (cprog_app: Clight.program) : ModSem.t :=
+  {|
+    ModSem.fnsems := List.map (fun '(fn, f) => (string_of_ident fn, cfunU f)) (decomp_fundefs cprog_app skenv cprog_app.(prog_defs));
+    ModSem.mn := mn;
+    ModSem.initial_st := tt↑;
+  |}.
+
+(* genv to sk *)
+
+Definition get_mod (cprog_app : Clight.program) : Mod.t :=
+  {|
+    Mod.get_modsem := fun ge => (modsem m (Sk.load_skenv ge));
+    Mod.sk := m.(defs);
+  |}.
+End Clight2mod.
+
 (* Record program (F : Type) : Type := Build_program *)
 (*   { prog_defs : list (ident * globdef (Ctypes.fundef F) type); *)
 (*     prog_public : list ident; *)
