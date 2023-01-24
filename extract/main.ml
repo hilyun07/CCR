@@ -8,16 +8,11 @@ open BinInt
 
 open ITreeDefinition
 open Any
-open ImpPrelude
 open ModSem
 open ModSemE
 
-open MutFG
-open Example0
-open EchoAll
-open Sch_exam0
 (* open MWAll *)
-open Imp
+open Test2
 
 let cl2s = fun cl -> String.concat "" (List.map (String.make 1) cl)
 
@@ -47,18 +42,18 @@ let string_of_z n =
 
 let string_of_zs ns = List.fold_left (fun s i -> s ^ " " ^ string_of_z i) "" ns
 
-let string_of_val v =
-  match v with
-  | Vint n -> "Vint " ^ string_of_z n
-  | Vptr (ptr, ofs) -> "Vptr (" ^ string_of_nat ptr ^ ", " ^ string_of_z ofs ^ ")"
-  | Vundef -> "Vundef"
+(* let string_of_val v = *)
+(*   match v with *)
+(*   | Vint n -> "Vint " ^ string_of_z n *)
+(*   | Vptr (ptr, ofs) -> "Vptr (" ^ string_of_nat ptr ^ ", " ^ string_of_z ofs ^ ")" *)
+(*   | Vundef -> "Vundef" *)
 
-let string_of_vals vs = List.fold_left (fun s i -> s ^ " " ^ string_of_val i) "" vs
+(* let string_of_vals vs = List.fold_left (fun s i -> s ^ " " ^ string_of_val i) "" vs *)
 
-let string_of_any v =
-  match (Any.downcast v) with
-  | Some v' -> string_of_val v'
-  | None -> "fail"
+(* let string_of_any v = *)
+(*   match (Any.downcast v) with *)
+(*   | Some v' -> string_of_val v' *)
+(*   | None -> "fail" *)
 
 let handle_Event = fun e k ->
   match e with
@@ -80,26 +75,68 @@ let handle_Event = fun e k ->
        | Some args' -> args'
        | None -> []
      in
-     if (String.equal (cl2s str) ("choose_from"))
-     then
-       (print_string("Choose from (" ^ string_of_zs argv ^ " ): ");
+     match (cl2s str) with
+     | "print_ascii" -> 
+        let _ = (print_char (Char.chr (Z.to_int (List.hd argv)))) in
+        k (Obj.repr (Any.upcast (Z.of_int 0)))
+     | "print_num" ->
+        let _ = (print_int (Z.to_int (List.hd argv))) in
+        k (Obj.repr (Any.upcast (Z.of_int 0)))
+     | "print_newline" -> 
+        let _ = print_newline () in
+        k (Obj.repr (Any.upcast (Z.of_int 0)))
+     | "choose_from" ->
+        print_string("Choose from (" ^ string_of_zs argv ^ " ): ");
         let tid =
           (try int_of_string (read_line())
            with Failure _ -> 0) in
-        k (Obj.repr (Any.upcast (Nat.of_int tid))))
-     else
-       (print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): ");
+        k (Obj.repr (Any.upcast (Nat.of_int tid)))
+     | _ ->
+        print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): ");
         let n =
           if (String.equal (cl2s str) ("print"))
           then (print_endline ""; 0)
           else (try int_of_string (read_line())
                 with Failure _ -> 0) in
-        k (Obj.repr (Any.upcast (Z.of_int n))))
+        k (Obj.repr (Any.upcast (Z.of_int n)))
+      (* if (String.equal (cl2s str) ("print_ascii")) *)
+      (* then *)
+      (*   let _ = (print_char (Char.chr (Z.to_int (List.hd argv)))) in *)
+      (*   k (Obj.repr (Any.upcast (Z.of_int 0))) *)
+      (* else *)
+      (*   begin *)
+      (*     if (String.equal (cl2s str) ("print_num")) *)
+      (*     then *)
+      (*       let _ = (print_int (Z.to_int (List.hd argv))) in *)
+      (*       k (Obj.repr (Any.upcast (Z.of_int 0))) *)
+      (*     else *)
+      (*       begin *)
+      (*         if (String.equal (cl2s str) ("choose_from")) *)
+      (*         then *)
+      (*           begin *)
+      (*             print_string("Choose from (" ^ string_of_zs argv ^ " ): "); *)
+      (*             let tid = *)
+      (*               (try int_of_string (read_line()) *)
+      (*                with Failure _ -> 0) in *)
+      (*             k (Obj.repr (Any.upcast (Nat.of_int tid))) *)
+      (*           end *)
+      (*         else *)
+      (*           begin *)
+      (*             print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): "); *)
+      (*             let n = *)
+      (*               if (String.equal (cl2s str) ("print")) *)
+      (*               then (print_endline ""; 0) *)
+      (*               else (try int_of_string (read_line()) *)
+      (*                     with Failure _ -> 0) in *)
+      (*             k (Obj.repr (Any.upcast (Z.of_int n))) *)
+      (*           end *)
+      (*       end *)
+      (*   end *)
 
 let rec run t =
   match observe t with
   | RetF r ->
-     print_endline ("Return: " ^ (string_of_any r))
+     print_endline ("Return: ")
   | TauF t -> run t
   | VisF (e, k) -> handle_Event e (fun x -> run (k x))
 
@@ -118,10 +155,11 @@ let main =
   match int_of_string (read_line()) with
   (* | 1 -> run (mw_impl_itr) *)
   (* | 2 -> run (mw_abs_itr) *)
-  | 3 -> run (mutsum_imp)
-  | 4 -> run (mutsum)
-  | 5 -> run (echo_imp_itr)
-  | 6 -> run (echo_impl_itr)
-  | 7 -> run (echo_spec_itr)
-  | 8 -> run (sch_exam)
+  (* | 3 -> run (mutsum_imp) *)
+  (* | 4 -> run (mutsum) *)
+  (* | 5 -> run (echo_imp_itr) *)
+  (* | 6 -> run (echo_impl_itr) *)
+  (* | 7 -> run (echo_spec_itr) *)
+  (* | 8 -> run (sch_exam) *)
+  | 9 -> run (test_itr)
   | _ -> print_endline "Invalid Number!"

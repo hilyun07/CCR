@@ -1,4 +1,3 @@
-Require Import ImpPrelude.
 Require Import ModSem.
 Require Import ClassicalDescription.
 
@@ -27,14 +26,13 @@ Extract Constant EventsL.choose_from =>
             (coq_ReSum_id (Obj.magic (fun _ _ -> coq_Id_IFun)) __))
           (Any.Any.downcast tid)) (fun tid0 -> lazy (Coq_go (RetF tid0))))".
 
-Require Import MutFG Example0 EchoAll (* MWAll *) Imp ImpNotations Sch_exam0.
+Require Import tiny_main.
         (* EchoAll *)
 
 Cd "extract".
 
-Separate Extraction Z.to_nat Z.opp mutsum_imp mutsum ex0 echo_impl_itr echo_spec_itr echo_imp_itr sch_exam
+Separate Extraction test_itr.
          (* mw_impl_itr mw_abs_itr EXTRACT_MW_IMPL_LINKING_CHECK *)
-.
          (* echo_prog *)
 
 Cd "..".
