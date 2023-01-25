@@ -26,12 +26,12 @@ Extract Constant EventsL.choose_from =>
             (coq_ReSum_id (Obj.magic (fun _ _ -> coq_Id_IFun)) __))
           (Any.Any.downcast tid)) (fun tid0 -> lazy (Coq_go (RetF tid0))))".
 
-Require Import tiny_main.
+Require Import tiny_main tw_main.
         (* EchoAll *)
 
 Cd "extract".
 
-Separate Extraction test_itr.
+Separate Extraction tiny_main.test_itr tw_main.test_itr.
          (* mw_impl_itr mw_abs_itr EXTRACT_MW_IMPL_LINKING_CHECK *)
          (* echo_prog *)
 

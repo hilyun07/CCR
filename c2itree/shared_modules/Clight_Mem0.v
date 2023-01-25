@@ -90,8 +90,15 @@ Section PROOF.
   End BODY.
 
   Variable csl: gname -> bool.
-  Variable pgm: Clight.program.
-  Definition init := match Genv.init_mem pgm with Some mem => mem | None => Mem.empty end.
+  Variable optpgm: option Clight.program.
+  Definition init :=
+    match optpgm with
+    | Some pgm =>
+        match Genv.init_mem pgm with
+        | Some mem => mem
+        | None => Mem.empty end
+    | None => Mem.empty
+    end.
   
   Definition MemSem : ModSem.t :=
     {|

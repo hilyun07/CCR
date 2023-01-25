@@ -44,6 +44,9 @@ Section PROOF.
         `new_pid : val <- ccallU "spawn" ("first.main", @nil val);; 
         `new_pid : Z <- (pargs [tint] [new_pid])?;;
          _ <- trigger (Syscall "print_num" [new_pid]↑ top1);;
+        `new_pid : val <- ccallU "spawn" ("second.main", @nil val);;
+        `new_pid : Z <- (pargs [tint] [new_pid])?;;
+         _ <- trigger (Syscall "print_num" [new_pid]↑ top1);;
          Ret (Vint Int.zero).
     
   End BODY.
@@ -83,13 +86,20 @@ Section TEST.
   (* Mem (pgm : Clight.program), c_module (globalenv : Genv.t fundef type) *)
   (* modules that uses memory call each site should be separated *)
 
-  Definition site_first_list :=
+  Definition site_first :=
     (ModSemL.append_site "first" shared_fun_list shared_module_list
        (ModL.enclose (Mod.add_list
-                        ((Mem tiny0.prog)::(Sys)::[tiny0.c_module tiny0_glob])))).
+                        ((Mem (Some tiny0.prog))::(Sys)::[tiny0.c_module tiny0_glob])))).
+
+  Definition site_second :=
+    (ModSemL.append_site "second" shared_fun_list shared_module_list
+       (ModL.enclose (Mod.add_list
+                        ((Mem (Some tiny0.prog))::(Sys)::[tiny0.c_module tiny0_glob])))).
+
+  Definition test_modseml := ModSemL.add site_first site_second.
     
   Definition test_itr :=
     ModSemL.initial_itr
-      (ModSemL.add no_memory_modules site_first_list) None.
+      (ModSemL.add no_memory_modules test_modseml) None.
 
 End TEST.

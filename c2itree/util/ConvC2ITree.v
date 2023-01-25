@@ -1029,7 +1029,8 @@ Section DECOMP.
           end
         | _ => triggerUB (* unreachable *)
         end
-      else triggerUB
+      else
+        triggerUB
     | _ => triggerUB
     end.
 

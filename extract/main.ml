@@ -12,7 +12,8 @@ open ModSem
 open ModSemE
 
 (* open MWAll *)
-open Test2
+open Tiny_main
+open Tw_main
 
 let cl2s = fun cl -> String.concat "" (List.map (String.make 1) cl)
 
@@ -41,6 +42,7 @@ let string_of_z n =
   string_of_int (Z.to_int n)
 
 let string_of_zs ns = List.fold_left (fun s i -> s ^ " " ^ string_of_z i) "" ns
+let string_of_ns ns = List.fold_right (fun i s -> s ^ " " ^ string_of_nat i) ns ""
 
 (* let string_of_val v = *)
 (*   match v with *)
@@ -85,8 +87,11 @@ let handle_Event = fun e k ->
      | "print_newline" -> 
         let _ = print_newline () in
         k (Obj.repr (Any.upcast (Z.of_int 0)))
+     | "print_string" ->
+        let _ = print_endline (cl2s (List.hd argv)) in
+        k (Obj.repr (Any.upcast (Z.of_int 0)))
      | "choose_from" ->
-        print_string("Choose from (" ^ string_of_zs argv ^ " ): ");
+        print_string("Choose from (" ^ (string_of_ns argv) ^ " ): ");
         let tid =
           (try int_of_string (read_line())
            with Failure _ -> 0) in
@@ -99,39 +104,6 @@ let handle_Event = fun e k ->
           else (try int_of_string (read_line())
                 with Failure _ -> 0) in
         k (Obj.repr (Any.upcast (Z.of_int n)))
-      (* if (String.equal (cl2s str) ("print_ascii")) *)
-      (* then *)
-      (*   let _ = (print_char (Char.chr (Z.to_int (List.hd argv)))) in *)
-      (*   k (Obj.repr (Any.upcast (Z.of_int 0))) *)
-      (* else *)
-      (*   begin *)
-      (*     if (String.equal (cl2s str) ("print_num")) *)
-      (*     then *)
-      (*       let _ = (print_int (Z.to_int (List.hd argv))) in *)
-      (*       k (Obj.repr (Any.upcast (Z.of_int 0))) *)
-      (*     else *)
-      (*       begin *)
-      (*         if (String.equal (cl2s str) ("choose_from")) *)
-      (*         then *)
-      (*           begin *)
-      (*             print_string("Choose from (" ^ string_of_zs argv ^ " ): "); *)
-      (*             let tid = *)
-      (*               (try int_of_string (read_line()) *)
-      (*                with Failure _ -> 0) in *)
-      (*             k (Obj.repr (Any.upcast (Nat.of_int tid))) *)
-      (*           end *)
-      (*         else *)
-      (*           begin *)
-      (*             print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): "); *)
-      (*             let n = *)
-      (*               if (String.equal (cl2s str) ("print")) *)
-      (*               then (print_endline ""; 0) *)
-      (*               else (try int_of_string (read_line()) *)
-      (*                     with Failure _ -> 0) in *)
-      (*             k (Obj.repr (Any.upcast (Z.of_int n))) *)
-      (*           end *)
-      (*       end *)
-      (*   end *)
 
 let rec run t =
   match observe t with
@@ -161,5 +133,6 @@ let main =
   (* | 6 -> run (echo_impl_itr) *)
   (* | 7 -> run (echo_spec_itr) *)
   (* | 8 -> run (sch_exam) *)
-  | 9 -> run (test_itr)
+  | 9 -> run (Tiny_main.test_itr)
+  | 10 -> run (Tw_main.test_itr)
   | _ -> print_endline "Invalid Number!"

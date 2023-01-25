@@ -78,12 +78,21 @@ Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition ___stringlit_1 : ident := $"__stringlit_1".
 Definition _main : ident := $"main".
 Definition _puts : ident := $"puts".
+Definition _v : ident := $"v".
 
 Definition v___stringlit_1 := {|
-  gvar_info := (tarray tschar 4);
-  gvar_init := (Init_int8 (Int.repr 65) :: Init_int8 (Int.repr 66) ::
-                Init_int8 (Int.repr 83) :: Init_int8 (Int.repr 0) :: nil);
+  gvar_info := (tarray tschar 6);
+  gvar_init := (Init_int8 (Int.repr 97) :: Init_int8 (Int.repr 108) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 118) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 0) :: nil);
   gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v_v := {|
+  gvar_info := (tptr tschar);
+  gvar_init := (Init_int64 (Int64.repr 0) :: nil);
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
@@ -98,7 +107,7 @@ Definition f_main := {|
   (Ssequence
     (Scall None
       (Evar _puts (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))
-      ((Evar ___stringlit_1 (tarray tschar 4)) :: nil))
+      ((Evar ___stringlit_1 (tarray tschar 6)) :: nil))
     (Sreturn (Some (Econst_int (Int.repr 0) tint))))
   (Sreturn (Some (Econst_int (Int.repr 0) tint))))
 |}.
@@ -377,11 +386,11 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_puts,
    Gfun(External (EF_external "puts"
                    (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons (tptr tschar) Tnil) tint cc_default)) ::
+     (Tcons (tptr tschar) Tnil) tint cc_default)) :: (_v, Gvar v_v) ::
  (_main, Gfun(Internal f_main)) :: nil).
 
 Definition public_idents : list ident :=
-(_main :: _puts :: ___builtin_debug :: ___builtin_write32_reversed ::
+(_main :: _v :: _puts :: ___builtin_debug :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
  ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
  ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
