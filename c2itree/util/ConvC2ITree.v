@@ -1285,12 +1285,28 @@ Section TRANS.
          end.
   
   Definition trans_func (f: function) :=
-  mkfunction f.(fn_return) f.(fn_callconv) f.(fn_params) f.(fn_vars) f.(fn_temps) (rpl_body f.(fn_body)).
+    mkfunction f.(fn_return) f.(fn_callconv) f.(fn_params) f.(fn_vars) f.(fn_temps) (rpl_body f.(fn_body)).
+
+  Definition trans_initval (ii : init_data) :=
+    match ii with
+    | Init_addrof id ofs => Init_addrof (rpl_pos id) ofs
+    | _ => ii
+    end.
+
+  Definition trans_var (gv: globvar type) :=
+    {|
+      gvar_info := gv.(gvar_info);
+      gvar_init := List.map trans_initval gv.(gvar_init);
+      gvar_readonly := gv.(gvar_readonly);
+      gvar_volatile := gv.(gvar_volatile);
+    |}
+  .
 
   Definition trans_global_def (g_def: globdef fundef type) :=
     match g_def with
-    | Gvar _ | Gfun (External _ _ _ _) => g_def
+    | Gvar gv => Gvar (trans_var gv)
     | Gfun (Internal f) => Gfun (Internal (trans_func f))
+    | _ => g_def
     end.
 
 

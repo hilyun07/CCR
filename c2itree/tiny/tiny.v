@@ -76,11 +76,12 @@ Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition ___stringlit_1 : ident := $"__stringlit_1".
+Definition ___stringlit_2 : ident := $"__stringlit_2".
 Definition _main : ident := $"main".
 Definition _puts : ident := $"puts".
 Definition _v : ident := $"v".
 
-Definition v___stringlit_1 := {|
+Definition v___stringlit_2 := {|
   gvar_info := (tarray tschar 6);
   gvar_init := (Init_int8 (Int.repr 97) :: Init_int8 (Int.repr 108) ::
                 Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 118) ::
@@ -89,9 +90,17 @@ Definition v___stringlit_1 := {|
   gvar_volatile := false
 |}.
 
+Definition v___stringlit_1 := {|
+  gvar_info := (tarray tschar 4);
+  gvar_init := (Init_int8 (Int.repr 65) :: Init_int8 (Int.repr 67) ::
+                Init_int8 (Int.repr 68) :: Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
 Definition v_v := {|
   gvar_info := (tptr tschar);
-  gvar_init := (Init_int64 (Int64.repr 0) :: nil);
+  gvar_init := (Init_addrof ___stringlit_1 (Ptrofs.repr 0) :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -107,7 +116,7 @@ Definition f_main := {|
   (Ssequence
     (Scall None
       (Evar _puts (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))
-      ((Evar ___stringlit_1 (tarray tschar 6)) :: nil))
+      ((Evar ___stringlit_2 (tarray tschar 6)) :: nil))
     (Sreturn (Some (Econst_int (Int.repr 0) tint))))
   (Sreturn (Some (Econst_int (Int.repr 0) tint))))
 |}.
@@ -201,7 +210,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_runtime "__compcert_i64_umulh"
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tulong (Tcons tulong Tnil)) tulong
-     cc_default)) :: (___stringlit_1, Gvar v___stringlit_1) ::
+     cc_default)) :: (___stringlit_2, Gvar v___stringlit_2) ::
+ (___stringlit_1, Gvar v___stringlit_1) ::
  (___builtin_ais_annot,
    Gfun(External (EF_builtin "__builtin_ais_annot"
                    (mksignature (AST.Tlong :: nil) AST.Tvoid
@@ -413,5 +423,3 @@ Definition public_idents : list ident :=
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
-
-
