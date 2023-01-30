@@ -465,7 +465,7 @@ If this feature is needed; we can extend it then. At the moment, I will only all
   End INTERP.
 
 
-
+  Context `{Sk.ld}.
   Variable md_tgt: ModL.t.
   Let ms_tgt: ModSemL.t := (ModL.get_modsem md_tgt md_tgt.(ModL.sk)).
 
@@ -537,6 +537,7 @@ Module SMod.
 Section SMOD.
 
   Context `{Σ: GRA.t}.
+  Context `{Sk.ld}.
 
   Record t: Type := mk {
     get_modsem: Sk.t -> SModSem.t;
@@ -561,7 +562,7 @@ Section SMOD.
     fun sk => map (map_snd fsb_fspec) (flat_map (SModSem.fnsems ∘ (flip get_modsem sk)) mds).
 
   Definition get_sk (mds: list t): Sk.t :=
-    Sk.sort (fold_right Sk.add Sk.unit (List.map sk mds)).
+    Sk.canon (fold_right Sk.add Sk.unit (List.map sk mds)).
 
   Definition get_initial_mrs (mds: list t): Sk.t -> Σ :=
     fun sk => fold_left (⋅) (List.map (SModSem.initial_mr ∘ (flip get_modsem sk)) mds) ε.
@@ -696,7 +697,7 @@ Section SMOD.
         tr0 mr0 mds
     :
       (ModSemL.fnsems (ModL.enclose (Mod.add_list (List.map (transl tr0 mr0) mds)))) =
-      (load_fnsems (Sk.sort (List.fold_right Sk.add Sk.unit (List.map sk mds))) mds (tr0 (Sk.sort (List.fold_right Sk.add Sk.unit (List.map sk mds)))))
+      (load_fnsems (Sk.canon (List.fold_right Sk.add Sk.unit (List.map sk mds))) mds (tr0 (Sk.canon (List.fold_right Sk.add Sk.unit (List.map sk mds)))))
   .
   Proof.
     unfold ModL.enclose.
@@ -758,7 +759,7 @@ Section SMOD.
         tr0 mr0 mds
     :
       (ModSemL.initial_mrs (ModL.enclose (Mod.add_list (List.map (transl tr0 mr0) mds)))) =
-      (load_initial_mrs (Sk.sort (List.fold_right Sk.add Sk.unit (List.map sk mds))) mds mr0)
+      (load_initial_mrs (Sk.canon (List.fold_right Sk.add Sk.unit (List.map sk mds))) mds mr0)
   .
   Proof.
     unfold ModL.enclose.

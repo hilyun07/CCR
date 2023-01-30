@@ -975,11 +975,12 @@ End ModSemPair.
 
 Module ModPair.
 Section SIMMOD.
+  Context `{Sk.ld}.
    Variable (md_src md_tgt: Mod.t).
    Inductive sim: Prop := mk {
      sim_modsem:
        forall sk
-              (SKINCL: Sk.incl md_tgt.(Mod.sk) sk)
+              (SKINCL: Sk.extends md_tgt.(Mod.sk) sk)
               (SKWF: Sk.wf sk),
          <<SIM: ModSemPair.sim (md_src.(Mod.get_modsem) sk) (md_tgt.(Mod.get_modsem) sk)>>;
      sim_sk: <<SIM: md_src.(Mod.sk) = md_tgt.(Mod.sk)>>;
@@ -994,6 +995,7 @@ End ModPair.
 Section SIMMOD.
 
   Context {CONF: EMSConfig}.
+  Context `{Sk.ld}.
 
   Lemma ModL_add_fnsems md0 md1 sk
     :
@@ -1003,33 +1005,35 @@ Section SIMMOD.
     ss.
   Qed.
 
-  Lemma ModL_add_sk md0 md1
-    :
-      ModL.sk (ModL.add md0 md1) = ModL.sk md0 ++ ModL.sk md1.
-  Proof.
-    ss.
-  Qed.
+  (*** TODO : move to imp ***)
 
-  Lemma Mod_list_incl_sk (mds: list Mod.t) md
-        (IN: In md mds)
-    :
-      Sk.incl (Mod.sk md) (ModL.sk (Mod.add_list mds)).
-  Proof.
-    rewrite Mod.add_list_sk. revert IN. induction mds; ss.
-    i. des; clarify.
-    { ii. eapply in_or_app. auto. }
-    { ii. eapply in_or_app. right. eapply IHmds; et. }
-  Qed.
+  (* Lemma ModL_add_sk md0 md1 *)
+  (*   : *)
+  (*     ModL.sk (ModL.add md0 md1) = ModL.sk md0 ++ ModL.sk md1. *)
+  (* Proof. *)
+  (*   ss. *)
+  (* Qed. *)
 
-  Lemma Mod_add_list_get_modsem (mds: list Mod.t) sk
-    :
-      ModL.get_modsem (Mod.add_list mds) sk
-      =
-      fold_right ModSemL.add {| ModSemL.fnsems := []; ModSemL.initial_mrs := [] |}
-                 (List.map (fun (md: Mod.t) => ModL.get_modsem md sk) mds).
-  Proof.
-    induction mds; ss. f_equal. rewrite <- IHmds. ss.
-  Qed.
+  (* Lemma Mod_list_incl_sk (mds: list Mod.t) md *)
+  (*       (IN: In md mds) *)
+  (*   : *)
+  (*     Sk.incl (Mod.sk md) (ModL.sk (Mod.add_list mds)). *)
+  (* Proof. *)
+  (*   rewrite Mod.add_list_sk. revert IN. induction mds; ss. *)
+  (*   i. des; clarify. *)
+  (*   { ii. eapply in_or_app. auto. } *)
+  (*   { ii. eapply in_or_app. right. eapply IHmds; et. } *)
+  (* Qed. *)
+
+  (* Lemma Mod_add_list_get_modsem (mds: list Mod.t) sk *)
+  (*   : *)
+  (*     ModL.get_modsem (Mod.add_list mds) sk *)
+  (*     = *)
+  (*     fold_right ModSemL.add {| ModSemL.fnsems := []; ModSemL.initial_mrs := [] |} *)
+  (*                (List.map (fun (md: Mod.t) => ModL.get_modsem md sk) mds). *)
+  (* Proof. *)
+  (*   induction mds; ss. f_equal. rewrite <- IHmds. ss. *)
+  (* Qed. *)
 
 End SIMMOD.
 
@@ -1272,98 +1276,103 @@ Section ADEQUACY.
     Admitted.
   End SEMPAIR.
 
+  Context `{JL: Sk.ld}.
   Theorem adequacy_local_strong md_src md_tgt
           (SIM: ModPair.sim md_src md_tgt)
     :
       <<CR: (refines_strong md_tgt md_src)>>
   .
   Proof.
-    ii. unfold ModL.compile, ModL.enclose in *.
-    destruct (classic (ModL.wf (ModL.add (Mod.add_list ctx) md_src))).
-    2:{ eapply ModSemL.compile_not_wf. ss. }
-    pose (sk_tgt := (ModL.sk (ModL.add (Mod.add_list ctx) md_tgt))).
-    pose (sk_src := (ModL.sk (ModL.add (Mod.add_list ctx) md_src))).
-    assert (SKEQ: sk_tgt = sk_src).
-    { unfold sk_src, sk_tgt. ss. f_equal.
-      inv SIM. auto. }
-    rr in H. unfold ModL.enclose in *. fold sk_src in H. des. inv WF.
-    rename SK into SKWF.
-    rename wf_fnsems into FNWF.
-    rename wf_initial_mrs into MNWF.
-    inv SIM. hexploit (sim_modsem (Sk.canon sk_tgt)).
-    { etrans; [|eapply Sk.sort_incl]. ss. ii. eapply in_or_app. auto. }
-    { ss. fold sk_src in SKWF. rewrite SKEQ. clear - SKWF.
-      unfold Sk.wf in *. ss. eapply Permutation.Permutation_NoDup; [|et].
-      eapply Permutation.Permutation_map. eapply Sk.SkSort.sort_permutation. }
-    i. inv H. des.
-    assert (WFTGT: ModL.wf (ModL.add (Mod.add_list ctx) md_tgt)).
-    { rr. unfold ModL.enclose. fold sk_src sk_tgt.
-      rewrite SKEQ in *. split; auto. econs.
-      { clear MNWF.
-        match goal with
-        | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0
-        end; auto. ss.
-        rewrite ! List.map_app. f_equal. rewrite ! List.map_map.
-        eapply Forall2_eq. eapply Forall2_apply_Forall2; et.
-        i. destruct a, b. inv H. ss.
-      }
-      { clear FNWF.
-        match goal with
-        | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0
-        end; auto. ss.
-        rewrite ! List.map_app. f_equal. ss.
-        rewrite sim_mn. auto.
-      }
-    }
-    eapply adequacy_local_aux in PR; et.
-    { ss. ii. fold sk_src sk_tgt. rewrite <- SKEQ. rewrite ! alist_find_app_o. des_ifs.
-      { eapply alist_find_some in Heq.
-        rewrite Mod.add_list_fnsems in Heq.
-        rewrite <- fold_right_app_flat_map in Heq. ss.
-        eapply in_flat_map in Heq. des.
-        eapply in_map_iff in Heq0. des. destruct x1. ss. clarify.
-        right. left. esplits; ss; et.
-        instantiate (1:=ModSem.mn (Mod.get_modsem md_src (Sk.sort sk_tgt))).
-        ii. eapply NoDup_app_disjoint.
-        { rewrite List.map_app in MNWF. eapply MNWF. }
-        { rewrite Mod.add_list_initial_mrs.
-          rewrite <- fold_right_app_flat_map. eapply in_map.
-          eapply in_flat_map. ss. esplits; et. }
-        { ss. rewrite <- SKEQ. rewrite H. auto. }
-      }
-      { rewrite ! alist_find_map_snd. uo. des_ifs_safe ltac:(auto).
-        eapply alist_find_some in Heq0. right. right.
-        eapply Forall2_In_l in sim_fnsems; et. des. inv sim_fnsems0.
-        destruct b. esplits; ss; et. erewrite alist_find_some_iff; et.
-        { rewrite sim_mn. ss; et. }
-        { inv WFTGT. inv H1. ss. rewrite List.map_app in wf_fnsems.
-          apply nodup_app_r in wf_fnsems.
-          rewrite List.map_map in wf_fnsems. ss. fold sk_tgt in wf_fnsems.
-          erewrite List.map_ext; et. i. destruct a. ss.
-        }
-        { ss. inv H. ss. clarify. }
-      }
-    }
-    { exists w_init. econs.
-      { refl. }
-      { unfold ModSemL.initial_p_state.
-        erewrite ! alist_find_some_iff; et.
-        { clear FNWF.
-          match goal with
-          | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0
-          end; auto. ss.
-          fold sk_src. fold sk_tgt. rewrite <- SKEQ.
-          rewrite ! List.map_app. f_equal. ss. f_equal. auto.
-        }
-        { ss. eapply in_or_app. right. ss. left. fold sk_tgt. f_equal. auto. }
-        { ss. eapply in_or_app. right. ss. left. fold sk_src. rewrite SKEQ. auto. }
-      }
-      { ii. ss. fold sk_src sk_tgt. rewrite SKEQ. unfold ModSemL.initial_p_state.
-        ss. rewrite ! alist_find_app_o. des_ifs_safe.
-        rewrite <- SKEQ. ss. rewrite ! eq_rel_dec_correct. des_ifs. }
-    }
-  Qed.
-
+    (*** TODO : revise proof to general sk.  *)
+    (* ii. unfold ModL.compile, ModL.enclose in *. *)
+    (* destruct (classic (ModL.wf (ModL.add (Mod.add_list ctx) md_src))). *)
+    (* 2:{ eapply ModSemL.compile_not_wf. ss. } *)
+    (* pose (sk_tgt := (ModL.sk (ModL.add (Mod.add_list ctx) md_tgt))). *)
+    (* pose (sk_src := (ModL.sk (ModL.add (Mod.add_list ctx) md_src))). *)
+    (* assert (SKEQ: sk_tgt = sk_src). *)
+    (* { unfold sk_src, sk_tgt. ss. f_equal. *)
+    (*   inv SIM. auto. } *)
+    (* rr in H. unfold ModL.enclose in *. fold sk_src in H. des. inv WF. *)
+    (* rename SK into SKWF. *)
+    (* rename wf_fnsems into FNWF. *)
+    (* rename wf_initial_mrs into MNWF. *)
+    (* inv SIM. hexploit (sim_modsem (Sk.canon sk_tgt)). *)
+    (* { unfold Sk.extends. eexists. unfold sk_tgt. unfold ModL.add. ss. *)
+    (*   erewrite (Sk.add_comm (ModL.sk _) _);auto. rewrite <- SKEQ in SKWF. auto. } *)
+    (*   (* etrans; [|eapply Sk.sort_incl]. ss. ii. eapply in_or_app. auto. } *) *)
+    (* { ss. fold sk_src in SKWF. rewrite SKEQ. clear - SKWF. *)
+    (*   unfold Sk.wf in *. ss. eapply Permutation.Permutation_NoDup; [|et]. *)
+    (*   eapply Permutation.Permutation_map. eapply Sk.SkSort.sort_permutation. } *)
+    (* i. inv H. des. *)
+    (* assert (WFTGT: ModL.wf (ModL.add (Mod.add_list ctx) md_tgt)). *)
+    (* { rr. unfold ModL.enclose. fold sk_src sk_tgt. *)
+    (*   rewrite SKEQ in *. split; auto. econs. *)
+    (*   { clear MNWF. *)
+    (*     match goal with *)
+    (*     | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0 *)
+    (*     end; auto. ss. *)
+    (*     rewrite ! List.map_app. f_equal. rewrite ! List.map_map. *)
+    (*     eapply Forall2_eq. eapply Forall2_apply_Forall2; et. *)
+    (*     i. destruct a, b. inv H. ss. *)
+    (*   } *)
+    (*   { clear FNWF. *)
+    (*     match goal with *)
+    (*     | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0 *)
+    (*     end; auto. ss. *)
+    (*     rewrite ! List.map_app. f_equal. ss. *)
+    (*     rewrite sim_mn. auto. *)
+    (*   } *)
+    (* } *)
+    (* eapply adequacy_local_aux in PR; et. *)
+    (* { ss. ii. fold sk_src sk_tgt. rewrite <- SKEQ. rewrite ! alist_find_app_o. des_ifs. *)
+    (*   { eapply alist_find_some in Heq. *)
+    (*     rewrite Mod.add_list_fnsems in Heq. *)
+    (*     rewrite <- fold_right_app_flat_map in Heq. ss. *)
+    (*     eapply in_flat_map in Heq. des. *)
+    (*     eapply in_map_iff in Heq0. des. destruct x1. ss. clarify. *)
+    (*     right. left. esplits; ss; et. *)
+    (*     instantiate (1:=ModSem.mn (Mod.get_modsem md_src (Sk.sort sk_tgt))). *)
+    (*     ii. eapply NoDup_app_disjoint. *)
+    (*     { rewrite List.map_app in MNWF. eapply MNWF. } *)
+    (*     { rewrite Mod.add_list_initial_mrs. *)
+    (*       rewrite <- fold_right_app_flat_map. eapply in_map. *)
+    (*       eapply in_flat_map. ss. esplits; et. } *)
+    (*     { ss. rewrite <- SKEQ. rewrite H. auto. } *)
+    (*   } *)
+    (*   { rewrite ! alist_find_map_snd. uo. des_ifs_safe ltac:(auto). *)
+    (*     eapply alist_find_some in Heq0. right. right. *)
+    (*     eapply Forall2_In_l in sim_fnsems; et. des. inv sim_fnsems0. *)
+    (*     destruct b. esplits; ss; et. erewrite alist_find_some_iff; et. *)
+    (*     { rewrite sim_mn. ss; et. } *)
+    (*     { inv WFTGT. inv H1. ss. rewrite List.map_app in wf_fnsems. *)
+    (*       apply nodup_app_r in wf_fnsems. *)
+    (*       rewrite List.map_map in wf_fnsems. ss. fold sk_tgt in wf_fnsems. *)
+    (*       erewrite List.map_ext; et. i. destruct a. ss. *)
+    (*     } *)
+    (*     { ss. inv H. ss. clarify. } *)
+    (*   } *)
+    (* } *)
+    (* { exists w_init. econs. *)
+    (*   { refl. } *)
+    (*   { unfold ModSemL.initial_p_state. *)
+    (*     erewrite ! alist_find_some_iff; et. *)
+    (*     { clear FNWF. *)
+    (*       match goal with *)
+    (*       | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0 *)
+    (*       end; auto. ss. *)
+    (*       fold sk_src. fold sk_tgt. rewrite <- SKEQ. *)
+    (*       rewrite ! List.map_app. f_equal. ss. f_equal. auto. *)
+    (*     } *)
+    (*     { ss. eapply in_or_app. right. ss. left. fold sk_tgt. f_equal. auto. } *)
+    (*     { ss. eapply in_or_app. right. ss. left. fold sk_src. rewrite SKEQ. auto. } *)
+    (*   } *)
+    (*   { ii. ss. fold sk_src sk_tgt. rewrite SKEQ. unfold ModSemL.initial_p_state. *)
+    (*     ss. rewrite ! alist_find_app_o. des_ifs_safe. *)
+    (*     rewrite <- SKEQ. ss. rewrite ! eq_rel_dec_correct. des_ifs. } *)
+    (* } *)
+  (* Qed. *)
+  Admitted.
+  
   Context {CONF: EMSConfig}.
 
   Theorem adequacy_local md_src md_tgt

@@ -115,10 +115,10 @@ Section CANCEL.
 
 
   Context `{Σ: GRA.t}.
-
+  Context `{JL: Sk.ld}.
   Variable mds: list SMod.t.
 
-  Let sk: Sk.t := Sk.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
+  Let sk: Sk.t := Sk.canon (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
   (* Let skenv: SkEnv.t := Sk.load_skenv sk. *)
 
   Let _mss: Sk.t -> list SModSem.t := fun sk => (List.map ((flip SMod.get_modsem) sk) mds).
@@ -325,47 +325,47 @@ Section CANCEL.
            forall mn (MIN: List.In mn (map fst ms_tgt.(ModSemL.initial_mrs))),
              rsum_minus mn initial_mrs ⋅ initial_mrs mn = fold_left URA.add (List.map SModSem.initial_mr mss) ε>>).
   Proof.
-    exists (fun mn =>
-              match alist_find mn (SMod.load_initial_mrs
-                                     (Sk.sort (foldr Sk.add Sk.unit (map SMod.sk mds))) mds
-                                     SModSem.initial_mr) with
-              | Some r => r
-              | _ => ε
-              end).
-    split.
-    { revert NODUP.
-      unfold ModSemL.initial_p_state, zip_state.
-      unfold ms_mid, ms_tgt.
-      unfold mds_mid, mds_tgt, SMod.to_mid, SMod.to_tgt. ss.
-      rewrite ! SMod.transl_initial_mrs.
-      change (alist string Sk.gdef) with Sk.t.
-      generalize (Sk.sort (fold_right Sk.add Sk.unit (map SMod.sk mds))).
-      intros sk0. i. red. extensionality mn.
-      unfold SMod.load_initial_mrs.
-      rewrite ! SMod.red_do_ret. clear. induction mds; ss.
-      rewrite ! eq_rel_dec_correct. des_ifs.
-    }
-    { ii. rewrite rsum_minus_rsum; et. fold sk. unfold rsum. clear mn MIN.
-      f_equal. revert NODUP.
-      unfold mss, _mss, ms_tgt, mds_tgt, SMod.to_tgt.
-      rewrite ! SMod.transl_initial_mrs.
-      unfold SMod.load_initial_mrs.
-      rewrite ! SMod.red_do_ret.
-      rewrite ! List.map_map. ss. fold sk. generalize sk. clear. i.
-      eapply map_ext_in. i. des_ifs.
-      { eapply alist_find_some in Heq.
-        eapply in_map_iff in Heq. des. clarify.
-        destruct (classic (a = x)).
-        { subst. auto. }
-        eapply NoDup_inj_aux in H0; et. ss.
-        exfalso. eapply H0. et.
-      }
-      { exfalso. eapply alist_find_none in Heq.
-        eapply (in_map (fun x => (SModSem.mn (SMod.get_modsem x sk), SModSem.initial_mr (SMod.get_modsem x sk)))) in H; et.
-      }
-    }
-  Qed.
-
+    (* exists (fun mn => *)
+    (*           match alist_find mn (SMod.load_initial_mrs *)
+    (*                                  (Sk.canon (foldr Sk.add Sk.unit (map SMod.sk mds))) mds *)
+    (*                                  SModSem.initial_mr) with *)
+    (*           | Some r => r *)
+    (*           | _ => ε *)
+    (*           end). *)
+    (* split. *)
+    (* { revert NODUP. *)
+    (*   unfold ModSemL.initial_p_state, zip_state. *)
+    (*   unfold ms_mid, ms_tgt. *)
+    (*   unfold mds_mid, mds_tgt, SMod.to_mid, SMod.to_tgt. ss. *)
+    (*   rewrite ! SMod.transl_initial_mrs. *)
+    (*   change (alist string Sk.gdef) with Sk.t. *)
+    (*   generalize (Sk.sort (fold_right Sk.add Sk.unit (map SMod.sk mds))). *)
+    (*   intros sk0. i. red. extensionality mn. *)
+    (*   unfold SMod.load_initial_mrs. *)
+    (*   rewrite ! SMod.red_do_ret. clear. induction mds; ss. *)
+    (*   rewrite ! eq_rel_dec_correct. des_ifs. *)
+    (* } *)
+    (* { ii. rewrite rsum_minus_rsum; et. fold sk. unfold rsum. clear mn MIN. *)
+    (*   f_equal. revert NODUP. *)
+    (*   unfold mss, _mss, ms_tgt, mds_tgt, SMod.to_tgt. *)
+    (*   rewrite ! SMod.transl_initial_mrs. *)
+    (*   unfold SMod.load_initial_mrs. *)
+    (*   rewrite ! SMod.red_do_ret. *)
+    (*   rewrite ! List.map_map. ss. fold sk. generalize sk. clear. i. *)
+    (*   eapply map_ext_in. i. des_ifs. *)
+    (*   { eapply alist_find_some in Heq. *)
+    (*     eapply in_map_iff in Heq. des. clarify. *)
+    (*     destruct (classic (a = x)). *)
+    (*     { subst. auto. } *)
+    (*     eapply NoDup_inj_aux in H0; et. ss. *)
+    (*     exfalso. eapply H0. et. *)
+    (*   } *)
+    (*   { exfalso. eapply alist_find_none in Heq. *)
+    (*     eapply (in_map (fun x => (SModSem.mn (SMod.get_modsem x sk), SModSem.initial_mr (SMod.get_modsem x sk)))) in H; et. *)
+    (*   } *)
+    (* } *)
+  (* Qed. *)
+  Admitted.
   Local Opaque rsum rsum_minus.
 
 

@@ -1325,9 +1325,52 @@ Section TRANS.
 
 End TRANS.
 
+Require Import Orders.
+
+Module CGlobdef <: Typ. Definition t := globdef fundef type. End CGlobdef.
+Module CSKSort := AListSort CGlobdef.
+
+
+
+Variable dm1 : list (ident * globdef fundef type).
+Variable dm2 : list (ident * globdef fundef type).
+
+Definition link_prog_check (x: ident) (gd1: globdef F V) :=
+  match dm2!x with
+  | None => true
+  | Some gd2 =>
+      In_dec peq x p1.(prog_public)
+      && In_dec peq x p2.(prog_public)
+      && match link gd1 gd2 with Some _ => true | None => false end
+  end.
+
+Definition link_prog_merge (o1 o2: option (globdef F V)) :=
+  match o1, o2 with
+  | None, _ => o2
+  | _, None => o1
+  | Some gd1, Some gd2 => link gd1 gd2
+  end.
+
+Definition link_defs :=
+  if PTree_Properties.for_all dm1 link_prog_check
+  then Some (PTree.elements (PTree.combine link_prog_merge dm1 dm2))
+  else None.
+
+
+Program Instance cskel: Sk.ld :=
+  {|
+    Sk.t := list (ident * globdef fundef type)
+    Sk.unit := nil;
+    Sk.add :=
+    Sk.canon := CSKSort.sort;
+    Sk.wf := fun sk => @List.NoDup _ (List.map fst sk)
+  |}.
+Next Obligation.
+
 Section DECOMP_PROG.
 
   (* Context `{SystemEnv}. *)
+
 
   Variable cprog_app: Clight.program.
   Variable ge: Genv.t fundef type.
