@@ -10,7 +10,7 @@ Require Import ProofMode.
 Set Implicit Arguments.
 
 
-Notation mblock := nat (only parsing).
+Notation mblock := positive (only parsing).
 Notation ptrofs := Z (only parsing).
 
 

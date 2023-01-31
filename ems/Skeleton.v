@@ -46,7 +46,7 @@ Qed.
 
 Module SkEnv.
 
-  Notation mblock := nat (only parsing).
+  Notation mblock := positive (only parsing).
   Notation ptrofs := Z (only parsing).
 
   Record t: Type := mk {

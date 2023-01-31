@@ -6,6 +6,7 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import AList.
+Require Import ConvC2ITree.
 
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
@@ -55,7 +56,7 @@ Section PROOF.
 
   Definition Sch: Mod.t := {|
     Mod.get_modsem := fun _ => SchSem;
-    Mod.sk := Sk.unit;
+    Mod.sk := cskel.(Sk.unit);
   |}
   .
 End PROOF.

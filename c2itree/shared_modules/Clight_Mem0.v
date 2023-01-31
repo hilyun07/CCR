@@ -1,4 +1,3 @@
- 
 Require Import Coqlib.
 Require Import ITreelib.
 Require Import Skeleton.
@@ -7,11 +6,12 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import AList.
+Require Import ConvC2ITree.
 
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
 From compcert Require Import
-     Ctypes Clight.
+     Ctypes Clight Clightdefs.
 
 Set Implicit Arguments.
 
@@ -89,33 +89,89 @@ Section PROOF.
 
   End BODY.
 
-  Variable csl: gname -> bool.
   Variable optpgm: option Clight.program.
-  Definition init :=
-    match optpgm with
-    | Some pgm =>
-        match Genv.init_mem pgm with
-        | Some mem => mem
-        | None => Mem.empty end
+  Variable skenv: SkEnv.t.
+
+  Definition store_init_data (m : mem) (b : block) (p : Z) (id : init_data) :=
+    match id with
+    | Init_int8 n => Mem.store Mint8unsigned m b p (Vint n)
+    | Init_int16 n => Mem.store Mint16unsigned m b p (Vint n)
+    | Init_int32 n => Mem.store Mint32 m b p (Vint n)
+    | Init_int64 n => Mem.store Mint64 m b p (Vlong n)
+    | Init_float32 n => Mem.store Mfloat32 m b p (Vsingle n)
+    | Init_float64 n => Mem.store Mfloat64 m b p (Vfloat n)
+    | Init_space _ => Some m
+    | Init_addrof symb ofs =>
+        match SkEnv.id2blk skenv (string_of_ident symb) with
+        | Some b' => Mem.store Mptr m b p (Vptr b' ofs)
+        | None => None
+        end
+    end.
+
+
+  Fixpoint store_init_data_list (m : mem) (b : block) (p : Z) (idl : list init_data) {struct idl} : option mem :=
+    match idl with
+    | [] => Some m
+    | id :: idl' =>
+        match store_init_data m b p id with
+        | Some m' => store_init_data_list m' b (p + init_data_size id)%Z idl'
+        | None => None
+        end
+    end.
+  
+  Definition alloc_global (m : mem) (idg : ident * cglobdef) :=
+    let (_, g) := idg in
+    match g with
+    | Gfun _ => let (m1, b) := Mem.alloc m 0 1 in Mem.drop_perm m1 b 0 1 Nonempty
+    | Gvar v =>
+        let init := gvar_init v in
+        let sz := init_data_list_size init in
+        let (m1, b) := Mem.alloc m 0 sz in
+        match store_zeros m1 b 0 sz with
+        | Some m2 =>
+            match store_init_data_list m2 b 0 init with
+            | Some m3 => Mem.drop_perm m3 b 0 sz (Genv.perm_globvar v)
+            | None => None
+            end
+        | None => None
+        end
+    end.
+      
+
+  Fixpoint alloc_globals (m: mem) (gl: list (ident * cglobdef))
+                       {struct gl} : option mem :=
+  match gl with
+  | nil => Some m
+  | g :: gl' =>
+      match alloc_global m g with
+      | None => None
+      | Some m' => alloc_globals m' gl'
+      end
+  end.
+
+  Fixpoint _load_mem sk := alloc_globals Mem.empty sk.
+  
+  Definition load_mem sk :=
+    match _load_mem sk with
+    | Some mem => mem
     | None => Mem.empty
     end.
   
-  Definition MemSem : ModSem.t :=
+  Definition MemSem sk : ModSem.t :=
     {|
       ModSem.fnsems := [("alloc", cfunU allocF); ("free", cfunU freeF);
                         ("load", cfunU loadF); ("loadbytes", cfunU loadbytesF);
                         ("store", cfunU storeF); ("storebytes", cfunU storebytesF);
                         ("valid_pointer", cfunU valid_pointerF)];
       ModSem.mn := "Mem";
-      ModSem.initial_st := init↑;
-                                    (* ModSem.initial_st := (Mem.load_mem csl sk)↑; *)
+      ModSem.initial_st := (load_mem sk)↑;
     |}
   .
+End PROOF.
 
   Definition Mem: Mod.t := {|
-    Mod.get_modsem := fun _ => MemSem;
-    Mod.sk := @Sk.unit Sk.gdefs;
+    Mod.get_modsem := fun sk => MemSem (load_skenv sk) sk;
+    Mod.sk := cskel.(Sk.unit);
   |}
   .
   
-End PROOF.

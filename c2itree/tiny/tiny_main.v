@@ -13,6 +13,7 @@ From compcert Require Import
 
 Require Import Clight_Mem0 Sys Sch0.
 Require Import parse_compcert.
+Require Import ConvC2ITree.
 
 Require Import tiny0.
 (** common type in c has followings:
@@ -61,7 +62,7 @@ Section PROOF.
 
   Definition Main: Mod.t := {|
     Mod.get_modsem := fun _ => MainSem;
-    Mod.sk := @Sk.unit Sk.gdefs;
+    Mod.sk := cskel.(Sk.unit);
   |}
   .
   
@@ -81,20 +82,18 @@ Section TEST.
   Definition shared_fun_list := List.map fst no_memory_modules.(ModSemL.fnsems).
   Definition shared_module_list := List.map fst no_memory_modules.(ModSemL.initial_mrs).
 
-  Definition tiny0_glob : Genv.t fundef type := genv_genv (globalenv tiny0.prog).
-
   (* Mem (pgm : Clight.program), c_module (globalenv : Genv.t fundef type) *)
   (* modules that uses memory call each site should be separated *)
 
   Definition site_first :=
     (ModSemL.append_site "first" shared_fun_list shared_module_list
        (ModL.enclose (Mod.add_list
-                        ((Mem (Some tiny0.prog))::(Sys)::[tiny0.c_module tiny0_glob])))).
+                        ((Mem)::(Sys)::[tiny0.c_module])))).
 
   Definition site_second :=
     (ModSemL.append_site "second" shared_fun_list shared_module_list
        (ModL.enclose (Mod.add_list
-                        ((Mem (Some tiny0.prog))::(Sys)::[tiny0.c_module tiny0_glob])))).
+                        ((Mem)::(Sys)::[tiny0.c_module])))).
 
   Definition test_modseml := ModSemL.add site_first site_second.
     
