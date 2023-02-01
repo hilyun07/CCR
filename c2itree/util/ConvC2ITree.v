@@ -1265,7 +1265,68 @@ Section DECOMP.
     | Scall optid a al =>
         v <- _scall_c e le a al;;
         Ret (e, (set_opttemp optid v le), None, None)
-    | Sbuiltin optid ef targs el => triggerUB
+    | Sbuiltin optid ef targs el =>
+        vargs <- eval_exprlist_c e le el targs;;
+        vargs <- vargs?;;
+        match ef, optid with
+        | EF_malloc, Some id  => (* need check by yhkim *)
+            match vargs with
+            | nil => triggerUB
+            | [v1] => match Archi.ptr64, v1 with
+                      | true, Vlong i =>
+                          if (0%Z <=? (Int64.signed i)%Z)%Z
+                          then v <- ccallU "malloc" (Z.to_nat (Int64.signed i));;
+                               match v with
+                               | Vptr b ofs =>
+                                   Ret (e, (set_opttemp optid (Vptr b Ptrofs.zero) le), None, None)
+                               | _ => triggerUB
+                               end
+                          else triggerUB
+                      | false, Vint i =>
+                          if (0%Z <=? (Int.signed i)%Z)%Z
+                          then v <- ccallU "malloc" (Z.to_nat (Int.signed i));;
+                               match v with
+                               | Vptr b ofs =>
+                                   Ret (e, (set_opttemp optid (Vptr b Ptrofs.zero) le), None, None)
+                               | _ => triggerUB
+                               end
+                          else triggerUB
+                      | _, _ => triggerUB
+                      end
+            | _ => triggerUB
+            end
+        | EF_free, Some id  =>   (* needed consult by yhkim, can free know range of freeing offset? *)
+            match vargs with
+            | nil => triggerUB
+            | v1::vl1 => match Archi.ptr64, vl1, v1 with
+                        | _, nil, Vptr b ofs =>
+                            v <- ccallU "mfree" (b, Ptrofs.signed ofs);;
+                            Ret (e, (set_opttemp optid v le), None, None)
+                        | true, nil, Vlong i =>
+                            if (Z.eqb 0%Z (Int64.signed i)) then Ret (e, (set_opttemp optid Vundef le), None, None)
+                            else triggerUB
+                        | false, nil, Vint i =>
+                            if (Z.eqb 0%Z (Int.signed i)) then Ret (e, (set_opttemp optid Vundef le), None, None)
+                            else triggerUB
+                        | _, _, _ => triggerUB
+                        end
+            end
+        | EF_capture, Some id  =>
+            match vargs with
+            | nil => triggerUB
+            | v1::vl1 => match Archi.ptr64, vl1, v1 with
+                       | _, nil, (Vptr b ofs) =>
+                           z <- ccallU "capture" (b, ofs);;
+                           Ret (e, (set_opttemp optid (Vptrofs z) le), None, None)
+                       | true, nil, Vlong i => 
+                           Ret (e, (set_opttemp optid (Vlong i) le), None, None)
+                       | false, nil, Vint i => 
+                           Ret (e, (set_opttemp optid (Vint i) le), None, None)
+                       | _, _, _ => triggerUB
+                       end
+            end
+        | _, _ => triggerUB
+        end
     | Ssequence s1 s2 =>
       '(e', le', bc, v) <- decomp_stmt retty s1 e le;;
       match v with
