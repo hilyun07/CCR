@@ -12,6 +12,7 @@ From compcert Require Import
   Ctypes Clight Ctypesdefs.
 
 Require Import Clight_Mem0 Sys Sch0.
+Require Import ConvC2ITree.
 Require Import parse_compcert.
 
 Require Import src10 src20 tiny_main.
@@ -59,7 +60,7 @@ Section PROOF.
 
   Definition Main: Mod.t := {|
     Mod.get_modsem := fun _ => MainSem;
-    Mod.sk := Sk.unit;
+    Mod.sk := cskel.(Sk.unit);
   |}
   .
   
@@ -79,26 +80,21 @@ Section TEST.
   Definition shared_fun_list := List.map fst no_memory_modules.(ModSemL.fnsems).
   Definition shared_module_list := List.map fst no_memory_modules.(ModSemL.initial_mrs).
 
-  Definition linked_prog : option Clight.program := link src10.prog src20.prog.
-
-  Definition tw_glob : Genv.t fundef type :=
-    match linked_prog with
-    | Some pgm => genv_genv (globalenv pgm)
-    | None => Genv.empty_genv _ _ []
-    end.
-
   (* Mem (pgm : Clight.program), c_module (globalenv : Genv.t fundef type) *)
   (* modules that uses memory call each site should be separated *)
 
   Definition site_first :=
     (ModSemL.append_site "first" shared_fun_list shared_module_list
        (ModL.enclose (Mod.add_list
-                        ((Mem linked_prog)::(Sys)::[src10.c_module tw_glob;src20.c_module tw_glob])))).
-
+                        ((Mem)::(Sys)::[src10.c_module;src20.c_module])))).
   Definition site_second :=
     (ModSemL.append_site "second" shared_fun_list shared_module_list
        (ModL.enclose (Mod.add_list
-                        ((Mem (Some tiny0.prog))::(Sys)::[tiny0.c_module tiny0_glob])))).
+                        ((Mem)::(Sys)::[src10.c_module;src20.c_module])))).
+  (* Definition site_second := *)
+  (*   (ModSemL.append_site "second" shared_fun_list shared_module_list *)
+  (*      (ModL.enclose (Mod.add_list *)
+  (*                       ((Mem)::(Sys)::[tiny0.c_module])))). *)
 
   Definition test_modseml := ModSemL.add site_first site_second.
     

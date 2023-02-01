@@ -13,7 +13,7 @@ open ModSemE
 
 (* open MWAll *)
 open Tiny_main
-(* open Tw_main *)
+open Tw_main
 
 let cl2s = fun cl -> String.concat "" (List.map (String.make 1) cl)
 
@@ -134,5 +134,5 @@ let main =
   (* | 7 -> run (echo_spec_itr) *)
   (* | 8 -> run (sch_exam) *)
   | 9 -> run (Tiny_main.test_itr)
-  (* | 10 -> run (Tw_main.test_itr) *)
+  | 10 -> run (Tw_main.test_itr)
   | _ -> print_endline "Invalid Number!"
