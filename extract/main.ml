@@ -13,7 +13,7 @@ open ModSemE
 
 (* open MWAll *)
 open Tiny_main
-open Tw_main
+open Tw_main 
 
 let cl2s = fun cl -> String.concat "" (List.map (String.make 1) cl)
 
