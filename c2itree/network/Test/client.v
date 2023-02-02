@@ -15,7 +15,7 @@ Module Info.
   Definition abi := "standard".
   Definition bitsize := 64.
   Definition big_endian := false.
-  Definition source_file := "tiny.c".
+  Definition source_file := "client.c".
   Definition normalized := false.
 End Info.
 
@@ -76,23 +76,135 @@ Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition ___stringlit_1 : ident := $"__stringlit_1".
+Definition ___stringlit_2 : ident := $"__stringlit_2".
+Definition ___stringlit_3 : ident := $"__stringlit_3".
+Definition ___stringlit_4 : ident := $"__stringlit_4".
+Definition ___stringlit_5 : ident := $"__stringlit_5".
+Definition ___stringlit_6 : ident := $"__stringlit_6".
+Definition ___stringlit_7 : ident := $"__stringlit_7".
+Definition _buf : ident := $"buf".
+Definition _client : ident := $"client".
+Definition _close : ident := $"close".
+Definition _connect : ident := $"connect".
+Definition _htons : ident := $"htons".
+Definition _in_addr : ident := $"in_addr".
+Definition _inet_addr : ident := $"inet_addr".
+Definition _k : ident := $"k".
+Definition _len : ident := $"len".
 Definition _main : ident := $"main".
+Definition _ptr_buf : ident := $"ptr_buf".
 Definition _puts : ident := $"puts".
-Definition _v : ident := $"v".
+Definition _s_addr : ident := $"s_addr".
+Definition _sa_data : ident := $"sa_data".
+Definition _sa_family : ident := $"sa_family".
+Definition _send : ident := $"send".
+Definition _sin_addr : ident := $"sin_addr".
+Definition _sin_family : ident := $"sin_family".
+Definition _sin_port : ident := $"sin_port".
+Definition _sin_zero : ident := $"sin_zero".
+Definition _sockaddr : ident := $"sockaddr".
+Definition _sockaddr_in : ident := $"sockaddr_in".
+Definition _socket : ident := $"socket".
+Definition _sockfd_client : ident := $"sockfd_client".
+Definition _t'1 : ident := 128%positive.
+Definition _t'2 : ident := 129%positive.
+Definition _t'3 : ident := 130%positive.
+Definition _t'4 : ident := 131%positive.
+Definition _t'5 : ident := 132%positive.
 
-Definition v___stringlit_1 := {|
-  gvar_info := (tarray tschar 6);
-  gvar_init := (Init_int8 (Int.repr 97) :: Init_int8 (Int.repr 108) ::
-                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 118) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 0) :: nil);
+Definition v___stringlit_2 := {|
+  gvar_info := (tarray tschar 10);
+  gvar_init := (Init_int8 (Int.repr 49) :: Init_int8 (Int.repr 50) ::
+                Init_int8 (Int.repr 55) :: Init_int8 (Int.repr 46) ::
+                Init_int8 (Int.repr 48) :: Init_int8 (Int.repr 46) ::
+                Init_int8 (Int.repr 48) :: Init_int8 (Int.repr 46) ::
+                Init_int8 (Int.repr 49) :: Init_int8 (Int.repr 0) :: nil);
   gvar_readonly := true;
   gvar_volatile := false
 |}.
 
-Definition v_v := {|
-  gvar_info := (tptr tschar);
-  gvar_init := (Init_space 8 :: nil);
-  gvar_readonly := false;
+Definition v___stringlit_7 := {|
+  gvar_info := (tarray tschar 20);
+  gvar_init := (Init_int8 (Int.repr 99) :: Init_int8 (Int.repr 108) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 116) ::
+                Init_int8 (Int.repr 32) :: Init_int8 (Int.repr 100) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 115) ::
+                Init_int8 (Int.repr 99) :: Init_int8 (Int.repr 111) ::
+                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 110) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 99) ::
+                Init_int8 (Int.repr 116) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 100) :: Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v___stringlit_1 := {|
+  gvar_info := (tarray tschar 23);
+  gvar_init := (Init_int8 (Int.repr 115) :: Init_int8 (Int.repr 111) ::
+                Init_int8 (Int.repr 99) :: Init_int8 (Int.repr 107) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 116) ::
+                Init_int8 (Int.repr 32) :: Init_int8 (Int.repr 99) ::
+                Init_int8 (Int.repr 114) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 97) :: Init_int8 (Int.repr 116) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 111) ::
+                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 32) ::
+                Init_int8 (Int.repr 102) :: Init_int8 (Int.repr 97) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 108) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 100) ::
+                Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v___stringlit_4 := {|
+  gvar_info := (tarray tschar 5);
+  gvar_init := (Init_int8 (Int.repr 65) :: Init_int8 (Int.repr 66) ::
+                Init_int8 (Int.repr 67) :: Init_int8 (Int.repr 68) ::
+                Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v___stringlit_6 := {|
+  gvar_info := (tarray tschar 13);
+  gvar_init := (Init_int8 (Int.repr 109) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 115) :: Init_int8 (Int.repr 115) ::
+                Init_int8 (Int.repr 97) :: Init_int8 (Int.repr 103) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 32) ::
+                Init_int8 (Int.repr 115) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 116) ::
+                Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v___stringlit_3 := {|
+  gvar_info := (tarray tschar 18);
+  gvar_init := (Init_int8 (Int.repr 99) :: Init_int8 (Int.repr 111) ::
+                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 110) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 99) ::
+                Init_int8 (Int.repr 116) :: Init_int8 (Int.repr 105) ::
+                Init_int8 (Int.repr 111) :: Init_int8 (Int.repr 110) ::
+                Init_int8 (Int.repr 32) :: Init_int8 (Int.repr 102) ::
+                Init_int8 (Int.repr 97) :: Init_int8 (Int.repr 105) ::
+                Init_int8 (Int.repr 108) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 100) :: Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
+  gvar_volatile := false
+|}.
+
+Definition v___stringlit_5 := {|
+  gvar_info := (tarray tschar 15);
+  gvar_init := (Init_int8 (Int.repr 115) :: Init_int8 (Int.repr 101) ::
+                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 100) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 110) ::
+                Init_int8 (Int.repr 103) :: Init_int8 (Int.repr 32) ::
+                Init_int8 (Int.repr 102) :: Init_int8 (Int.repr 97) ::
+                Init_int8 (Int.repr 105) :: Init_int8 (Int.repr 108) ::
+                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 100) ::
+                Init_int8 (Int.repr 0) :: nil);
+  gvar_readonly := true;
   gvar_volatile := false
 |}.
 
@@ -100,20 +212,163 @@ Definition f_main := {|
   fn_return := tint;
   fn_callconv := cc_default;
   fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
+  fn_vars := ((_client, (Tstruct _sockaddr_in noattr)) :: nil);
+  fn_temps := ((_sockfd_client, tint) :: (_buf, (tptr tschar)) ::
+               (_ptr_buf, (tptr tschar)) :: (_k, tint) :: (_len, tint) ::
+               (_t'5, tlong) :: (_t'4, tint) :: (_t'3, tushort) ::
+               (_t'2, tuint) :: (_t'1, tint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
-    (Scall None
-      (Evar _puts (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))
-      ((Evar ___stringlit_1 (tarray tschar 6)) :: nil))
-    (Sreturn (Some (Econst_int (Int.repr 0) tint))))
+    (Ssequence
+      (Scall (Some _t'1)
+        (Evar _socket (Tfunction (Tcons tint (Tcons tint (Tcons tint Tnil)))
+                        tint cc_default))
+        ((Econst_int (Int.repr 2) tint) :: (Econst_int (Int.repr 1) tint) ::
+         (Econst_int (Int.repr 0) tint) :: nil))
+      (Sset _sockfd_client (Etempvar _t'1 tint)))
+    (Ssequence
+      (Sifthenelse (Ebinop Oeq (Etempvar _sockfd_client tint)
+                     (Eunop Oneg (Econst_int (Int.repr 1) tint) tint) tint)
+        (Ssequence
+          (Scall None
+            (Evar _puts (Tfunction (Tcons (tptr tschar) Tnil) tint
+                          cc_default))
+            ((Evar ___stringlit_1 (tarray tschar 23)) :: nil))
+          (Sreturn (Some (Econst_int (Int.repr 0) tint))))
+        Sskip)
+      (Ssequence
+        (Sassign
+          (Efield (Evar _client (Tstruct _sockaddr_in noattr)) _sin_family
+            tushort) (Econst_int (Int.repr 2) tint))
+        (Ssequence
+          (Ssequence
+            (Scall (Some _t'2)
+              (Evar _inet_addr (Tfunction (Tcons (tptr tschar) Tnil) tuint
+                                 cc_default))
+              ((Evar ___stringlit_2 (tarray tschar 10)) :: nil))
+            (Sassign
+              (Efield
+                (Efield (Evar _client (Tstruct _sockaddr_in noattr))
+                  _sin_addr (Tstruct _in_addr noattr)) _s_addr tuint)
+              (Etempvar _t'2 tuint)))
+          (Ssequence
+            (Ssequence
+              (Scall (Some _t'3)
+                (Evar _htons (Tfunction (Tcons tushort Tnil) tushort
+                               cc_default))
+                ((Econst_int (Int.repr 7000) tint) :: nil))
+              (Sassign
+                (Efield (Evar _client (Tstruct _sockaddr_in noattr))
+                  _sin_port tushort) (Etempvar _t'3 tushort)))
+            (Ssequence
+              (Ssequence
+                (Scall (Some _t'4)
+                  (Evar _connect (Tfunction
+                                   (Tcons tint
+                                     (Tcons (tptr (Tstruct _sockaddr noattr))
+                                       (Tcons tuint Tnil))) tint cc_default))
+                  ((Etempvar _sockfd_client tint) ::
+                   (Ecast
+                     (Eaddrof (Evar _client (Tstruct _sockaddr_in noattr))
+                       (tptr (Tstruct _sockaddr_in noattr)))
+                     (tptr (Tstruct _sockaddr noattr))) ::
+                   (Esizeof (Tstruct _sockaddr_in noattr) tulong) :: nil))
+                (Sifthenelse (Ebinop One (Etempvar _t'4 tint)
+                               (Econst_int (Int.repr 0) tint) tint)
+                  (Ssequence
+                    (Scall None
+                      (Evar _puts (Tfunction (Tcons (tptr tschar) Tnil) tint
+                                    cc_default))
+                      ((Evar ___stringlit_3 (tarray tschar 18)) :: nil))
+                    (Sreturn (Some (Econst_int (Int.repr 0) tint))))
+                  Sskip))
+              (Ssequence
+                (Sset _buf (Evar ___stringlit_4 (tarray tschar 5)))
+                (Ssequence
+                  (Sloop
+                    (Ssequence
+                      Sskip
+                      (Ssequence
+                        (Sset _len (Econst_int (Int.repr 4) tint))
+                        (Ssequence
+                          (Sset _ptr_buf (Etempvar _buf (tptr tschar)))
+                          (Ssequence
+                            (Swhile
+                              (Ebinop Ogt (Etempvar _len tint)
+                                (Econst_int (Int.repr 0) tint) tint)
+                              (Ssequence
+                                (Ssequence
+                                  (Scall (Some _t'5)
+                                    (Evar _send (Tfunction
+                                                  (Tcons tint
+                                                    (Tcons (tptr tvoid)
+                                                      (Tcons tulong
+                                                        (Tcons tint Tnil))))
+                                                  tlong cc_default))
+                                    ((Etempvar _sockfd_client tint) ::
+                                     (Etempvar _ptr_buf (tptr tschar)) ::
+                                     (Etempvar _len tint) ::
+                                     (Econst_int (Int.repr 0) tint) :: nil))
+                                  (Sset _k
+                                    (Ecast (Etempvar _t'5 tlong) tint)))
+                                (Ssequence
+                                  (Sifthenelse (Ebinop Oeq (Etempvar _k tint)
+                                                 (Eunop Oneg
+                                                   (Econst_int (Int.repr 1) tint)
+                                                   tint) tint)
+                                    (Ssequence
+                                      (Scall None
+                                        (Evar _puts (Tfunction
+                                                      (Tcons (tptr tschar)
+                                                        Tnil) tint
+                                                      cc_default))
+                                        ((Evar ___stringlit_5 (tarray tschar 15)) ::
+                                         nil))
+                                      Sbreak)
+                                    Sskip)
+                                  (Ssequence
+                                    (Sset _ptr_buf
+                                      (Ebinop Oadd
+                                        (Etempvar _ptr_buf (tptr tschar))
+                                        (Etempvar _k tint) (tptr tschar)))
+                                    (Sset _len
+                                      (Ebinop Osub (Etempvar _len tint)
+                                        (Etempvar _k tint) tint))))))
+                            (Ssequence
+                              (Scall None
+                                (Evar _puts (Tfunction
+                                              (Tcons (tptr tschar) Tnil) tint
+                                              cc_default))
+                                ((Evar ___stringlit_6 (tarray tschar 13)) ::
+                                 nil))
+                              Sbreak)))))
+                    Sskip)
+                  (Ssequence
+                    (Scall None
+                      (Evar _close (Tfunction (Tcons tint Tnil) tint
+                                     cc_default))
+                      ((Etempvar _sockfd_client tint) :: nil))
+                    (Ssequence
+                      (Scall None
+                        (Evar _puts (Tfunction (Tcons (tptr tschar) Tnil)
+                                      tint cc_default))
+                        ((Evar ___stringlit_7 (tarray tschar 20)) :: nil))
+                      (Sreturn (Some (Econst_int (Int.repr 0) tint)))))))))))))
   (Sreturn (Some (Econst_int (Int.repr 0) tint))))
 |}.
 
 Definition composites : list composite_definition :=
-nil.
+(Composite _sockaddr Struct
+   (Member_plain _sa_family tushort ::
+    Member_plain _sa_data (tarray tschar 14) :: nil)
+   noattr ::
+ Composite _in_addr Struct (Member_plain _s_addr tuint :: nil) noattr ::
+ Composite _sockaddr_in Struct
+   (Member_plain _sin_family tushort :: Member_plain _sin_port tushort ::
+    Member_plain _sin_addr (Tstruct _in_addr noattr) ::
+    Member_plain _sin_zero (tarray tuchar 8) :: nil)
+   noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
 ((___compcert_va_int32,
@@ -201,7 +456,13 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_runtime "__compcert_i64_umulh"
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tulong (Tcons tulong Tnil)) tulong
-     cc_default)) :: (___stringlit_1, Gvar v___stringlit_1) ::
+     cc_default)) :: (___stringlit_2, Gvar v___stringlit_2) ::
+ (___stringlit_7, Gvar v___stringlit_7) ::
+ (___stringlit_1, Gvar v___stringlit_1) ::
+ (___stringlit_4, Gvar v___stringlit_4) ::
+ (___stringlit_6, Gvar v___stringlit_6) ::
+ (___stringlit_3, Gvar v___stringlit_3) ::
+ (___stringlit_5, Gvar v___stringlit_5) ::
  (___builtin_ais_annot,
    Gfun(External (EF_builtin "__builtin_ais_annot"
                    (mksignature (AST.Tlong :: nil) AST.Tvoid
@@ -386,11 +647,43 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_puts,
    Gfun(External (EF_external "puts"
                    (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons (tptr tschar) Tnil) tint cc_default)) :: (_v, Gvar v_v) ::
- (_main, Gfun(Internal f_main)) :: nil).
+     (Tcons (tptr tschar) Tnil) tint cc_default)) ::
+ (_socket,
+   Gfun(External (EF_external "socket"
+                   (mksignature (AST.Tint :: AST.Tint :: AST.Tint :: nil)
+                     AST.Tint cc_default))
+     (Tcons tint (Tcons tint (Tcons tint Tnil))) tint cc_default)) ::
+ (_connect,
+   Gfun(External (EF_external "connect"
+                   (mksignature (AST.Tint :: AST.Tlong :: AST.Tint :: nil)
+                     AST.Tint cc_default))
+     (Tcons tint
+       (Tcons (tptr (Tstruct _sockaddr noattr)) (Tcons tuint Tnil))) tint
+     cc_default)) ::
+ (_send,
+   Gfun(External (EF_external "send"
+                   (mksignature
+                     (AST.Tint :: AST.Tlong :: AST.Tlong :: AST.Tint :: nil)
+                     AST.Tlong cc_default))
+     (Tcons tint (Tcons (tptr tvoid) (Tcons tulong (Tcons tint Tnil)))) tlong
+     cc_default)) ::
+ (_htons,
+   Gfun(External (EF_external "htons"
+                   (mksignature (AST.Tint :: nil) AST.Tint16unsigned
+                     cc_default)) (Tcons tushort Tnil) tushort cc_default)) ::
+ (_inet_addr,
+   Gfun(External (EF_external "inet_addr"
+                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
+     (Tcons (tptr tschar) Tnil) tuint cc_default)) ::
+ (_close,
+   Gfun(External (EF_external "close"
+                   (mksignature (AST.Tint :: nil) AST.Tint cc_default))
+     (Tcons tint Tnil) tint cc_default)) :: (_main, Gfun(Internal f_main)) ::
+ nil).
 
 Definition public_idents : list ident :=
-(_main :: _v :: _puts :: ___builtin_debug :: ___builtin_write32_reversed ::
+(_main :: _close :: _inet_addr :: _htons :: _send :: _connect :: _socket ::
+ _puts :: ___builtin_debug :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
  ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
  ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::

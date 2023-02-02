@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import Skeleton.
 Require Import ModSem.
 From compcert Require Import
-    Ctypes Values Integers.
+    Ctypes Values Integers Archi.
 
 Module Wordsize_16.
     Definition wordsize := 16.
@@ -13,7 +13,7 @@ Module Wordsize_16.
         lia.
     Qed.
 End Wordsize_16.
-  
+
 Module Int16 := Make(Wordsize_16).
 
 Section VAL.
@@ -110,13 +110,6 @@ End VAL.
 
 Section MEM.
 
-Inductive Endianness :=
-    | BigE
-    | LittleE.
-
-Context {sysE: Endianness}.
-Context {netE: Endianness}.
-
 Definition Read_byte (blk: block) (ofs: ptrofs): itree Es Byte.int :=
     let p := Vptr blk ofs in
     `v: val <- ccallU "load" [p];;
@@ -128,41 +121,38 @@ Definition Read_byte (blk: block) (ofs: ptrofs): itree Es Byte.int :=
 Definition Read_short (blk: block) (ofs: ptrofs): itree Es Int16.int :=
     `b1: Byte.int <- Read_byte blk ofs;;
     `b2: Byte.int <- Read_byte blk (Ptrofs.add ofs (Ptrofs.repr 8));;
-    match sysE with
-    | BigE => Ret (Int16.add
+    if Archi.big_endian then
+        Ret (Int16.add
         (Int16.shl (Int16.repr (Byte.unsigned b1)) (Int16.repr 8))
         (Int16.repr (Byte.unsigned b2)))
-    | LittleE =>
+    else
         Ret (Int16.add
         (Int16.shl (Int16.repr (Byte.unsigned b2)) (Int16.repr 8))
-        (Int16.repr (Byte.unsigned b1)))
-    end.
+        (Int16.repr (Byte.unsigned b1))).
 
 Definition Read_int (blk: block) (ofs: ptrofs): itree Es int :=
     `s1: Int16.int <- Read_short blk ofs;;
     `s2: Int16.int <- Read_short blk (Ptrofs.add ofs (Ptrofs.repr 16));;
-    match sysE with
-    | BigE => Ret (Int.add
+    if Archi.big_endian then
+        Ret (Int.add
         (Int.shl (Int.repr (Int16.unsigned s1)) (Int.repr 16))
         (Int.repr (Int16.unsigned s2)))
-    | LittleE => 
+    else
         Ret (Int.add
         (Int.shl (Int.repr (Int16.unsigned s2)) (Int.repr 16))
-        (Int.repr (Int16.unsigned s1)))
-    end.
+        (Int.repr (Int16.unsigned s1))).
 
 Definition Read_long (blk: block) (ofs: ptrofs): itree Es Int64.int :=
     `i1: int <- Read_int blk ofs;;
     `i2: int <- Read_int blk (Ptrofs.add ofs (Ptrofs.repr 32));;
-    match sysE with
-    | BigE => Ret (Int64.add
+    if Archi.big_endian then
+        Ret (Int64.add
         (Int64.shl (Int64.repr (Int.unsigned i1)) (Int64.repr 32))
         (Int64.repr (Int.unsigned i2)))
-    | LittleE =>
+    else
         Ret (Int64.add
         (Int64.shl (Int64.repr (Int.unsigned i2)) (Int64.repr 32))
-        (Int64.repr (Int.unsigned i1)))
-    end.
+        (Int64.repr (Int.unsigned i1))).
 
 Fixpoint Write_Z (blk: block) (ofs: ptrofs) (sz: nat) (n: Z): itree Es () :=
     match sz with
@@ -171,14 +161,14 @@ Fixpoint Write_Z (blk: block) (ofs: ptrofs) (sz: nat) (n: Z): itree Es () :=
     | S sz => let n1 := (n / (2^(8 * 2^Z.of_nat sz)))%Z in
         let n2 := (n mod (2^(8 * 2^Z.of_nat sz)))%Z in
         let ofs' := Ptrofs.add ofs (Ptrofs.repr (8 * 2^Z.of_nat sz)) in
-        match sysE with
-        | BigE => Write_Z blk ofs sz n1;;;
+        if Archi.big_endian then
+            Write_Z blk ofs sz n1;;;
             Write_Z blk ofs' sz n2;;;
             Ret tt
-        | LittleE => Write_Z blk ofs sz n2;;;
+        else
+            Write_Z blk ofs sz n2;;;
             Write_Z blk ofs' sz n1;;;
             Ret tt
-        end
     end.
 
 Fixpoint switch_endianness (sz: nat) (x: Z): Z :=

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-char *v = "ACD";
+char *v ;
 
 int main(void){
   puts("alive");
