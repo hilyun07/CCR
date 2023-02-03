@@ -1069,6 +1069,7 @@ Section DECOMP.
       vf <- (eval_expr_c e le a);;
       vf <- vf?;;
       vargs <- eval_exprlist_c e le al tyargs;;
+      _ <- trigger (Syscall "print_string" ["call"]↑ top1);;
       vargs <- vargs?;;
       match vf with
       | Vptr b ofs =>
@@ -1251,9 +1252,11 @@ Section DECOMP.
     | Sskip =>
       Ret ((* k, *) e, le, None, None)
     | Sassign a1 a2 =>
+      _ <- trigger (Syscall "print_string" ["asgn"]↑ top1);;
       _sassign_c e le a1 a2;;;
       Ret (e, le, None, None)
     | Sset id a =>
+      _ <- trigger (Syscall "print_string" ["set"]↑ top1);;
       v <- eval_expr_c e le a ;;
       match v with
       | Some v =>
@@ -1263,7 +1266,9 @@ Section DECOMP.
         triggerUB
       end
     | Scall optid a al =>
+      _ <- trigger (Syscall "print_string" ["call_start"]↑ top1);;
         v <- _scall_c e le a al;;
+        id <- (optid)?;;
         Ret (e, (set_opttemp optid v le), None, None)
     | Sbuiltin optid ef targs el => triggerUB
     | Ssequence s1 s2 =>
@@ -1280,6 +1285,7 @@ Section DECOMP.
         end
       end
     | Sifthenelse a s1 s2 =>
+      _ <- trigger (Syscall "print_string" ["ite"]↑ top1);;
       b <- _site_c e le a;;
       match b with
       | Some b =>
@@ -1349,11 +1355,13 @@ Section TRANS.
   
   Definition rest_names := filter_dec_not in_public defined_names.
 
+  Definition in_rest x := in_dec Pos.eq_dec x rest_names.
+
   Variable src_name : string.   (* source code file name *)
 
   Definition prefix_pos pos := ident_of_string (src_name ++ "." ++ (string_of_ident pos))%string.
 
-  Definition rpl_pos pos := if in_public pos then pos else prefix_pos pos.
+  Definition rpl_pos pos := if in_rest pos then prefix_pos pos else pos.
 
   Definition rpl_glob := List.map (fun x => (rpl_pos (fst x), snd x)) global_definitions.
   

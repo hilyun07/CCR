@@ -30,11 +30,6 @@ module Z = struct
     match n with
     | Zneg _ -> - (Nat.to_int (Z.to_nat (Z.opp n)))
     | _ -> Nat.to_int (Z.to_nat n)
-  let of_int = fun n ->
-    if (n > 0)
-    then (Z.of_nat (Nat.of_int n))
-    else (Z.opp (Z.of_nat (Nat.of_int (- n))))
-end
 
 let string_of_nat n =
   string_of_int (Nat.to_int n)

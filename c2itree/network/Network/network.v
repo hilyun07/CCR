@@ -23,12 +23,20 @@ Section DEF.
 Context (skenv: SkEnv.t).
 
 (* Should be removed, solves problem with implicit arguments *)
-Notation "x <- t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun x => t2))
+
+Notation "x <- t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun x => t2) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
     (at level 62, t1 at next level, right associativity) : itree_scope.
-Notation "t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun _ => t2))
+Notation "t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun _ => t2) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
     (at level 62, right associativity) : itree_scope.
 Notation "' p <- t1 ?*;; t2" :=
-    (unwrapUErr (skenv := skenv) t1 (fun x_ => match x_ with p => t2 end))
+    (unwrapUErr (skenv := skenv) t1 (fun x_ => match x_ with p => t2 end) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
+    (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
+Notation "x <- t1 ?*[ g ];; t2" := (unwrapUErr (skenv := skenv) t1 (fun x => t2) g)
+    (at level 62, t1 at next level, right associativity) : itree_scope.
+Notation "t1 ?*[ g ];; t2" := (unwrapUErr (skenv := skenv) t1 (fun _ => t2) g)
+    (at level 62, right associativity) : itree_scope.
+Notation "' p <- t1 ?*[ g ];; t2" :=
+    (unwrapUErr (skenv := skenv) t1 (fun x_ => match x_ with p => t2 end) g)
     (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
 
 Definition node_id := Z.
@@ -66,8 +74,8 @@ Definition sockets := Z_map.t node_sockets.
 
 Definition Z_map_find {A: Type} fd node_socks: opt_err A :=
     match Z_map.find fd node_socks with
-    | None => Err EBADF (Vint Int.mone)
-    | Some x => Cor x
+    | None => ErrKo EBADF (Vint Int.mone)
+    | Some x => ErrOk x
     end.
 
 Definition find_node_sockets_safe socks sock_pid: sockets * node_sockets :=
@@ -117,10 +125,10 @@ Definition add_csocket socks sock_pid csock: sockets * sock_fd :=
 
 Definition set_backlog socks sock_pid fd backlog: opt_err sockets :=
     match Z_map.find sock_pid socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         match Z_map.find fd node_socks.(socks_sockmap) with
-        | None => Err EBADF (Vint Int.mone)
+        | None => ErrKo EBADF (Vint Int.mone)
         | Some sock =>
             let sock := Build_socket sock.(sock_port)
                 sock.(sock_queue) backlog in
@@ -130,14 +138,14 @@ Definition set_backlog socks sock_pid fd backlog: opt_err sockets :=
 
 Definition push_connection socks id_tgt fd_tgt id_src fd_src : opt_err sockets :=
     match Z_map.find id_tgt socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         match Z_map.find fd_tgt node_socks.(socks_sockmap) with
-        | None => Err EBADF (Vint Int.mone)
+        | None => ErrKo EBADF (Vint Int.mone)
         | Some sock =>
             if (Z.of_nat (List.length sock.(sock_queue))
                 =? sock.(sock_max_queue))%Z
-            then Err ETIMEDOUT (Vint Int.mone)
+            then ErrKo ETIMEDOUT (Vint Int.mone)
             else let sock := Build_socket sock.(sock_port)
                 (sock.(sock_queue) ++ [(id_src, fd_src)]) sock.(sock_max_queue) in
             update_socket socks id_tgt fd_tgt sock
@@ -146,13 +154,13 @@ Definition push_connection socks id_tgt fd_tgt id_src fd_src : opt_err sockets :
 
 Definition pop_connection socks sock_pid fd: opt_err (sockets * (node_id * sock_fd)) :=
     match Z_map.find sock_pid socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         match Z_map.find fd node_socks.(socks_sockmap) with
-        | None => Err EBADF (Vint Int.mone)
+        | None => ErrKo EBADF (Vint Int.mone)
         | Some sock =>
             match sock.(sock_queue) with
-            | [] => Err EWOULDBLOCK (Vint Int.mone)
+            | [] => ErrKo EWOULDBLOCK (Vint Int.mone)
             | src :: queue =>
                 let sock := Build_socket sock.(sock_port) queue
                     sock.(sock_max_queue) in
@@ -164,7 +172,7 @@ Definition pop_connection socks sock_pid fd: opt_err (sockets * (node_id * sock_
 
 Definition sock_connect socks sock_pid fd tgt: opt_err sockets :=
     match Z_map.find sock_pid socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         opt_err_map (fun sock =>
             let csock := Build_csocket tgt (Some []) in
@@ -178,7 +186,7 @@ Definition sock_connect socks sock_pid fd tgt: opt_err sockets :=
 
 Definition set_msg socks sock_pid fd msgl: opt_err sockets :=
     match Z_map.find sock_pid socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         opt_err_map (fun csock =>
             let csock := Build_csocket csock.(csock_tgt) msgl in
@@ -195,58 +203,64 @@ Definition close_csock socks sock_pid fd: opt_err sockets :=
 
 Definition get_msg socks sock_pid fd: opt_err (list (list val)) :=
     match Z_map.find sock_pid socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         match Z_map_find fd node_socks.(socks_csockmap) with
-        | Non => Non
-        | Err c v => Err c v
-        | Cor csock => match csock.(csock_msg) with
-            | None => Err DEF (Vint Int.zero)
-            | Some msgl => Cor msgl
+        | ErrUB => ErrUB
+        | ErrKo c v => ErrKo c v
+        | ErrOk csock => match csock.(csock_msg) with
+            | None => ErrKo DEF (Vint Int.zero)
+            | Some msgl => ErrOk msgl
             end
         end
     end.
 
 Definition get_tgt socks sock_pid fd: opt_err (node_id * sock_fd) :=
     match Z_map.find sock_pid socks with
-    | None => Non
+    | None => ErrUB
     | Some node_socks =>
         opt_err_map (fun csock => csock.(csock_tgt))
         (Z_map_find fd node_socks.(socks_csockmap))
     end.
 
-(*Definition get_addr socks sock_pid fd: option address :=
-    match Z_map.find sock_pid socks with
-    | None => None
-    | Some node_socks =>
-        match Z_map.find fd node_socks.(socks_sockmap) with
-        | None => None
-        | Some sock => sock.(sock_addr)
-        end
-    end.*)
+Definition read_port ge addr_b addr_ofs: itree Es Z :=
+    `addr: composite <- ((Clight.genv_cenv ge) ! _sockaddr_in)?;;
+    `port_field: positive <- (match co_members addr with
+        | _ :: (Member_bitfield pf I16 Unsigned _ _ false) :: _ => Some pf
+        | _ => None
+        end)?;;
+    `port_ptr: block * (ptrofs * bitfield) <- (match field_offset (Clight.genv_cenv ge)
+            port_field (co_members addr) with
+        | Errors.OK (delta, bf) =>
+            Some (addr_b, (Ptrofs.add addr_ofs (Ptrofs.repr delta), bf))
+        | _ => None
+        end)?;;
+
+    `port: Int16.int <- Read_short (fst port_ptr) (fst (snd port_ptr));;
+    Ret (Int16.unsigned port).
 
 Definition find_port_socket_node sockmap port: opt_err sock_fd :=
     Z_map.fold
         (fun fd sock (x: opt_err sock_fd) => match x with
-        | Err c v => match sock.(sock_port) with
-            | None => Err c v
-            | Some port' => if (port =? port')%Z then Cor fd
-                else Err c v
+        | ErrKo c v => match sock.(sock_port) with
+            | None => ErrKo c v
+            | Some port' => if (port =? port')%Z then ErrOk fd
+                else ErrKo c v
             end
-        | Cor fd => Cor fd
-        | Non => Non
+        | ErrOk fd => ErrOk fd
+        | ErrUB => ErrUB
         end)
-        sockmap (Err ECONNREFUSED (Vint Int.mone)).
+        sockmap (ErrKo ECONNREFUSED (Vint Int.mone)).
 
 Definition find_port_socket socks port: opt_err (node_id * sock_fd) :=
     Z_map.fold
        (fun sock_pid node_socks (x: opt_err (node_id * sock_fd))
         => match x with
-        | Err c v => opt_err_map (fun fd => (sock_pid, fd))
+        | ErrKo c v => opt_err_map (fun fd => (sock_pid, fd))
             (find_port_socket_node node_socks.(socks_sockmap) port)
-        | Cor id_fd => Cor id_fd
-        | Non => Non end)
-        socks (Err ECONNREFUSED (Vint Int.mone)).
+        | ErrOk id_fd => ErrOk id_fd
+        | ErrUB => ErrUB end)
+        socks (ErrKo ECONNREFUSED (Vint Int.mone)).
 
 Definition socketF: list val -> itree Es val :=
     fun varg =>
@@ -268,38 +282,30 @@ Definition socketF: list val -> itree Es val :=
 
         Ret (Vint (Int.repr fd)).
 
-Program Definition bindF: list val -> itree Es val :=
+Definition bindF: list val -> itree Es val :=
     fun varg =>
         ge_socks_ports <- trigger (PGet);;
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
         `ge_socks_ports: Clight.genv * sockets * list Z <- ge_socks_ports↓?;;
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
         let '(ge, socks, ports) := ge_socks_ports in
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
 
         '(sockfd, ((addr_b, addr_ofs), addrlen))
-            <- (pargs [Tint I32 Signed noattr;
-                        Tpointer (Tstruct _sockaddr_in noattr) noattr;
-                        Tpointer (Tint I32 Unsigned noattr) noattr] varg)?;;
+            <- (pargs [tint; tptr (Tstruct _sockaddr_in noattr); tuint] varg)?;;
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
-        `addr: composite <- ((Clight.genv_cenv ge) ! _sockaddr_in)?;;
-        `port_field: positive <- (match co_members addr with
-            | _ :: (Member_bitfield pf I16 Unsigned _ _ false) :: _ => Some pf
-            | _ => None
-            end)?;;
-        `port_ptr: block * (ptrofs * bitfield) <- (match field_offset (Clight.genv_cenv ge)
-                    port_field (co_members addr) with
-                | Errors.OK (delta, bf) =>
-                    Some (addr_b, (Ptrofs.add addr_ofs (Ptrofs.repr delta), bf))
-                | _ => None
-                end)?;;
-
-        `port: Int16.int <- Read_short (fst port_ptr) (fst (snd port_ptr));;
-        let port: Z := Int16.unsigned port in
+        `port: Z <- read_port ge addr_b addr_ofs;;
         let sock := Build_socket (Some port) [] 0%Z in
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
         `pid: node_id <- get_pid;;
         socks <- (update_socket socks pid sockfd sock)?*;;
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
         trigger (PPut (ge, socks, (port :: ports))↑);;;
+      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
         Ret (Vint Int.zero).
 
 Definition listenF: list val -> itree Es val :=
@@ -329,7 +335,11 @@ Definition acceptF: list val -> itree Es val :=
                         Tpointer (Tint I32 Unsigned noattr) noattr] varg)?;;
 
         `pid: node_id <- get_pid;;
-        '(socks, src) <- (pop_connection socks pid sockfd)?*;;
+        '(socks, src) <- (pop_connection socks pid sockfd)?*[
+            fun _ =>
+            `r: val <- ccallU "accept" varg;;
+            Ret r
+        ];;
 
         socks <- (sock_connect socks (fst src) (snd src) (pid, sockfd))?*;;
 
@@ -342,7 +352,7 @@ Definition acceptF: list val -> itree Es val :=
         trigger (PPut (ge, socks, ports)↑);;;
         Ret (Vint (Int.repr fd_ctgt)).
 
-Program Definition connectF: list val -> itree Es val :=
+Definition connectF: list val -> itree Es val :=
     fun varg =>
         ge_socks_ports <- trigger (PGet);;
         `ge_socks_ports: Clight.genv * sockets * list Z <- ge_socks_ports↓?;;
@@ -353,25 +363,20 @@ Program Definition connectF: list val -> itree Es val :=
                         Tpointer (Tstruct xH noattr) noattr;
                         Tint I32 Unsigned noattr] varg)?;;
 
-        `addr: composite <- ((Clight.genv_cenv ge) ! _sockaddr_in)?;;
-        `port_tgt_field: positive <- (match co_members addr with
-            | _ :: (Member_bitfield pf I16 Unsigned _ _ false) :: _ => Some pf
-            | _ => None
-            end)?;;
-        `port_tgt_ptr: block * (ptrofs * bitfield) <- (match field_offset (Clight.genv_cenv ge)
-                    port_tgt_field (co_members addr) with
-                | Errors.OK (delta, bf) =>
-                    Some (addr_b, (Ptrofs.add addr_ofs (Ptrofs.repr delta), bf))
-                | _ => None
-                end)?;;
+        `port_tgt: Z <- read_port ge addr_b addr_ofs;;
 
-        `port_tgt: Int16.int <- Read_short (fst port_tgt_ptr) (fst (snd port_tgt_ptr));;
-        let port_tgt: Z := Int16.unsigned port_tgt in
-
-        tgt <- (find_port_socket socks port_tgt)?*;;
+        tgt <- (find_port_socket socks port_tgt)?*[
+            fun _ =>
+            `r: val <- (ccallU "connect" varg);;
+            Ret r
+        ];;
 
         `pid: node_id <- get_pid;;
-        socks <- (push_connection socks (fst tgt) (snd tgt) pid sockfd)?*;;
+        socks <- (push_connection socks (fst tgt) (snd tgt) pid sockfd)?*[
+            fun _ =>
+            `r: val <- (ccallU "connect" varg);;
+            Ret r
+        ];;
 
         (* Picking new port for source *)
         let av_ports: Type := {p: Z | (49152 <= p /\ p <= 65535)%Z /\ ~ In p ports} in
@@ -406,7 +411,7 @@ Definition read_message buf msg_len: itree Es () :=
     ITree.iter (fun '(i, msg) =>
         if (i <? msg_len)%Z then
             let ptr := (Val.add buf (Vint (Int.repr (i * 8)%Z))) in
-            `v: val <- ccallU "load" [ptr];;
+            `v: val <- (ccallU "load" [ptr]);;
             Ret (inl (i + 1, msg ++ [v])%Z)
         else
             trigger (PPut msg↑);;;
@@ -448,7 +453,7 @@ Definition write_message buf buf_len msg: itree Es val :=
         | v :: msg =>
             if (i <? buf_len)%Z then
                 let ptr := (Val.add buf (Vint (Int.repr (i * 8)%Z))) in
-                `_: val <- ccallU "store" [ptr; v];;
+                `_: val <- (ccallU "store" [ptr; v]);;
                 Ret (inl (i + 1, msg))%Z
             else
                 Ret (inr (Vlong (Int64.repr i)))
@@ -516,7 +521,7 @@ Program Definition addr_genv_cenv: composite_env :=
     PTree.Nodes (PTree.Node010
     (Build_composite Struct members noattr
         (Coqlib.align (sizeof_composite PTree.Empty Struct members) al)
-        al (rank_members PTree.Empty members)_ _ _)).
+        al (rank_members PTree.Empty members) _ _ _)).
 
 Next Obligation.
 exists 3.
@@ -529,6 +534,7 @@ apply Coqlib.align_divides.
 compute.
 reflexivity.
 Qed.
+
 
 Definition ge: Clight.genv := {|genv_genv := empty_genv_genv; genv_cenv := addr_genv_cenv|}.
 
@@ -559,13 +565,9 @@ Definition site_append_morph (sn: string) : Es ~> Es.
 
   Definition site_cfunU {X Y : Type} (body : X -> itree Es Y) :=
     fun '(optsmn, varg) =>
-      _ <- trigger (Syscall "print_string" ["t"]↑ top1);;
       smn <- (optsmn)?;;
-      _ <- trigger (Syscall "print_string" [smn]↑ top1);;
       idx <- (index 0 "." smn)?;;
-      _ <- trigger (Syscall "print_string" ["t"]↑ top1);;
       ` varg0 : X <- (Any.downcast varg)?;;
-      _ <- trigger (Syscall "print_string" ["t"]↑ top1);;
       ` vret : Y <- site_appended_itree (substring 0 idx smn) Y (body varg0);; Ret (Any.upcast vret).
 
 Definition NetSem: ModSem.t :=
@@ -575,9 +577,10 @@ Definition NetSem: ModSem.t :=
                       ("connect", site_cfunU connectF); ("close", site_cfunU closeF);
                       ("send", site_cfunU sendF); ("recv", site_cfunU recvF);
                       ("htons", site_cfunU htonsF); ("ntohs", site_cfunU ntohsF);
-                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF)];
+                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF);
+                      ("inet_addr", site_cfunU inet_addrF)];
     ModSem.mn := "Net";
-    ModSem.initial_st := (ge, Z_map.empty node_sockets)↑
+    ModSem.initial_st := (ge, Z_map.empty node_sockets, @nil Z)↑
   |}.
 
 End DEF.

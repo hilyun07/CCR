@@ -52,47 +52,58 @@ Definition errval: Errcode -> val := fun _ => Vint (Int.zero).
 Context {skenv: SkEnv.t}.
 
 Inductive opt_err (A: Type): Type :=
-    | Err: Errcode -> val -> opt_err A
-    | Cor: A -> opt_err A
-    | Non: opt_err A.
+    | ErrKo: Errcode -> val -> opt_err A
+    | ErrOk: A -> opt_err A
+    | ErrUB: opt_err A.
 
-Arguments Err {A} code v.
-Arguments Cor {A} a.
-Arguments Non {A}.
+Arguments ErrKo {A} code v.
+Arguments ErrOk {A} a.
+Arguments ErrUB {A}.
 
-Definition unwrapUErr {X: Type} (x: opt_err X) (f: X -> itree Es val): itree Es val :=
+Definition set_errno code v: itree Es val :=
+    errno <- (skenv.(SkEnv.id2blk) "errno")?;;
+    `_: val <- (ccallU "store" [Vptr errno Ptrofs.zero;
+                                errval code]);;
+    Ret v.
+
+Definition unwrapUErr {X: Type} (x: opt_err X) (f: X -> itree Es val) (g: val -> itree Es val): itree Es val :=
     match x with
-    | Non => triggerUB
-    | Cor x => f x
-    | Err code v => errno <- (skenv.(SkEnv.id2blk) "errno")?;;
-        `_: val <- (ccallU "store" [Vptr errno Ptrofs.zero;
-                                    errval code]);;
-        Ret v
+    | ErrUB => triggerUB
+    | ErrOk x => f x
+    | ErrKo EWOULDBLOCK v => g v
+    | ErrKo code v => set_errno code v
     end.
 
 Definition opt_err_map {A B: Type} (f: A -> B) (o: opt_err A): opt_err B :=
     match o with
-    | Cor a => Cor (f a)
-    | Err code v => Err code v
-    | Non => Non
+    | ErrOk a => ErrOk (f a)
+    | ErrKo code v => ErrKo code v
+    | ErrUB => ErrUB
     end.
 
 Definition opt_to_opt_err {A: Type} (o: option A): opt_err A :=
     match o with
-    | None => Non
-    | Some x => Cor x
+    | None => ErrUB
+    | Some x => ErrOk x
     end.
 
 End Error.
 
-Arguments Err {A} code v.
-Arguments Cor {A} a.
-Arguments Non {A}.
+Arguments ErrKo {A} code v.
+Arguments ErrOk {A} a.
+Arguments ErrUB {A}.
 
-Notation "x <- t1 ?*;; t2" := (unwrapUErr t1 (fun x => t2))
+(*Notation "x <- t1 ?*;; t2" := (unwrapUErr t1 (fun x => t2) (fun v => set_errno EWOULDBLOCK v))
     (at level 62, t1 at next level, right associativity) : itree_scope.
-Notation "t1 ?*;; t2" := (unwrapUErr t1 (fun _ => t2))
+Notation "t1 ?*;; t2" := (unwrapUErr t1 (fun _ => t2) (fun v => set_errno EWOULDBLOCK v))
     (at level 62, right associativity) : itree_scope.
 Notation "' p <- t1 ?*;; t2" :=
-    (unwrapUErr t1 (fun x_ => match x_ with p => t2 end))
+    (unwrapUErr t1 (fun x_ => match x_ with p => t2 end) (fun v => set_errno EWOULDBLOCK v))
     (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
+Notation "x <- t1 ?*[ g ];; t2" := (unwrapUErr t1 (fun x => t2) g)
+    (at level 62, t1 at next level, right associativity) : itree_scope.
+Notation "t1 ?*[ g ];; t2" := (unwrapUErr t1 (fun _ => t2) g)
+    (at level 62, right associativity) : itree_scope.
+Notation "' p <- t1 ?*[ g ];; t2" :=
+    (unwrapUErr t1 (fun x_ => match x_ with p => t2 end) g)
+    (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.*)

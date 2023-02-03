@@ -22,12 +22,12 @@ Section PROOF.
     Context `{has_pE: pE -< Es}.
     Context `{has_eventE: eventE -< Es}.
 
-    Definition allocF: Z -> itree Es val :=
+    Definition allocF: Z * Z -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        let sz := varg in
-        let (m1, blk) := Mem.alloc m0 0 sz in
+        let (lo, hi) := varg in
+        let (m1, blk) := Mem.alloc m0 lo hi in
         trigger (PPut m1↑);;;
         Ret (Vptr blk (Ptrofs.repr 0)).
     
