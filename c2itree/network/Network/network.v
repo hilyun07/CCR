@@ -559,9 +559,13 @@ Definition site_append_morph (sn: string) : Es ~> Es.
 
   Definition site_cfunU {X Y : Type} (body : X -> itree Es Y) :=
     fun '(optsmn, varg) =>
+      _ <- trigger (Syscall "print_string" ["t"]↑ top1);;
       smn <- (optsmn)?;;
+      _ <- trigger (Syscall "print_string" [smn]↑ top1);;
       idx <- (index 0 "." smn)?;;
+      _ <- trigger (Syscall "print_string" ["t"]↑ top1);;
       ` varg0 : X <- (Any.downcast varg)?;;
+      _ <- trigger (Syscall "print_string" ["t"]↑ top1);;
       ` vret : Y <- site_appended_itree (substring 0 idx smn) Y (body varg0);; Ret (Any.upcast vret).
 
 Definition NetSem: ModSem.t :=
