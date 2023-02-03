@@ -42,7 +42,7 @@ Definition _sin_zero := 4%positive.
 
 Definition get_pid: itree Es node_id :=
     `pid:val <- ccallU "getpid" ([]:list val);;
-    pid <- (parg (Tlong Unsigned noattr) pid)?;;
+    pid <- (parg tint pid)?;;
     Ret pid.
 
 Record socket := {
