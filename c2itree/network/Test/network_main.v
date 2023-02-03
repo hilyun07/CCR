@@ -70,6 +70,7 @@ Section PROOF.
   
 End PROOF.
 
+
 Require Import ModSemE.
 Import EventsL.
 
@@ -85,9 +86,10 @@ Section SITE.
   Definition site_append_morph : Es ~> Es.
   Proof.
     intros. destruct X.
-    { destruct c. destruct (is_shared_fun fn).
-      - exact (inl1 (Call mn fn args)).
-      - exact (inl1 (Call mn (sn ++ "." ++ fn) args)). }
+    { destruct c.
+      assert (new_mn: option mname) by now destruct mn; [apply (Some (sn ++ "." ++ s)%string) | apply None].
+      assert (new_fn: gname) by now destruct (is_shared_fun fn); [apply fn | apply (sn ++ "." ++ fn)%string]. 
+      exact (inl1 (Call new_mn new_fn args)). }
     destruct s.
     { destruct s.
       { destruct (is_shared_fun fn).
