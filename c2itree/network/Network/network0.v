@@ -14,7 +14,7 @@ Require Import ConvC2ITree.
 Module Z_map := Make OrderedTypeEx.Z_as_OT.
 
 From compcert Require Import
-  Ctypes Values Integers Clight Maps Globalenvs Clightdefs.
+  AST Ctypes Values Integers Clight Maps Globalenvs.
 
 Section MOD.
 
@@ -23,7 +23,6 @@ Section DEF.
 Context (skenv: SkEnv.t).
 
 (* Should be removed, solves problem with implicit arguments *)
-
 Notation "x <- t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun x => t2) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
     (at level 62, t1 at next level, right associativity) : itree_scope.
 Notation "t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun _ => t2) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
@@ -42,36 +41,48 @@ Notation "' p <- t1 ?*[ g ];; t2" :=
 Definition node_id := Z.
 Definition sock_fd := Z.
 Definition ip := Z.
+
+(** Values for the structure of [sockaddr_in] *)
 Definition _sockaddr_in := 1%positive.
 Definition _sin_family := 1%positive.
 Definition _sin_port := 2%positive.
 Definition _sin_addr := 3%positive.
 Definition _sin_zero := 4%positive.
 
+(** Returns the pid of the current process *)
 Definition get_pid: itree Es node_id :=
     `pid:val <- ccallU "getpid" ([]:list val);;
-    pid <- (parg tint pid)?;;
+    pid <- (parg (Tint I32 Unsigned noattr) pid)?;;
     Ret pid.
 
+(** Sockets *)
 Record socket := {
-    sock_port: option Z;
-    sock_queue: list (node_id * sock_fd);
-    sock_max_queue: Z
+    sock_port: option Z; (**r port the socket is bound to *)
+    sock_queue: list (node_id * sock_fd); (**r queue for connection *)
+    sock_max_queue: Z (**r maximum queue length *)
 }.
+(** Incoming connections should be added at the end of the queue
+and a maximum queue length of 0 indicates the socket is not listening *)
 
+(** Connected sockets *)
 Record csocket := {
-    csock_tgt: node_id * sock_fd;
-    csock_msg: option (list (list val))
+    csock_tgt: node_id * sock_fd; (**r its counterpart *)
+    csock_msg: option (list (list val)) (**r messages sent *)
 }.
+(** If `csock_msg` is set to `None`, it means the connection
+is closed. *)
 
+(** The sockets of a node *)
 Record node_sockets := {
-    socks_sockmap: Z_map.t socket;
-    socks_csockmap: Z_map.t csocket;
-    socks_av_fd: Z
+    socks_sockmap: Z_map.t socket; (**r sockets *)
+    socks_csockmap: Z_map.t csocket; (**r connected sockets *)
+    socks_av_fd: Z (**r next available file descriptor *)
 }.
 
+(** The complete socket environment *)
 Definition sockets := Z_map.t node_sockets.
 
+(** Find a socket in a node through its file descriptor *)
 Definition Z_map_find {A: Type} fd node_socks: opt_err A :=
     match Z_map.find fd node_socks with
     | None => ErrKo EBADF (Vint Int.mone)
@@ -236,8 +247,9 @@ Definition read_port ge addr_b addr_ofs: itree Es Z :=
         | _ => None
         end)?;;
 
-    `port: Int16.int <- Read_short (fst port_ptr) (fst (snd port_ptr));;
-    Ret (Int16.unsigned port).
+    `port: val <- ccallU "load" (Mint16unsigned, (fst port_ptr), (fst (snd port_ptr)));;
+    `port: Z <- (match port with Vint i => Some (Int.unsigned i) | _ => None end)?;;
+    Ret port.
 
 Definition find_port_socket_node sockmap port: opt_err sock_fd :=
     Z_map.fold
@@ -262,6 +274,11 @@ Definition find_port_socket socks port: opt_err (node_id * sock_fd) :=
         | ErrUB => ErrUB end)
         socks (ErrKo ECONNREFUSED (Vint Int.mone)).
 
+Definition choose_port ports: itree Es Z :=
+    let av_ports: Type := {p: Z | (49152 <= p /\ p <= 65535)%Z /\ ~ In p ports} in
+    port <- trigger (Choose av_ports);;
+    Ret (match port with exist _ port _ => port end).
+
 Definition socketF: list val -> itree Es val :=
     fun varg =>
         ge_socks_ports <- trigger (PGet);;
@@ -285,27 +302,32 @@ Definition socketF: list val -> itree Es val :=
 Definition bindF: list val -> itree Es val :=
     fun varg =>
         ge_socks_ports <- trigger (PGet);;
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
         `ge_socks_ports: Clight.genv * sockets * list Z <- ge_socks_ports↓?;;
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
         let '(ge, socks, ports) := ge_socks_ports in
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
 
         '(sockfd, ((addr_b, addr_ofs), addrlen))
-            <- (pargs [tint; tptr (Tstruct _sockaddr_in noattr); tuint] varg)?;;
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
+            <- (pargs [Tint I32 Signed noattr;
+                        Tpointer (Tstruct _sockaddr_in noattr) noattr;
+                        Tpointer (Tint I32 Unsigned noattr) noattr] varg)?;;
 
         `port: Z <- read_port ge addr_b addr_ofs;;
+
+        (* Choose port in case provided one is 0 *)
+        `port': Z <- choose_port ports;;
+        let port := if (port =? 0)%Z then port' else port in
+
+        (* Check port availability *)
+        if in_dec Z.eq_dec port ports then
+            set_errno (skenv := skenv) EADDRINUSE (Vint Int.mone)
+        else
+
         let sock := Build_socket (Some port) [] 0%Z in
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
         `pid: node_id <- get_pid;;
         socks <- (update_socket socks pid sockfd sock)?*;;
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
 
         trigger (PPut (ge, socks, (port :: ports))↑);;;
-      _ <- trigger (Syscall "print_string" ["hello"]↑ top1);;
         Ret (Vint Int.zero).
 
 Definition listenF: list val -> itree Es val :=
@@ -379,9 +401,7 @@ Definition connectF: list val -> itree Es val :=
         ];;
 
         (* Picking new port for source *)
-        let av_ports: Type := {p: Z | (49152 <= p /\ p <= 65535)%Z /\ ~ In p ports} in
-        port_src <- trigger (Choose av_ports);;
-        let port_src := match port_src with exist _ port _ => port end in
+        port_src <- choose_port ports;;
 
         let src := Build_socket (Some port_src) [] 0%Z in
 
@@ -432,7 +452,7 @@ Definition sendF: list val -> itree Es val :=
 
         let buf := Vptr buf_b buf_ofs in
 
-        if len >? 8 (* What should the max be? *) then
+        if len >? 65536 then
             Ret (Vlong Int64.mone)
         else
             read_message buf len;;;
@@ -535,10 +555,7 @@ compute.
 reflexivity.
 Qed.
 
-
 Definition ge: Clight.genv := {|genv_genv := empty_genv_genv; genv_cenv := addr_genv_cenv|}.
-
-
 Definition site_append_morph (sn: string) : Es ~> Es.
   Proof.
     intros. destruct X.
@@ -559,7 +576,7 @@ Definition site_append_morph (sn: string) : Es ~> Es.
       exact (inr1 (inr1 (inr1 (Take X)))).
       exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). }
   Defined.
-    
+
 
   Definition site_appended_itree sn : itree Es ~> itree Es := translate (site_append_morph sn).
 
@@ -577,30 +594,33 @@ Definition NetSem: ModSem.t :=
                       ("connect", site_cfunU connectF); ("close", site_cfunU closeF);
                       ("send", site_cfunU sendF); ("recv", site_cfunU recvF);
                       ("htons", site_cfunU htonsF); ("ntohs", site_cfunU ntohsF);
-                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF);
-                      ("inet_addr", site_cfunU inet_addrF)];
+                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF)];
     ModSem.mn := "Net";
     ModSem.initial_st := (ge, Z_map.empty node_sockets, @nil Z)↑
   |}.
 
 End DEF.
 
-Fixpoint init_size (t : type) : Z :=
-  match t with
-  | Tint I16 _ _ => 2%Z
-  | Tint I32 _ _ | Tfloat F32 _ => 4%Z
-  | Tlong _ _ | Tfloat F64 _ => 8%Z
-  | Tpointer _ _ => if Archi.ptr64 then 8%Z else 4%Z
-  | Tarray t' n _ => (init_size t' * Z.max 0 n)%Z
-  | _ => 1%Z
-  end.
-    
-Definition gvar_default (t: type) := AST.mkglobvar t [AST.Init_space (init_size t)] false false.
-
 Definition Net: Mod.t :=
   {|
     Mod.get_modsem := fun sk => NetSem (load_skenv sk);
-    Mod.sk := [(ident_of_string "errno", AST.Gvar (gvar_default tint))]
+    Mod.sk := cskel.(Sk.unit)
   |}.
-    
+
 End MOD.
+
+Section TEST.
+
+  Definition errval : Errcode -> val := fun _ => Vint Int.zero.
+
+  Definition skenv : SkEnv.t :=
+    {|
+      SkEnv.blk2id := fun blk =>
+                        if Pos.eqb blk 127
+                        then Some "errno" else None;
+      SkEnv.id2blk := fun id =>
+                        if id =? "errno"
+                        then Some 127%positive else None
+    |}.
+
+End TEST.
