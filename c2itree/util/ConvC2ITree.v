@@ -1069,8 +1069,8 @@ Section DECOMP.
       vf <- (eval_expr_c e le a);;
       vf <- vf?;;
       vargs <- eval_exprlist_c e le al tyargs;;
-      _ <- trigger (Syscall "print_string" ["call"]↑ top1);;
       vargs <- vargs?;;
+      _ <- trigger (Syscall "print_string" ["call"]↑ top1);;
       match vf with
       | Vptr b ofs =>
           '(gsym, gd) <- (nth_error sk (get_idx b))?;;
@@ -1295,16 +1295,20 @@ Section DECOMP.
         triggerUB
       end
     | Sloop s1 s2 =>
+      _ <- trigger (Syscall "print_string" ["loop"]↑ top1);;
       let itr1 := decomp_stmt retty s1 in
       let itr2 := decomp_stmt retty s2 in
       _sloop_itree e le itr1 itr2
     (* '(e, le, m, bc, v) <- itr ;; *)
 
     | Sbreak =>
+      _ <- trigger (Syscall "print_string" ["break"]↑ top1);;
       Ret (e, le, Some true, None)
     | Scontinue =>
+      _ <- trigger (Syscall "print_string" ["continue"]↑ top1);;
       Ret (e, le, Some false, None)
     | Sreturn oa =>
+      _ <- trigger (Syscall "print_string" ["return"]↑ top1);;
       v <- _sreturn_c retty e le oa;;
       match v with
       | Some v =>

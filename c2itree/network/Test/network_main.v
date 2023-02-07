@@ -11,7 +11,7 @@ From compcert Require Import
 From compcert Require Import
   Ctypes Clight Ctypesdefs.
 
-Require Import Clight_Mem0 Sys Sch0 network.
+Require Import Clight_Mem0 Sys Sch0 network0.
 Require Import parse_compcert.
 Require Import ConvC2ITree.
 

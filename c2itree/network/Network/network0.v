@@ -7,14 +7,14 @@ Require Import ModSem.
 Require Import Skeleton.
 Require Import FMapList.
 Require Import OrderedTypeEx.
-Require Import paxos_CCR.Network.error.
-Require Import paxos_CCR.Network.values.
+Require Import error.
+Require Import values.
 Require Import ConvC2ITree.
 
 Module Z_map := Make OrderedTypeEx.Z_as_OT.
 
 From compcert Require Import
-  AST Ctypes Values Integers Clight Maps Globalenvs Memdata.
+  AST Ctypes Values Integers Clight Maps Globalenvs Memdata Clightdefs.
 
 Section MOD.
 
@@ -151,9 +151,7 @@ Definition bindF: list val -> itree Es val :=
 
 
         '(sockfd, ((addr_b, addr_ofs), addrlen))
-            <- (pargs [Tint I32 Signed noattr;
-                        Tpointer (Tstruct _sockaddr_in noattr) noattr;
-                        Tpointer (Tint I32 Unsigned noattr) noattr] varg)?;;
+            <- (pargs [tint; Tpointer (Tstruct _sockaddr_in noattr) noattr; tint] varg)?;;
 
         `port: Z <- read_port ge addr_b addr_ofs;;
 
@@ -190,29 +188,38 @@ Definition listenF: list val -> itree Es val :=
 Definition acceptF: list val -> itree Es val :=
     fun varg =>
         ge_socks_ports <- trigger (PGet);;
+      _ <- trigger (Syscall "print_string" ["hhh"]↑ top1);;
         `ge_socks_ports: Clight.genv * sockets * Z_map.t sock_fd <- ge_socks_ports↓?;;
+      _ <- trigger (Syscall "print_string" ["hhh"]↑ top1);;
         let '(ge, socks, ports) := ge_socks_ports in
 
         '(sockfd, (addr, addrlen))
             <- (pargs [Tint I32 Signed noattr;
                         Tpointer (Tstruct xH noattr) noattr;
                         Tpointer (Tint I32 Unsigned noattr) noattr] varg)?;;
+      _ <- trigger (Syscall "print_string" ["hhh"]↑ top1);;
 
         match Z_map.find sockfd socks with
         | Some (inl sock) =>
+      _ <- trigger (Syscall "print_string" ["hhh1"]↑ top1);;
         match sock.(sock_queue) with
-        | [] => `_: unit <- ccallU "yield" ([]:list val);;
+        | [] =>
+      _ <- trigger (Syscall "print_string" ["hhh11"]↑ top1);;
+            `_: unit <- ccallU "yield" ([]:list val);;
                 ccallU "accept" varg
         | clientfd :: tl =>
+      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
             (* Remove client from queue *)
             let sock := {|sock_port := sock.(sock_port);
                         sock_queue := tl;
                         sock_max_queue := sock.(sock_max_queue)|}
             in
             let socks := Z_map.add sockfd (inl sock) socks in
+      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
 
             (* Find client *)
             client <- (Z_map.find clientfd socks)?;;
+      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
 
             (* Create new file descriptor on server side *)
             let servfd := new_fd socks in
@@ -230,10 +237,14 @@ Definition acceptF: list val -> itree Es val :=
             (*write_addr (fst addr) (snd addr) (get_addr socks (fst src) (snd src));;;
             Need to set addrlen *)
 
+      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
             trigger (PPut (ge, socks, ports)↑);;;
+      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
             Ret (Vint (Int.repr servfd))
         end
-        | _ => triggerUB
+        | _ =>
+      _ <- trigger (Syscall "print_string" ["hhh2"]↑ top1);;
+            triggerUB
         end.
 
 Definition connectF: list val -> itree Es val :=
@@ -427,7 +438,8 @@ Definition NetSem: ModSem.t :=
                       ("connect", site_cfunU connectF); ("close", site_cfunU closeF);
                       ("send", site_cfunU sendF); ("recv", site_cfunU recvF);
                       ("htons", site_cfunU htonsF); ("ntohs", site_cfunU ntohsF);
-                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF)];
+                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF);
+                      ("inet_addr", site_cfunU inet_addrF)];
     ModSem.mn := "Net";
     ModSem.initial_st := (ge, Z_map.empty (socket + csocket), Z_map.empty sock_fd)↑
   |}.
