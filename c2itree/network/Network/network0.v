@@ -116,7 +116,9 @@ Definition read_port ge addr_b addr_ofs: itree Es Z :=
 
     `port: val <- ccallU "load" (Mint16unsigned, (fst port_ptr), (fst (snd port_ptr)));;
     `port: Z <- (match port with Vint i => Some (Int.unsigned i) | _ => None end)?;;
-    Ret port.
+      _ <- trigger (Syscall "print_string" ["aware"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [port]↑ top1);;
+      Ret port.
 
 Definition choose_port ports: itree Es Z :=
     let av_ports: Type := {p: Z | (49152 <= p /\ p <= 65535)%Z /\ ~ In p ports} in
@@ -158,6 +160,8 @@ Definition bindF: list val -> itree Es val :=
         (* Choose port in case provided one is 0 *)
         `port': Z <- choose_port (Z_map_keys ports);;
         let port := if (port =? 0)%Z then port' else port in
+      _ <- trigger (Syscall "print_string" ["socketfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [sockfd]↑ top1);;
 
         (* Check port availability *)
         if in_dec Z.eq_dec port (Z_map_keys ports) then
@@ -180,6 +184,8 @@ Definition listenF: list val -> itree Es val :=
         '(sockfd, backlog) <- (pargs [Tint I32 Signed noattr;
                                     Tint I32 Signed noattr] varg)?;;
 
+      _ <- trigger (Syscall "print_string" ["socketfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [sockfd]↑ top1);;
         socks <- (set_backlog sockfd backlog socks)?;;
 
         trigger (PPut (ge, socks, ports)↑);;;
@@ -188,38 +194,34 @@ Definition listenF: list val -> itree Es val :=
 Definition acceptF: list val -> itree Es val :=
     fun varg =>
         ge_socks_ports <- trigger (PGet);;
-      _ <- trigger (Syscall "print_string" ["hhh"]↑ top1);;
         `ge_socks_ports: Clight.genv * sockets * Z_map.t sock_fd <- ge_socks_ports↓?;;
-      _ <- trigger (Syscall "print_string" ["hhh"]↑ top1);;
         let '(ge, socks, ports) := ge_socks_ports in
 
         '(sockfd, (addr, addrlen))
             <- (pargs [Tint I32 Signed noattr;
                         Tpointer (Tstruct xH noattr) noattr;
                         Tpointer (Tint I32 Unsigned noattr) noattr] varg)?;;
-      _ <- trigger (Syscall "print_string" ["hhh"]↑ top1);;
+      _ <- trigger (Syscall "print_string" ["socketfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [sockfd]↑ top1);;
 
         match Z_map.find sockfd socks with
         | Some (inl sock) =>
-      _ <- trigger (Syscall "print_string" ["hhh1"]↑ top1);;
         match sock.(sock_queue) with
         | [] =>
-      _ <- trigger (Syscall "print_string" ["hhh11"]↑ top1);;
             `_: unit <- ccallU "yield" ([]:list val);;
                 ccallU "accept" varg
         | clientfd :: tl =>
-      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
             (* Remove client from queue *)
             let sock := {|sock_port := sock.(sock_port);
                         sock_queue := tl;
                         sock_max_queue := sock.(sock_max_queue)|}
             in
             let socks := Z_map.add sockfd (inl sock) socks in
-      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
 
             (* Find client *)
+      _ <- trigger (Syscall "print_string" ["clientfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [clientfd]↑ top1);;
             client <- (Z_map.find clientfd socks)?;;
-      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
 
             (* Create new file descriptor on server side *)
             let servfd := new_fd socks in
@@ -233,17 +235,15 @@ Definition acceptF: list val -> itree Es val :=
                 csock_tgt := clientfd;
                 csock_msg := Some []
                 |}) socks in
-
+        msgl <- (get_msg socks clientfd)?;;
+            
             (*write_addr (fst addr) (snd addr) (get_addr socks (fst src) (snd src));;;
             Need to set addrlen *)
 
-      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
             trigger (PPut (ge, socks, ports)↑);;;
-      _ <- trigger (Syscall "print_string" ["hhh12"]↑ top1);;
             Ret (Vint (Int.repr servfd))
         end
         | _ =>
-      _ <- trigger (Syscall "print_string" ["hhh2"]↑ top1);;
             triggerUB
         end.
 
@@ -258,6 +258,8 @@ Definition connectF: list val -> itree Es val :=
                         Tpointer (Tstruct xH noattr) noattr;
                         Tint I32 Unsigned noattr] varg)?;;
 
+      _ <- trigger (Syscall "print_string" ["socketfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [sockfd]↑ top1);;
         `serv_port: Z <- read_port ge addr_b addr_ofs;;
 
         match Z_map.find serv_port ports with
@@ -265,6 +267,8 @@ Definition connectF: list val -> itree Es val :=
         `_: unit <- ccallU "yield" ([]:list val);;
         ccallU "connect" varg
         | Some servfd =>
+      _ <- trigger (Syscall "print_string" ["servfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [servfd]↑ top1);;
         match Z_map.find servfd socks with
         | Some (inl serv) =>
         if Z.of_nat (List.length serv.(sock_queue)) >=? serv.(sock_max_queue) then
@@ -295,13 +299,18 @@ Definition closeF: list val -> itree Es val :=
         let '(ge, socks, ports) := ge_socks_ports in
 
         fd <- (pargs [Tint I32 Signed noattr] varg)?;;
-
-        socks <- (close_csock socks fd)?;;
-        tgt <- (get_tgt socks fd)?;;
-        socks <- (close_csock socks tgt)?;;
-
+               (* diff *)
+               match close_csock socks fd with
+               | Some socks =>
         trigger (PPut (ge, socks, ports)↑);;;
-        Ret (Vint Int.zero).
+          Ret (Vint Int.zero)
+               | None => Ret (Vint Int.zero)
+                            end.
+                   
+        (* socks <- (close_csock socks fd)?;; *)
+
+        (* trigger (PPut (ge, socks, ports)↑);;; *)
+        (* Ret (Vint Int.zero). *)
 
 Definition sendF: list val -> itree Es val :=
     fun varg =>
@@ -314,14 +323,20 @@ Definition sendF: list val -> itree Es val :=
                       Tpointer Tvoid noattr;
                       Tlong Unsigned noattr;
                       Tint I32 Signed noattr] varg)?;;
+      _ <- trigger (Syscall "print_string" ["socketfd"]↑ top1);;
+        _ <- trigger (Syscall "print_num" [sockfd]↑ top1);;
+        let len := (len + 1)%Z in
 
         if len >? 65536 then
             Ret (Vlong Int64.mone)
         else
-            `msg: list memval <- (ccallU "loadbytes" (buf_b, buf_ofs, len));;
+          `msg: list memval <- (ccallU "loadbytes" (buf_b, buf_ofs, len));; 
 
             msgl <- (get_msg socks sockfd)?;;
             socks <- (set_msg socks sockfd (Some (msg :: msgl)))?;;
+                      (* diff *)
+            tgt_fd <- (get_tgt socks sockfd)?;;
+            socks <- (set_msg socks tgt_fd (Some (msg :: msgl)))?;;
 
             trigger (PPut (ge, socks, ports)↑);;;
             Ret (Vlong (Int64.repr len)).
@@ -337,15 +352,31 @@ Definition recvF: list val -> itree Es val :=
                         Tpointer Tvoid noattr;
                         Tlong Unsigned noattr;
                         Tint I32 Signed noattr] varg)?;;
+                (* severe diff *)
+      _ <- trigger (Syscall "print_string" ["socketfd"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [sockfd]↑ top1);;
 
+_ <- (        match get_tgt socks sockfd with
+             | Some _ => trigger (Syscall "print_string" ["asdf"]↑ top1)
+             | None => trigger (Syscall "print_string" ["sadf"]↑ top1)
+             end
+    );;
+_ <- (        match get_msg socks sockfd with
+             | Some _ => trigger (Syscall "print_string" ["ttt"]↑ top1)
+             | None => trigger (Syscall "print_string" ["ddd"]↑ top1)
+             end
+    );;
         msgl <- (get_msg socks sockfd)?;;
+      _ <- trigger (Syscall "print_string" ["sossketfd"]↑ top1);;
 
+        (* diff *)
         i_msg <- trigger (Choose (option {n: nat | n < (List.length msgl)}));;
         match i_msg with
         | None => Ret (Vlong Int64.mone)
         | Some (exist _ i_msg _) =>
             msg <- (List.nth_error msgl i_msg)?;;
-            ccallU "storebytes" (buf_b, buf_ofs, msg)
+            `_ : () <- ccallU "storebytes" (buf_b, buf_ofs, msg);;
+            Ret (Vlong (Int64.repr (Z.of_nat (List.length msg))))
         end.
 
 Definition htonsF: list val -> itree Es val :=
@@ -354,6 +385,8 @@ Definition htonsF: list val -> itree Es val :=
 
         let i := if Archi.big_endian then i
             else switch_endianness 1 i in
+      _ <- trigger (Syscall "print_string" ["aware"]↑ top1);;
+      _ <- trigger (Syscall "print_num" [i]↑ top1);;
         Ret (Vint (Int.repr i)).
 
 Definition ntohsF := htonsF.

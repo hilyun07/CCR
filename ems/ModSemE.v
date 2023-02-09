@@ -253,13 +253,17 @@ Section EVENTSL.
       interp_executeE (prog, ts, List.length ts, sched_nondet start_tid).
   End Scheduler.
 
-  Definition handle_pE {E}: pE ~> stateT p_state (itree E) :=
+  Definition handle_pE `{eventE -< E}: pE ~> stateT p_state (itree E) :=
     fun _ e mps =>
       match e with
-      | PPut mn p => Ret (update mps mn p, tt)
-      | PGet mn => Ret (mps, mps mn)
+      | PPut mn p =>
+      _ <- trigger (Syscall "print_string" [mn]↑ top1);;
+          Ret (update mps mn p, tt)
+      | PGet mn =>
+      _ <- trigger (Syscall "print_string" [mn]↑ top1);;
+          Ret (mps, mps mn)
       end.
-  Definition interp_pE {E}: itree (pE +' E) ~> stateT p_state (itree E) :=
+  Definition interp_pE `{eventE -< E}: itree (pE +' E) ~> stateT p_state (itree E) :=
     (* State.interp_state (case_ ((fun _ e s0 => resum_itr (handle_pE e s0)): _ ~> stateT _ _) State.pure_state). *)
     State.interp_state (case_ handle_pE pure_state).
 

@@ -13,7 +13,7 @@ open ModSemE
 
 (* open MWAll *)
 open Tiny_main
-open Tw_main 
+open Tw_main
 open Network_main
 open Test
 
