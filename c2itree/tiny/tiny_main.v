@@ -68,54 +68,6 @@ Section PROOF.
   
 End PROOF.
 
-Require Import ModSemE.
-Import EventsL.
-
-Section SITE.
-    
-  Definition sname := string.
-  Variable sn: sname.
-  Variable shared_fun_list: list gname.
-
-  Let is_shared_fun fn := in_dec string_dec fn shared_fun_list.
-  
-
-  Definition site_append_morph : Es ~> Es.
-  Proof.
-    intros. destruct X.
-    { destruct c. destruct (is_shared_fun fn).
-      - exact (inl1 (Call mn fn args)).
-      - exact (inl1 (Call mn (sn ++ "." ++ fn) args)). }
-    destruct s.
-    { destruct s.
-      { destruct (is_shared_fun fn).
-        - exact (inr1 (inl1 (Spawn fn args))).
-        - exact (inr1 (inl1 (Spawn (sn ++ "." ++ fn) args))). }
-      exact (inr1 (inl1 Yield)).
-      exact (inr1 (inl1 Getpid)). }
-    destruct s.
-    { destruct p.
-      - exact (inr1 (inr1 (inl1 (PPut (sn ++ "." ++ mn) p)))).
-      - exact (inr1 (inr1 (inl1 (PGet (sn ++ "." ++ mn))))). }
-    { destruct e.
-      exact (inr1 (inr1 (inr1 (Choose X)))).
-      exact (inr1 (inr1 (inr1 (Take X)))).
-      exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). }
-  Defined.
-    
-
-  Definition site_appended_itree : itree Es ~> itree Es := translate site_append_morph.
-
-  Definition append_site (ms: ModSemL.t) : ModSemL.t :=
-    {|
-      ModSemL.fnsems := List.map (fun '(gn, fnsem) =>
-                       ((sn ++ "." ++ gn)%string, fun x => site_appended_itree (fnsem x))) ms.(ModSemL.fnsems);
-      ModSemL.initial_mrs := List.map (map_fst (fun mn => (sn ++ "." ++ mn)%string)) ms.(ModSemL.initial_mrs);
-    |}
-  .
-
-End SITE.
-
 Section TEST.
 
   Program Instance EMSConfigImp: EMSConfig :=

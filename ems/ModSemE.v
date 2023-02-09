@@ -124,6 +124,7 @@ Section EVENTSL.
   | Spawn (fn: gname) (args: Any.t): schE nat
   | Yield: schE unit
   | Getpid: schE nat
+  | Getsn: schE string
   .
 
   (*** TODO: we don't want to require "mname" here ***)
@@ -155,17 +156,17 @@ Section EVENTSL.
   Section Scheduler.
     (* run interaction tree until scheE (really finished, spawn, and yield) *)
     Definition interp_schE {E}:
-      nat * itree (schE +' pE +' eventE) E ->
+      nat * (string * itree (schE +' pE +' eventE) E) ->
       itree (pE +' eventE) (E + (string * Any.t * (nat -> itree (schE +' pE +' eventE) E))
                             + (itree (schE +' pE +' eventE) E)).
     Proof.
       eapply ITree.iter.
-      intros [tid itr].
+      intros [tid [sname itr]].
       apply observe in itr; destruct itr as [r | itr | X e k].
       - (* Ret *)
         exact (Ret (inr (inl (inl r)))).
       - (* Tau *)
-        exact (Ret (inl (tid, itr))).
+        exact (Ret (inl (tid, (sname, itr)))).
       - (* Vis *)
         destruct e as [|[|]].
         + (* schE *)
@@ -175,17 +176,27 @@ Section EVENTSL.
           * (* Yield *)
             exact (Ret (inr (inr (k tt)))).
           * (* GetTid *)
-            exact (Ret (inl (tid, k tid))).
+            exact (Ret (inl (tid, (sname, k tid)))).
+          * (* Getsn *)
+            exact (Ret (inl (tid, (sname, k sname)))).
         + (* pE *)
-          exact (Vis (inl1 p) (fun x => Ret (inl (tid, k x)))).
+          exact (Vis (inl1 p) (fun x => Ret (inl (tid, (sname, k x))))).
         + (* eventE *)
-          exact (Vis (inr1 e) (fun x => Ret (inl (tid, k x)))).
+          exact (Vis (inr1 e) (fun x => Ret (inl (tid, (sname, k x))))).
     Defined.
 
-    Notation threads E := (alist nat (itree (schE +' pE +' eventE) E)).
+    Notation threads E := (alist nat (string * (itree (schE +' pE +' eventE) E))).
 
     Inductive executeE {E} : Type -> Type :=
     | Execute : nat -> executeE ((list nat) * (E + nat + unit)).
+
+    (* Any.t -> E is needed *)
+
+    Definition get_site (fn: string) :=
+      match index 0 "." fn with
+      | Some idx => substring 0 idx fn
+      | None => "control"
+      end.
 
     Definition interp_executeE {E}:
       (callE ~> itree Es) * (threads E) * nat * (itree ((@executeE E) +' eventE) E) ->
@@ -196,19 +207,19 @@ Section EVENTSL.
       - exact (Ret (inr r)).
       - exact (Ret (inl (prog, ts, next_tid, sch'))).
       - destruct e. rename n into tid.
-        destruct (alist_find tid ts) as [t|].
-        * exact (r <- interp_schE (tid, t);;
+        destruct (alist_find tid ts) as [[sname itr]|].
+        * exact (r <- interp_schE (tid, (sname, itr));;
                  match r with
                  | inl (inl r) => (* finished *)
                      let ts' := alist_remove tid ts in
                      Ret (inl (prog, ts', next_tid, ktr (List.map fst ts', (inl (inl r)))))
-                 | inl (inr (fn, args, k)) => (* spawn *)
+                 | inl (inr (fn, args, k)) => (* spawn what is root?*)
                      let new_itr := interp_mrec prog (_ <- (prog _ (Call None fn args));;
                                                       v <- trigger (inr1 (Choose E));; Ret v) in
-                     let ts' := alist_add next_tid new_itr (alist_replace tid (k next_tid) ts) in
+                     let ts' := alist_add next_tid (get_site fn, new_itr) (alist_replace tid (sname, k next_tid) ts) in
                      Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts', (inl (inr tid)))))
                  | inr t' => (* yield *)
-                     let ts' := alist_replace tid t' ts in
+                     let ts' := alist_replace tid (sname, t') ts in
                      Ret (inl (prog, ts', next_tid, ktr (List.map fst ts', (inr tt))))
                  end).
         * exact triggerNB.
@@ -258,7 +269,7 @@ Section EVENTSL.
 
   Definition interp_Es E (prog: callE ~> itree Es) (itr0: itree Es E) (st0: p_state): itree eventE (p_state * _)%type :=
     let itr1 := interp_mrec prog itr0 in
-    let itr2 := interp_scheduler prog [(0, itr1)] 0 in
+    let itr2 := interp_scheduler prog [(0, ("init", itr1))] 0 in
     '(st1, v) <- interp_pE itr2 st0;;
     Ret (st1, v)
   .

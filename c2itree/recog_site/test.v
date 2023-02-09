@@ -11,11 +11,13 @@ From compcert Require Import
 From compcert Require Import
   Ctypes Clight Ctypesdefs.
 
-Require Import Clight_Mem0 Sys Sch0.
-Require Import ConvC2ITree.
+Require Import Clight_Mem0 Sys Sch0 network0.
 Require Import parse_compcert.
+Require Import ConvC2ITree.
 
-Require Import src10 src20 tiny_main.
+Require Import recog_mod.
+Import amisc0 bmisc0.
+
 (** common type in c has followings:
     tvoid
     tschar
@@ -42,10 +44,12 @@ Section PROOF.
 
     Definition mainF: list val -> itree Es val:=
       fun vargs =>
-        `new_pid : val <- ccallU "spawn" ("first.main", @nil val);;
+        `new_pid : val <- ccallU "spawn" ("first.main", @nil val);; 
+        `new_pid : Z <- (pargs [tint] [new_pid])?;;
+         _ <- trigger (Syscall "print_num" [new_pid]↑ top1);;
+        (* `new_pid : val <- ccallU "spawn" ("second.main", @nil val);; *)
         (* `new_pid : Z <- (pargs [tint] [new_pid])?;; *)
-        `new_pid : val <- ccallU "spawn" ("second.main", @nil val);;
-        (* `new_pid : Z <- (pargs [tint] [new_pid])?;; *)
+        (*  _ <- trigger (Syscall "print_num" [new_pid]↑ top1);; *)
          Ret (Vint Int.zero).
     
   End BODY.
@@ -68,7 +72,7 @@ End PROOF.
 
 Section TEST.
 
-  Program Instance EMSConfig: EMSConfig :=
+  Program Instance EMSConfigImp: EMSConfig :=
     {|
       finalize := fun rv => Some rv;  initial_arg := ([]: list val)↑;
     |}
@@ -85,7 +89,7 @@ Section TEST.
   (* Mem (pgm : Clight.program), c_module (globalenv : Genv.t fundef type) *)
   (* modules that uses memory call each site should be separated *)
 
-  Definition execution_profile : list (string * list Mod.t) := [("first", [src10.c_module;src20.c_module]);("second", [tiny0.c_module])].
+  Definition execution_profile : list (string * list Mod.t) := [("first", [amisc0.c_module;bmisc0.c_module])(* ;("second", [client0.c_module]) *)].
 
   Definition proc_gen :=
     fun '(sn, modlist) =>
@@ -108,5 +112,4 @@ Section TEST.
     ModSemL.initial_itr
       (ModSemL.add local_sharing_modules.(ModL.enclose) test_modseml) None.
 
-  
 End TEST.

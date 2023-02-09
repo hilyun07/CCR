@@ -1268,7 +1268,7 @@ Section DECOMP.
     | Scall optid a al =>
       _ <- trigger (Syscall "print_string" ["call_start"]↑ top1);;
         v <- _scall_c e le a al;;
-        id <- (optid)?;;
+      _ <- trigger (Syscall "print_string" ["call_end"]↑ top1);;
         Ret (e, (set_opttemp optid v le), None, None)
     | Sbuiltin optid ef targs el => triggerUB
     | Ssequence s1 s2 =>
@@ -1450,6 +1450,88 @@ Section TRANS.
 
 End TRANS.
 
+Section SITE_APP.
+  Import EventsL.
+
+  Definition sname := string.
+  Variable sn: sname.
+  Variable shared_fun_list: list gname.
+
+  Let is_shared_fun fn := in_dec string_dec fn shared_fun_list.
+
+  Definition site_append_morph_1 : Es ~> Es. (* for site specific module *)
+  Proof.
+    intros. destruct X.
+    { destruct c. destruct (is_shared_fun fn).
+      - exact (inl1 (Call mn fn args)).
+      - exact (inl1 (Call mn (sn ++ "." ++ fn) args)). }
+    destruct s.
+    { destruct s.
+      { destruct (is_shared_fun fn).
+        - exact (inr1 (inl1 (Spawn fn args))).
+        - exact (inr1 (inl1 (Spawn (sn ++ "." ++ fn) args))). }
+      exact (inr1 (inl1 Yield)).
+      exact (inr1 (inl1 Getpid)).
+      exact (inr1 (inl1 Getsn)). }
+    destruct s.
+    { destruct p.
+      - exact (inr1 (inr1 (inl1 (PPut (sn ++ "." ++ mn) p)))).
+      - exact (inr1 (inr1 (inl1 (PGet (sn ++ "." ++ mn))))). }
+    { destruct e.
+      exact (inr1 (inr1 (inr1 (Choose X)))).
+      exact (inr1 (inr1 (inr1 (Take X)))).
+      exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). }
+  Defined.
+  
+  Definition site_append_morph_2 (sn': sname) : Es ~> Es. (* for shared module *)
+  Proof.
+    intros. destruct X.
+    { destruct c. destruct (is_shared_fun fn).
+      - exact (inl1 (Call mn fn args)).
+      - exact (inl1 (Call mn (sn' ++ "." ++ fn) args)). }
+    destruct s.
+    { destruct s.
+      { destruct (is_shared_fun fn).
+        - exact (inr1 (inl1 (Spawn fn args))).
+        - exact (inr1 (inl1 (Spawn (sn' ++ "." ++ fn) args))). }
+      exact (inr1 (inl1 Yield)).
+      exact (inr1 (inl1 Getpid)).
+      exact (inr1 (inl1 Getsn)).
+    }
+    destruct s.
+    { destruct p.
+      - exact (inr1 (inr1 (inl1 (PPut mn p)))).
+      - exact (inr1 (inr1 (inl1 (PGet mn)))). }
+    { destruct e.
+      exact (inr1 (inr1 (inr1 (Choose X)))).
+      exact (inr1 (inr1 (inr1 (Take X)))).
+      exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). }
+  Defined.
+    
+
+  Definition site_appended_itree_1 : itree Es ~> itree Es := translate site_append_morph_1.
+  Definition site_appended_itree_2 (sn': sname) : itree Es ~> itree Es := translate (site_append_morph_2 sn').
+
+  Definition append_site_1 (ms: ModSemL.t) : ModSemL.t :=
+    {|
+      ModSemL.fnsems := List.map (fun '(gn, fnsem) =>
+                       ((sn ++ "." ++ gn)%string, fun x => site_appended_itree_1 _ (fnsem x))) ms.(ModSemL.fnsems);
+      ModSemL.initial_mrs := List.map (map_fst (fun mn => (sn ++ "." ++ mn)%string)) ms.(ModSemL.initial_mrs);
+    |}
+  .
+
+  Definition append_caller_site {X Y: Type} (body: X -> itree Es Y) :=
+    fun x => sn' <- trigger Getsn;; site_appended_itree_2 sn' _ (body x).
+
+  Definition append_site_2 (ms: ModSemL.t) : ModSemL.t :=
+    {|
+      ModSemL.fnsems := List.map
+                          (fun '(gn, fnsem) => (gn, append_caller_site fnsem)) ms.(ModSemL.fnsems);
+      ModSemL.initial_mrs := ms.(ModSemL.initial_mrs);
+    |}
+  .
+
+End SITE_APP.
 
 
 Section DECOMP_PROG.

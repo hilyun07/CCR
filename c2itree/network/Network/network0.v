@@ -400,46 +400,16 @@ reflexivity.
 Qed.
 
 Definition ge: Clight.genv := {|genv_genv := empty_genv_genv; genv_cenv := addr_genv_cenv|}.
-Definition site_append_morph (sn: string) : Es ~> Es.
-  Proof.
-    intros. destruct X.
-    { destruct c. destruct ((fn =? "store") || (fn =? "load")).
-      exact (inl1 (Call (sn ++ "." ++ fn) args)).
-      exact (inl1 (Call fn args)). } (* if memory call *)
-    destruct s.
-    { destruct s.
-      exact (inr1 (inl1 (EventsL.Spawn fn args))).
-      exact (inr1 (inl1 EventsL.Yield)).
-      exact (inr1 (inl1 EventsL.Getpid)). }
-    destruct s.
-    { destruct p.
-      exact (inr1 (inr1 (inl1 (PPut p)))).
-      exact (inr1 (inr1 (inl1 (PGet )))). }
-    { destruct e.
-      exact (inr1 (inr1 (inr1 (Choose X)))).
-      exact (inr1 (inr1 (inr1 (Take X)))).
-      exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). }
-  Defined.
-
-
-  Definition site_appended_itree sn : itree Es ~> itree Es := translate (site_append_morph sn).
-
-  Definition site_cfunU {X Y : Type} (body : X -> itree Es Y) :=
-    fun '(optsmn, varg) =>
-      smn <- (optsmn)?;;
-      idx <- (index 0 "." smn)?;;
-      ` varg0 : X <- (Any.downcast varg)?;;
-      ` vret : Y <- site_appended_itree (substring 0 idx smn) Y (body varg0);; Ret (Any.upcast vret).
 
 Definition NetSem: ModSem.t :=
   {|
-    ModSem.fnsems := [("socket", site_cfunU socketF); ("bind", site_cfunU bindF);
-                      ("listen", site_cfunU listenF); ("accept", site_cfunU acceptF);
-                      ("connect", site_cfunU connectF); ("close", site_cfunU closeF);
-                      ("send", site_cfunU sendF); ("recv", site_cfunU recvF);
-                      ("htons", site_cfunU htonsF); ("ntohs", site_cfunU ntohsF);
-                      ("htonl", site_cfunU htonlF); ("ntohl", site_cfunU ntohlF);
-                      ("inet_addr", site_cfunU inet_addrF)];
+    ModSem.fnsems := [("socket", cfunU socketF); ("bind", cfunU bindF);
+                      ("listen", cfunU listenF); ("accept", cfunU acceptF);
+                      ("connect", cfunU connectF); ("close", cfunU closeF);
+                      ("send", cfunU sendF); ("recv", cfunU recvF);
+                      ("htons", cfunU htonsF); ("ntohs", cfunU ntohsF);
+                      ("htonl", cfunU htonlF); ("ntohl", cfunU ntohlF);
+                      ("inet_addr", cfunU inet_addrF)];
     ModSem.mn := "Net";
     ModSem.initial_st := (ge, Z_map.empty (socket + csocket), Z_map.empty sock_fd)↑
   |}.
