@@ -27,6 +27,7 @@ extract/*.mli
 extract/main.native
 extract/_build/
 
+exe
 main.native
 main.byte
 main.d.byte

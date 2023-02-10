@@ -13,8 +13,9 @@ open ModSemE
 
 (* open MWAll *)
 open Tiny_main
-open Tw_main 
+open Tw_main
 open Network_main
+open Test
 
 let cl2s = fun cl -> String.concat "" (List.map (String.make 1) cl)
 
@@ -127,6 +128,7 @@ let main =
   print_endline "9: Tiny example (C source code)";
   print_endline "10: Two_source example (C source code)";
   print_endline "11: Network example (C source code)";
+  print_endline "12: site recog example (C source code)";
   print_endline "<<NOTE: These programs are all deterministic, but you may see some \"choose\" which is from Mem.alloc. Put any natural number; it does not affect semantics>>";
   match int_of_string (read_line()) with
   (* | 1 -> run (mw_impl_itr) *)
@@ -140,4 +142,5 @@ let main =
   | 9 -> run (Tiny_main.test_itr)
   | 10 -> run (Tw_main.test_itr)
   | 11 -> run (Network_main.test_itr)
+  | 12 -> run (Test.test_itr)
   | _ -> print_endline "Invalid Number!"

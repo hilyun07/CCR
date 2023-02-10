@@ -30,7 +30,8 @@ Section PROOF.
     Definition spawnF: (string * list val) -> itree Es val :=
       fun varg =>
         let '(fn, args) := varg in
-        pid <- trigger (EventsL.Spawn fn args↑);; Ret (Vint (Int.repr (Z.of_nat pid))).
+        pid <- trigger (EventsL.Spawn fn args↑);;
+        Ret (Vint (Int.repr (Z.of_nat pid))).
 
     Definition yieldF: (list val) -> itree Es val :=
       fun varg =>
