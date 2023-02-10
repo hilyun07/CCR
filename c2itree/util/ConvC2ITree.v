@@ -8,7 +8,7 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import AList.
-Require Orders List.
+Require Orders.
 
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
@@ -16,8 +16,8 @@ From compcert Require Import
      Ctypes Clight Clightdefs.
 
 
-Module Cskel.
-Import Orders List.
+Module CSKEL.
+Import Orders.
 
 Definition cglobdef := globdef fundef type.
 Module CGlobdef <: Typ. Definition t := cglobdef. End CGlobdef.
@@ -92,55 +92,54 @@ Definition sort: alist ident cglobdef -> alist ident cglobdef :=
 
 Local Existing Instance Cskel.cskel.
 
-  Definition get_idx: positive -> nat := pred ∘ Pos.to_nat.
-  Definition get_loc: nat -> positive := Pos.of_nat ∘ S.
+Module CSkEnv.
   
-  Lemma pos2pos_id: forall p, get_loc (get_idx p) = p.
-  Proof.
-    unfold get_idx, get_loc. i. 
-    rewrite Nat.succ_pred_pos by apply Pos2Nat.is_pos. 
-    rewrite Pos2Nat.id. auto.
-  Qed.
-  
-  Lemma nat2nat_id: forall n, get_idx (get_loc n)= n.
-  Proof.
-    unfold get_idx, get_loc. i.
-    rewrite Nat2Pos.id by nia. s. auto.
-  Qed.
+Definition get_idx: positive -> nat := pred ∘ Pos.to_nat.
+Definition get_loc: nat -> positive := Pos.of_nat ∘ S.
 
-  Definition load_skenv (sk: Sk.t): SkEnv.t :=
-    {|
-      SkEnv.mblock := positive;
-      SkEnv.ptrofs := Z;
-      SkEnv.blk2id :=
-        fun blk =>
-          do '(gn, _) <- (List.nth_error sk (get_idx blk));
-            Some (string_of_ident gn);
-      SkEnv.id2blk :=
-        fun id =>
-          let symb := ident_of_string id in      
-          do '(blk, _) <- find_idx (fun '(symb', _) => Pos.eq_dec symb symb') sk;
-            Some (get_loc blk);
-    |}
-  .
+Lemma pos2pos_id: forall p, get_loc (get_idx p) = p.
+Proof.
+  unfold get_idx, get_loc. i. 
+  rewrite Nat.succ_pred_pos by apply Pos2Nat.is_pos. 
+  rewrite Pos2Nat.id. auto.
+Qed.
 
-  Lemma load_skenv_wf sk (WF: Sk.wf sk) : <<WF: SkEnv.wf (load_skenv sk)>>.
-  Proof.
-    r in WF. rr. split; i; ss.
-    - uo; des_ifs.
-      + f_equal. rewrite nat2nat_id in Heq0.
-  Admitted.
-  
-End Cskel.
+Lemma nat2nat_id: forall n, get_idx (get_loc n)= n.
+Proof.
+  unfold get_idx, get_loc. i.
+  rewrite Nat2Pos.id by nia. s. auto.
+Qed.
 
-Import Cskel.
+Definition load_skenv (sk: Sk.t): SkEnv.t :=
+  {|
+    CSkEnv.blk2id :=
+      fun blk =>
+        do '(gn, _) <- (List.nth_error sk (get_idx blk));
+          Some (string_of_ident gn);
+          CSkEnv.id2blk :=
+            fun id =>
+              let symb := ident_of_string id in      
+              do '(blk, _) <- find_idx (fun '(symb', _) => Pos.eq_dec symb symb') sk;
+                Some (get_loc blk);
+  |}
+.
+
+Lemma load_skenv_wf sk (WF: Sk.wf sk) : <<WF: CSkEnv.wf (load_skenv sk)>>.
+Proof.
+  r in WF. rr. split; i; ss.
+  - uo; des_ifs.
+    + f_equal. rewrite nat2nat_id in Heq0.
+Admitted.
+
   
-Global Existing Instance Cskel.cskel.
+Local Existing Instance CSKEL.cskel.
 
 Section Clight.
+  Import CSKEL.
 Context {eff : Type -> Type}.
 Context {HasCall : callE -< eff}.
 Context {HasEvent : eventE -< eff}.
+Variable skenv: CSkEnv.t.
 Variable sk: Sk.t.
 Let skenv: SkEnv.t := load_skenv sk.
 Variable ce: composite_env.
@@ -212,7 +211,7 @@ Section EVAL_EXPR_COMP.
           if type_eq ty ty' then Ret (Some (l, (Ptrofs.zero, Full)))
           else Ret None
         | None =>
-          match SkEnv.id2blk (string_of_ident id) with
+          match CSkEnv.id2blk skenv (string_of_ident id) with
           | Some l => Ret (Some (l, (Ptrofs.zero, Full)))
           | None => Ret None
           end
@@ -1529,7 +1528,7 @@ End SITE_APP.
 
 
 Section DECOMP_PROG.
-
+  Import CSKEL.
   (* Context `{SystemEnv}. *)
 
   Variable cprog_app: Clight.program.
@@ -1539,7 +1538,7 @@ Section DECOMP_PROG.
   Fixpoint get_source_name (filename : string) :=
     String.substring 0 (String.length filename - 2) filename.
 
-  Fixpoint decomp_fundefs (skenv: SkEnv.t) (sk: Sk.t)
+  Fixpoint decomp_fundefs (skenv: CSkEnv.t) (sk: Sk.t)
            (defs: list (ident * globdef Clight.fundef type))
     : list (ident * (list val -> itree Es val)) :=
     match defs with
@@ -1550,7 +1549,7 @@ Section DECOMP_PROG.
       | Gfun fd =>
         match fd with
         | Internal f =>
-          match SkEnv.id2blk (string_of_ident id) with
+          match CSkEnv.id2blk skenv (string_of_ident id) with
           | Some _ =>
             (id, decomp_func sk ce f) :: decomp_fundefs skenv sk defs'
           | None => decomp_fundefs skenv sk defs'
