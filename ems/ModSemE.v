@@ -256,12 +256,8 @@ Section EVENTSL.
   Definition handle_pE `{eventE -< E}: pE ~> stateT p_state (itree E) :=
     fun _ e mps =>
       match e with
-      | PPut mn p =>
-      _ <- trigger (Syscall "print_string" [mn]↑ top1);;
-          Ret (update mps mn p, tt)
-      | PGet mn =>
-      _ <- trigger (Syscall "print_string" [mn]↑ top1);;
-          Ret (mps, mps mn)
+      | PPut mn p => Ret (update mps mn p, tt)
+      | PGet mn => Ret (mps, mps mn)
       end.
   Definition interp_pE `{eventE -< E}: itree (pE +' E) ~> stateT p_state (itree E) :=
     (* State.interp_state (case_ ((fun _ e s0 => resum_itr (handle_pE e s0)): _ ~> stateT _ _) State.pure_state). *)

@@ -61,10 +61,8 @@ Section MODSEML.
 
   Definition prog: callE ~> itree Es :=
     fun _ '(Call mn fn args) =>
-      _ <- trigger (Syscall "print_string" [(fn ++ ":modsem")%string]↑ top1);;
       sem <- (alist_find fn ms.(fnsems))?;;
       rv <- (sem (mn, args));;
-      _ <- trigger (Syscall "print_string" [(fn ++ ":modsem")%string]↑ top1);;
       Ret rv
   .
 
