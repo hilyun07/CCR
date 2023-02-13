@@ -66,7 +66,7 @@ Section PROOF.
 
   Definition Sys: Mod.t := {|
     Mod.get_modsem := fun _ => SysSem;
-    Mod.sk := cskel.(Sk.unit) ;
+    Mod.sk := Sk.unit ;
   |}
   .
   

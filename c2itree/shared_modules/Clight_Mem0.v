@@ -89,8 +89,11 @@ Section PROOF.
 
   End BODY.
 
+  Import Cskel.
   Variable optpgm: option Clight.program.
-  Variable skenv: SkEnv.t.
+  Variable sk: Sk.t.
+  Let skenv: SkEnv.t := load_skenv sk.
+  Local Existing Instance skenv.
 
   Definition store_init_data (m : mem) (b : block) (p : Z) (id : init_data) :=
     match id with
@@ -102,7 +105,7 @@ Section PROOF.
     | Init_float64 n => Mem.store Mfloat64 m b p (Vfloat n)
     | Init_space _ => Some m
     | Init_addrof symb ofs =>
-        match SkEnv.id2blk skenv (string_of_ident symb) with
+        match SkEnv.id2blk (string_of_ident symb) with
         | Some b' => Mem.store Mptr m b p (Vptr b' ofs)
         | None => None
         end
@@ -149,29 +152,28 @@ Section PROOF.
       end
   end.
 
-  Fixpoint _load_mem sk := alloc_globals Mem.empty sk.
+  Definition _load_mem := alloc_globals Mem.empty sk.
   
-  Definition load_mem sk :=
-    match _load_mem sk with
+  Definition load_mem :=
+    match _load_mem with
     | Some mem => mem
     | None => Mem.empty
     end.
   
-  Definition MemSem sk : ModSem.t :=
+  Definition MemSem : ModSem.t :=
     {|
       ModSem.fnsems := [("alloc", cfunU allocF); ("free", cfunU freeF);
                         ("load", cfunU loadF); ("loadbytes", cfunU loadbytesF);
                         ("store", cfunU storeF); ("storebytes", cfunU storebytesF);
                         ("valid_pointer", cfunU valid_pointerF)];
       ModSem.mn := "Mem";
-      ModSem.initial_st := (load_mem sk)↑;
+      ModSem.initial_st := (load_mem)↑;
     |}
   .
 End PROOF.
 
   Definition Mem: Mod.t := {|
-    Mod.get_modsem := fun sk => MemSem (load_skenv sk) sk;
-    Mod.sk := cskel.(Sk.unit);
+    Mod.get_modsem := fun sk => MemSem sk;
+    Mod.sk := Sk.unit;
   |}
   .
-  
