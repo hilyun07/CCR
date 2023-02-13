@@ -51,7 +51,7 @@ Inductive Errcode: Type :=
 Definition errval: Errcode -> val := fun _ => Vint (Int.zero).
 
 Import Cskel.
-Context {sk: Sk.t}.
+Context (sk: Sk.t).
 Let skenv: SkEnv.t := load_skenv sk.
 
 Inductive opt_err (A: Type): Type :=
