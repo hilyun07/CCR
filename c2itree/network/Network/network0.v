@@ -223,8 +223,10 @@ Definition bindF: list val -> itree Es val :=
         `port: Z <- read_port addr_b addr_ofs;;
 
         (* Choose port in case provided one is 0 *)
-        `port': Z <- choose_port (Z_map_keys env.(portm));;
-        let port := if (port =? 0)%Z then port' else port in
+        port <- if (port =? 0)%Z then
+            choose_port (Z_map_keys env.(portm))
+            else
+            Ret port;;
 
         (* Check port availability *)
         if in_dec Z.eq_dec port (Z_map_keys env.(portm)) then
