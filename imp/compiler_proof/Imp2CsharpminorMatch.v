@@ -72,7 +72,7 @@ Section MATCH.
 
   Definition itree_of_imp_cont {T} (itr: itree _ T) :=
     fun ge le ms mn rp =>
-      EventsL.interp_Es (ModSemL.prog ms) (transl_all mn (interp_imp ge itr le)) rp.
+      @EventsL.interp_Es (lenv * T) (ModSemL.prog ms) (transl_all mn (interp_imp ge itr le)) rp.
 
   Definition itree_of_imp_ret :=
     fun ge le ms mn rp =>

@@ -6,11 +6,14 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import HoareDef.
 Require Import ProofMode.
+Require Import ImpPrelude.
+Import ImpSkel.
+Require Import List.
 
 Set Implicit Arguments.
 
 
-Notation mblock := positive (only parsing).
+Notation mblock := nat (only parsing).
 Notation ptrofs := Z (only parsing).
 
 
@@ -247,7 +250,8 @@ Section HEADER.
     rewrite FIND. et.
   Qed.
 
-  Variable skenv: SkEnv.t.
+  Variable sk: Sk.t.
+  Let skenv := load_skenv sk.
 
   Variant fb_has_spec (stb: gname -> option fspec) (fb: mblock) (fsp: fspec): Prop :=
   | fb_has_spec_intro

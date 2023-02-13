@@ -3,6 +3,8 @@ Require Import STS.
 Require Import Behavior.
 Require Import ModSem.
 Require Import Skeleton.
+Require Import ImpPrelude.
+Import ImpSkel.
 Require Import PCM.
 Require Import Any.
 Require Export HoareDef STB.
@@ -374,7 +376,7 @@ Section CANCEL.
     { refl. }
     erewrite fold_right_map with (yadd:=@List.app _) (fi:=ModSemL.initial_mrs); cycle 1.
     { refl. }
-    rewrite ! List.map_map. cbn.
+    rewrite ! List.map_map.
     clear - mds. clearbody sk.
     induction mds; ii; ss. f_equal; ss.
   Qed.

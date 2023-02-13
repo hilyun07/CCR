@@ -15,6 +15,8 @@ Set Implicit Arguments.
 (** ** Rewriting Leamms *)
 Section PROOFS.
 
+  Import ImpSkel.
+
   Context `{Σ: GRA.t}.
 
   (* expr *)
@@ -313,12 +315,13 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_GetPtr
-        ge le0 X
+        sk le0 X
     :
-      interp_imp ge (trigger (GetPtr X)) le0 =
+      interp_imp sk (trigger (GetPtr X)) le0 =
+        let ge := load_skenv sk in
       r <- (ge.(SkEnv.id2blk) X)? ;; tau;; Ret (le0, Vptr r 0).
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState, unwrapU.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, unwrapU, load_skenv. ss.
     des_ifs; grind.
     - rewrite interp_trigger. grind.
       unfold unwrapU. des_ifs. grind.
@@ -327,20 +330,21 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_GetName
-        ge le0 x
+        sk le0 x
     :
-      interp_imp ge (trigger (GetName x)) le0 =
+      interp_imp sk (trigger (GetName x)) le0 =
+        let ge := load_skenv sk in
       match x with
-      | Vptr n 0 => u <- unwrapU (SkEnv.blk2id ge n);; tau;; Ret (le0, u)
+      | Vptr n 0 => u <- unwrapU (ge.(SkEnv.blk2id) n);; tau;; Ret (le0, u)
       | _ => triggerUB
       end
   .
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, load_skenv. ss.
     destruct x; try destruct ofs.
     1,3,4,5:(rewrite interp_trigger; grind; unfold triggerUB, pure_state; grind).
     rewrite interp_trigger. grind. unfold unwrapU.
-    destruct (SkEnv.blk2id ge blk).
+    destruct (do _x <- nth_error sk blk; let (gn, _) := _x in Some gn).
     2:{ unfold triggerUB, pure_state. grind. }
     grind.
   Qed.
@@ -575,12 +579,14 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_AddrOf
-        ge le0 x X
+        sk le0 x X
     :
-      interp_imp ge (denote_stmt (AddrOf x X)) le0 =
+      interp_imp sk (denote_stmt (AddrOf x X)) le0 =
+        let ge := load_skenv sk in
       r <- (ge.(SkEnv.id2blk) X)? ;; tau;;
       tau;; tau;; tau;; Ret (alist_add x (Vptr r 0) le0, Vundef).
   Proof.
+    unfold load_skenv.
     rewrite denote_stmt_AddrOf. rewrite interp_imp_bind.
     rewrite interp_imp_GetPtr. grind.
     rewrite interp_imp_bind. rewrite interp_imp_SetVar. grind.
@@ -710,21 +716,22 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_CallPtr
-        ge le0 x e args
+        sk le0 x e args
     :
-      interp_imp ge (denote_stmt (CallPtr x e args)) le0 =
+      interp_imp sk (denote_stmt (CallPtr x e args)) le0 =
+        let ge := load_skenv sk in
       (if match e with
          | Var _ => true
          | _ => false
          end
        then Ret tt else triggerUB);;;
-          '(le1, p) <- interp_imp ge (denote_expr e) le0;;
+          '(le1, p) <- interp_imp sk (denote_expr e) le0;;
           match p with
           | Vptr n 0 =>
-            match (SkEnv.blk2id ge n) with
+            match (ge.(SkEnv.blk2id) n) with
             | Some f =>
                 tau;;
-                '(le2, vals) <- interp_imp ge (denote_exprs args) le1;;
+                '(le2, vals) <- interp_imp sk (denote_exprs args) le1;;
                 v <- trigger (Call f (vals↑));;
                 tau;; tau;; v <- unwrapU (v↓);;
                 tau;; tau;; tau;; Ret (alist_add x v le2, Vundef)

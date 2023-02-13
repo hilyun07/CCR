@@ -46,10 +46,9 @@ Qed.
 
 Module SkEnv.
 
-  Notation mblock := positive (only parsing).
-  Notation ptrofs := Z (only parsing).
-
-  Record t: Type := mk {
+  Class t: Type := mk {
+    mblock: Type;
+    ptrofs: Type;
     blk2id: mblock -> option gname;
     id2blk: gname -> option mblock;
   }

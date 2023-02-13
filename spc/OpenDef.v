@@ -3,6 +3,9 @@ Require Import ITreelib.
 Require Import Any.
 Require Import STS.
 Require Import Behavior.
+Require Import ImpPrelude.
+Import ImpSkel.
+Require Import List.
 Require Import ModSem.
 Require Import Skeleton.
 Require Import PCM.
@@ -10,6 +13,7 @@ Require Import HoareDef.
 Require Export ProofMode.
 Require Import HoareDef STB.
 Require Import Red IRed.
+
 
 Set Implicit Arguments.
 
@@ -379,7 +383,7 @@ Section KMOD.
     fun sk => map (map_snd ksb_fspec) (flat_map (KModSem.fnsems ∘ (flip get_modsem sk)) mds).
 
   Definition get_sk (mds: list t): Sk.t :=
-    Sk.sort (fold_right Sk.add Sk.unit (List.map sk mds)).
+    ImpSkel.sort (fold_right Sk.add Sk.unit (List.map sk mds)).
 
   Definition get_frds (mds: list t): Sk.t -> list mname :=
     fun sk => (map (KModSem.mn ∘ (flip get_modsem sk)) mds).

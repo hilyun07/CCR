@@ -9,6 +9,7 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import AList.
+Import ImpSkel.
 
 Set Implicit Arguments.
 
@@ -85,7 +86,7 @@ Record programL : Type := mk_programL {
   prog_varsL : progVars;
   prog_funsL : list (mname * (gname * function));
   publicL : list gname;
-  defsL : list (gname * Sk.gdef);
+  defsL : list (gname * gdef);
 }.
 
 Record program : Type := mk_program {
@@ -101,9 +102,9 @@ Record program : Type := mk_program {
     let ivs := List.map fst prog_vars in
     let ifs := List.map fst prog_funs in
     sys ++ evs ++ efs ++ ivs ++ ifs;
-  defs : list (gname * Sk.gdef) :=
-    let fs := (List.map (fun '(fn, _) => (fn, Sk.Gfun)) prog_funs) in
-    let vs := (List.map (fun '(vn, vv) => (vn, Sk.Gvar vv)) prog_vars) in
+  defs : list (gname * gdef) :=
+    let fs := (List.map (fun '(fn, _) => (fn, Gfun)) prog_funs) in
+    let vs := (List.map (fun '(vn, vv) => (vn, Gvar vv)) prog_vars) in
     (List.filter (negb ∘ call_ban ∘ fst) (fs ++ vs));
 }.
 
@@ -274,9 +275,11 @@ End Denote.
 Section Interp.
 
   Context `{Σ: GRA.t}.
+  Context (sk: Sk.t).
+  Let ge: SkEnv.t := load_skenv sk.
   Definition effs := GlobEnv +' ImpState +' Es.
 
-  Definition handle_GlobEnv {eff} `{eventE -< eff} (ge: SkEnv.t) : GlobEnv ~> (itree eff) :=
+  Definition handle_GlobEnv {eff} `{eventE -< eff} : GlobEnv ~> (itree eff) :=
     fun _ e =>
       match e with
       | GetPtr X =>
@@ -288,8 +291,8 @@ Section Interp.
         end
       end.
 
-  Definition interp_GlobEnv {eff} `{eventE -< eff} (ge: SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
-    interp (case_ (handle_GlobEnv ge) ((fun T e => trigger e) : eff ~> itree eff)).
+  Definition interp_GlobEnv {eff} `{eventE -< eff} : itree (GlobEnv +' eff) ~> (itree eff) :=
+    interp (case_ (handle_GlobEnv) ((fun T e => trigger e) : eff ~> itree eff)).
 
   (** function local environment *)
   Definition lenv := alist var val.
@@ -306,8 +309,8 @@ Section Interp.
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
 
-  Definition interp_imp ge : itree effs ~> stateT lenv (itree Es) :=
-    fun _ itr le => interp_ImpState (interp_GlobEnv ge itr) le.
+  Definition interp_imp : itree effs ~> stateT lenv (itree Es) :=
+    fun _ itr le => interp_ImpState (interp_GlobEnv itr) le.
 
   Fixpoint init_lenv xs : lenv :=
     match xs with
@@ -337,13 +340,13 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge: SkEnv.t) (f: function) (args: list val) : itree Es val :=
+  Definition eval_imp  (f: function) (args: list val) : itree Es val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
     match (init_args params args (init_lenv vars)) with
     | Some iargs =>
-      '(_, retv) <- (interp_imp ge (tau;; (denote_stmt f.(fn_body));;; retv <- (denote_expr (Var "return")) ;; Ret retv)
+      '(_, retv) <- (interp_imp (tau;; (denote_stmt f.(fn_body));;; retv <- (denote_expr (Var "return")) ;; Ret retv)
                                iargs);; Ret retv
     | None => triggerUB
     end
@@ -365,26 +368,26 @@ Section MODSEM.
   Set Typeclasses Depth 5.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO: move to ITreelib ***) *)
 
-  Definition modsem (m : program) (ge: SkEnv.t) : ModSem.t := {|
-    ModSem.fnsems := List.map (fun '(fn, f) => (fn, cfunU (eval_imp ge f))) m.(prog_funs);
+  Definition modsem (m : program) (sk: Sk.t) : ModSem.t := {|
+    ModSem.fnsems := List.map (fun '(fn, f) => (fn, cfunU (eval_imp sk f))) m.(prog_funs);
     ModSem.mn := m.(name);
     ModSem.initial_st := tt↑;
   |}.
 
   Definition get_mod (m : program) : Mod.t := {|
-    Mod.get_modsem := fun ge => (modsem m (Sk.load_skenv ge));
+    Mod.get_modsem := fun sk => modsem m sk;
     Mod.sk := m.(defs);
   |}.
 
-  Definition modsemL (mL : programL) (ge: SkEnv.t) : ModSemL.t := {|
+  Definition modsemL (mL : programL) (sk: Sk.t) : ModSemL.t := {|
     ModSemL.fnsems :=
-      List.map (fun '(mn, (fn, f)) => (fn, fun a => transl_all mn (cfunU (eval_imp ge f) a))) mL.(prog_funsL);
+      List.map (fun '(mn, (fn, f)) => (fn, fun a => transl_all mn (cfunU (eval_imp sk f) a))) mL.(prog_funsL);
     ModSemL.initial_mrs :=
       List.map (fun name => (name, tt↑)) mL.(nameL);
   |}.
 
   Definition get_modL (mL : programL) : ModL.t := {|
-    ModL.get_modsem := fun ge => (modsemL mL (Sk.load_skenv ge));
+    ModL.get_modsem := fun sk => modsemL mL sk;
     ModL.sk := mL.(defsL);
   |}.
 

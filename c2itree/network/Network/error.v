@@ -2,6 +2,7 @@ Require Import Coqlib.
 Require Import ITreelib.
 Require Import Skeleton.
 Require Import ModSem.
+Require Import ConvC2ITree.
 From compcert Require Import Values Integers.
 
 Section Error.
@@ -49,7 +50,9 @@ Inductive Errcode: Type :=
 
 Definition errval: Errcode -> val := fun _ => Vint (Int.zero).
 
-Context {skenv: SkEnv.t}.
+Import Cskel.
+Context {sk: Sk.t}.
+Let skenv: SkEnv.t := load_skenv sk.
 
 Inductive opt_err (A: Type): Type :=
     | ErrKo: Errcode -> val -> opt_err A

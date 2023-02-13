@@ -545,8 +545,7 @@ End RDB.
 
 Require Import Hoare.
 Require Import HTactics ProofMode.
-
-
+Require ImpPrelude.
 
 Section ADQ.
   Context {CONF: EMSConfig}.
@@ -565,9 +564,10 @@ Section ADQ.
   Let _kmss: Sk.t -> list SModSem.t := fun ske => List.map (flip SMod.get_modsem ske) kmds.
 
   Section UMDS.
+  Import ImpPrelude ImpSkel.
   Variable umds: list Mod.t.
-  Let sk_link: Sk.t := Sk.sort (fold_right Sk.add Sk.unit ((List.map SMod.sk kmds) ++ (List.map Mod.sk umds))).
-  Let skenv: SkEnv.t := Sk.load_skenv sk_link.
+  Let sk_link: Sk.t := sort (fold_right Sk.add Sk.unit ((List.map SMod.sk kmds) ++ (List.map Mod.sk umds))).
+  Let skenv: SkEnv.t := load_skenv sk_link.
   Let _umss: Sk.t -> list ModSem.t := fun ske => List.map (flip Mod.get_modsem ske) umds.
   Let kmss: list SModSem.t := Eval red in (_kmss sk_link).
   Let umss: list ModSem.t := Eval red in (_umss sk_link).
@@ -577,7 +577,7 @@ Section ADQ.
   Hypothesis MNNODUP:
     forall mn
            (MIN0: List.In (Some mn) _frds)
-           (MIN1: List.In mn (map (ModSem.mn ∘ flip Mod.get_modsem sk_link) umds)),
+           (MIN1: List.In mn (List.map (ModSem.mn ∘ flip Mod.get_modsem sk_link) umds)),
       False.
 
   Lemma add_list_fnsems
@@ -746,9 +746,9 @@ Section ADQ.
     { ss. }
   Qed.
 
-  Let prog_src := Mod.add_list (map (KMod.transl_src frds) _kmds ++ umds).
-  Let prog_mid := Mod.add_list (map (KMod.transl_src frds) _kmds ++ map (SMod.to_src ∘ massage_md false) umds).
-  Let prog_tgt := Mod.add_list (map SMod.to_src kmds ++ map (SMod.to_src ∘ massage_md true) umds).
+  Let prog_src := Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ umds).
+  Let prog_mid := Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ List.map (SMod.to_src ∘ massage_md false) umds).
+  Let prog_tgt := Mod.add_list (List.map SMod.to_src kmds ++ List.map (SMod.to_src ∘ massage_md true) umds).
 
   Lemma option_rel_impl A B (R0 R1: A -> B -> Prop)
         (LE: R0 <2= R1)

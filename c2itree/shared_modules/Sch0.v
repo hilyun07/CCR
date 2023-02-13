@@ -57,7 +57,7 @@ Section PROOF.
 
   Definition Sch: Mod.t := {|
     Mod.get_modsem := fun _ => SchSem;
-    Mod.sk := cskel.(Sk.unit);
+    Mod.sk := Sk.unit;
   |}
   .
 End PROOF.

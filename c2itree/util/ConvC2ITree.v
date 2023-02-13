@@ -8,6 +8,7 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import AList.
+Require Orders List.
 
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
@@ -15,7 +16,8 @@ From compcert Require Import
      Ctypes Clight Clightdefs.
 
 
-Require Import Orders.
+Module Cskel.
+Import Orders List.
 
 Definition cglobdef := globdef fundef type.
 Module CGlobdef <: Typ. Definition t := cglobdef. End CGlobdef.
@@ -24,7 +26,6 @@ Module CSKSort := AListSort CGlobdef.
 Definition sort: alist ident cglobdef -> alist ident cglobdef :=
   (List.map (map_fst ident_of_string))∘ CSKSort.sort ∘ (List.map (map_fst string_of_ident)).
 
-Section CSKEL.
   Section LINK.
     Variable def1: list (ident * globdef fundef type).
     Variable def2: list (ident * globdef fundef type).
@@ -89,12 +90,8 @@ Section CSKEL.
   Proof.
   Admitted.
 
-End CSKEL.
+Local Existing Instance Cskel.cskel.
 
-Local Existing Instance cskel.
-
-Section CSKENV.
-  
   Definition get_idx: positive -> nat := pred ∘ Pos.to_nat.
   Definition get_loc: nat -> positive := Pos.of_nat ∘ S.
   
@@ -113,6 +110,8 @@ Section CSKENV.
 
   Definition load_skenv (sk: Sk.t): SkEnv.t :=
     {|
+      SkEnv.mblock := positive;
+      SkEnv.ptrofs := Z;
       SkEnv.blk2id :=
         fun blk =>
           do '(gn, _) <- (List.nth_error sk (get_idx blk));
@@ -132,16 +131,21 @@ Section CSKENV.
       + f_equal. rewrite nat2nat_id in Heq0.
   Admitted.
   
-End CSKENV.
+End Cskel.
+
+Import Cskel.
   
+Global Existing Instance Cskel.cskel.
 
 Section Clight.
 Context {eff : Type -> Type}.
 Context {HasCall : callE -< eff}.
 Context {HasEvent : eventE -< eff}.
-Variable skenv: SkEnv.t.
 Variable sk: Sk.t.
+Let skenv: SkEnv.t := load_skenv sk.
 Variable ce: composite_env.
+
+Local Existing Instance skenv.
 
   
 Section EVAL_EXPR_COMP.
@@ -208,7 +212,7 @@ Section EVAL_EXPR_COMP.
           if type_eq ty ty' then Ret (Some (l, (Ptrofs.zero, Full)))
           else Ret None
         | None =>
-          match SkEnv.id2blk skenv (string_of_ident id) with
+          match SkEnv.id2blk (string_of_ident id) with
           | Some l => Ret (Some (l, (Ptrofs.zero, Full)))
           | None => Ret None
           end
@@ -1546,9 +1550,9 @@ Section DECOMP_PROG.
       | Gfun fd =>
         match fd with
         | Internal f =>
-          match SkEnv.id2blk skenv (string_of_ident id) with
+          match SkEnv.id2blk (string_of_ident id) with
           | Some _ =>
-            (id, decomp_func skenv sk ce f) :: decomp_fundefs skenv sk defs'
+            (id, decomp_func sk ce f) :: decomp_fundefs skenv sk defs'
           | None => decomp_fundefs skenv sk defs'
           end
         | _ => decomp_fundefs skenv sk defs'

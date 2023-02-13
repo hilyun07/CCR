@@ -20,22 +20,25 @@ Section MOD.
 
 Section DEF.
 
-Context (skenv: SkEnv.t).
+Import Cskel.
+Variable sk: Sk.t.
+Let skenv: SkEnv.t := load_skenv sk.
+
 
 (* Should be removed, solves problem with implicit arguments *)
-Notation "x <- t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun x => t2) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
+Notation "x <- t1 ?*;; t2" := (unwrapUErr (sk := sk) t1 (fun x => t2) (fun v => set_errno (sk := sk) EWOULDBLOCK v))
     (at level 62, t1 at next level, right associativity) : itree_scope.
-Notation "t1 ?*;; t2" := (unwrapUErr (skenv := skenv) t1 (fun _ => t2) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
+Notation "t1 ?*;; t2" := (unwrapUErr (sk := sk) t1 (fun _ => t2) (fun v => set_errno (sk := sk) EWOULDBLOCK v))
     (at level 62, right associativity) : itree_scope.
 Notation "' p <- t1 ?*;; t2" :=
-    (unwrapUErr (skenv := skenv) t1 (fun x_ => match x_ with p => t2 end) (fun v => set_errno (skenv := skenv) EWOULDBLOCK v))
+    (unwrapUErr (sk := sk) t1 (fun x_ => match x_ with p => t2 end) (fun v => set_errno (sk := sk) EWOULDBLOCK v))
     (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
-Notation "x <- t1 ?*[ g ];; t2" := (unwrapUErr (skenv := skenv) t1 (fun x => t2) g)
+Notation "x <- t1 ?*[ g ];; t2" := (unwrapUErr (sk := sk) t1 (fun x => t2) g)
     (at level 62, t1 at next level, right associativity) : itree_scope.
-Notation "t1 ?*[ g ];; t2" := (unwrapUErr (skenv := skenv) t1 (fun _ => t2) g)
+Notation "t1 ?*[ g ];; t2" := (unwrapUErr (sk := sk) t1 (fun _ => t2) g)
     (at level 62, right associativity) : itree_scope.
 Notation "' p <- t1 ?*[ g ];; t2" :=
-    (unwrapUErr (skenv := skenv) t1 (fun x_ => match x_ with p => t2 end) g)
+    (unwrapUErr (sk := sk) t1 (fun x_ => match x_ with p => t2 end) g)
     (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
 
 Definition node_id := Z.
@@ -319,7 +322,7 @@ Definition bindF: list val -> itree Es val :=
 
         (* Check port availability *)
         if in_dec Z.eq_dec port ports then
-            set_errno (skenv := skenv) EADDRINUSE (Vint Int.mone)
+            set_errno (sk := sk) EADDRINUSE (Vint Int.mone)
         else
 
         let sock := Build_socket (Some port) [] 0%Z in
@@ -543,24 +546,8 @@ End DEF.
 
 Definition Net: Mod.t :=
   {|
-    Mod.get_modsem := fun sk => NetSem (load_skenv sk);
-    Mod.sk := cskel.(Sk.unit)
+    Mod.get_modsem := fun sk => NetSem sk;
+    Mod.sk := Sk.unit;
   |}.
 
 End MOD.
-
-Section TEST.
-
-  Definition errval : Errcode -> val := fun _ => Vint Int.zero.
-
-  Definition skenv : SkEnv.t :=
-    {|
-      SkEnv.blk2id := fun blk =>
-                        if Pos.eqb blk 127
-                        then Some "errno" else None;
-      SkEnv.id2blk := fun id =>
-                        if id =? "errno"
-                        then Some 127%positive else None
-    |}.
-
-End TEST.
