@@ -218,7 +218,7 @@ Definition bindF: list val -> itree Es val :=
         `env: environment <- env↓?;;
 
         '(fd, ((addr_b, addr_ofs), addrlen))
-            <- (pargs [tint; Tpointer (Tstruct _sockaddr_in noattr) noattr; tint] varg)?;;
+            <- (pargs [tint; tptr (Tstruct _sockaddr_in noattr); tint] varg)?;;
 
         `port: Z <- read_port addr_b addr_ofs;;
 
@@ -269,7 +269,7 @@ Definition acceptF: list val -> itree Es val :=
         `env: environment <- env↓?;;
 
         '(fd, (addr, addrlen))
-            <- (pargs [tint; Tpointer (Tstruct xH noattr) noattr; Tpointer tuint noattr] varg)?;;
+            <- (pargs [tint; tptr (Tstruct xH noattr); tptr tuint] varg)?;;
 
         match Z_map.find fd env.(socks) with
         | Some (inl sock) =>
@@ -320,7 +320,7 @@ Definition connectF: list val -> itree Es val :=
         `env: environment <- env↓?;;
 
         '(fd, ((addr_b, addr_ofs), addrlen))
-            <- (pargs [tint; Tpointer (Tstruct xH noattr) noattr; tuint] varg)?;;
+            <- (pargs [tint; tptr (Tstruct xH noattr); tuint] varg)?;;
 
         `server_port: Z <- read_port addr_b addr_ofs;;
 
@@ -393,7 +393,7 @@ Definition sendF: list val -> itree Es val :=
         `env: environment <- env↓?;;
 
         '(fd, ((buf_b, buf_ofs), (len, flags)))
-              <- (pargs [tint; Tpointer Tvoid noattr; tulong; tint] varg)?;;
+              <- (pargs [tint; tptr tvoid; tulong; tint] varg)?;;
 
         (* added by Jaehyung Lee : they also have to send null char *)
         let len := (len + 1)%Z in
@@ -420,7 +420,7 @@ Definition recvF: list val -> itree Es val :=
         `env: environment <- env↓?;;
 
         '(fd, ((buf_b, buf_ofs), (len, flags)))
-            <- (pargs [tint; Tpointer Tvoid noattr; tulong; tint] varg)?;;
+            <- (pargs [tint; tptr tvoid; tulong; tint] varg)?;;
 
         match get_msg fd env.(socks) with
         | None => Ret (Vlong Int64.zero) (**r Connection closed *)
@@ -473,7 +473,7 @@ Definition NetSem: ModSem.t :=
                       ("htonl", cfunU htonlF); ("ntohl", cfunU ntohlF);
                       ("inet_addr", cfunU inet_addrF)];
     ModSem.mn := "Net";
-    ModSem.initial_st := (ge, Z_map.empty (socket + csocket), Z_map.empty sock_fd)↑
+    ModSem.initial_st := ({|socks := Z_map.empty (socket + csocket); portm := Z_map.empty sock_fd|})↑
   |}.
 
 End DEF.
