@@ -287,8 +287,8 @@ Section MODSEML.
 
   End INTERP.
 
-  (*** TODO: probably we can make ModSemL.t as an RA too. (together with Sk.t) ***)
-  (*** However, I am not sure what would be the gain; and there might be universe problem. ***)
+  (* (*** TODO: probably we can make ModSemL.t as an RA too. (together with Sk.t) ***) *)
+  (* (*** However, I am not sure what would be the gain; and there might be universe problem. ***) *)
 
   Context {CONF: EMSConfig}.
 
@@ -401,7 +401,6 @@ Section MODSEML.
   Proof.
     rewrite add_assoc_eq. ss.
   Qed.
-
 End MODSEML.
 End ModSemL.
 
@@ -839,6 +838,7 @@ Module Equisatisfiability.
   | true
   | false
   | meta (P: Prop)
+
   | disj: pred -> pred -> pred
   | conj: pred -> pred -> pred
   | neg: pred -> pred
@@ -1187,7 +1187,7 @@ End REFINE.
 (* Global Opaque Sk.load_skenv. *)
 
 
-(*** TODO: Move to ModSem.v ***)
+(* (*** TODO: Move to ModSem.v ***) *)
 Lemma interp_Es_unwrapU
       prog R st0 (r: option R)
   :

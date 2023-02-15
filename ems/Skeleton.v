@@ -43,6 +43,7 @@ Proof.
   - rewrite Heq0. specialize (IHl (S n)). rewrite Heq0 in IHl. ss.
 Qed.
 
+
 Module SkEnv.
 
   Class t: Type := mk {
@@ -58,6 +59,12 @@ Module SkEnv.
 
 End SkEnv.
 
+
+
+
+
+
+Require Import Orders.
 
 Module Sk.
   Class ld: Type := mk {

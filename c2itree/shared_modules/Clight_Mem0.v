@@ -91,7 +91,9 @@ Section PROOF.
 
   Import Cskel.
   Variable optpgm: option Clight.program.
-  Variable skenv: CSkEnv.t.
+  Variable sk: Sk.t.
+  Let skenv: SkEnv.t := load_skenv sk.
+  Local Existing Instance skenv.
 
   Definition store_init_data (m : mem) (b : block) (p : Z) (id : init_data) :=
     match id with
