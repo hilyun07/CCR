@@ -139,6 +139,7 @@ Global Existing Instance Cskel.cskel.
 
 Section Clight.
 Context {eff : Type -> Type}.
+Context {HasSch : EventsL.schE -< eff}.
 Context {HasCall : callE -< eff}.
 Context {HasEvent : eventE -< eff}.
 Variable sk: Sk.t.
@@ -1065,6 +1066,7 @@ Section DECOMP.
       end
     | None => Ret tt
     end.
+  Set Printing All.
 
   Definition _scall_c e le a al
     : itree eff val :=
@@ -1078,7 +1080,7 @@ Section DECOMP.
       | Vptr b ofs =>
           '(gsym, gd) <- (nth_error sk (get_idx b))?;;
           fd <- (match gd with Gfun fd => Some fd | _ => None end)?;;
-          _ <- trigger (Syscall "print_string" [("call: " ++ string_of_ident gsym)%string]↑ top1);;
+          `_ : Any.t <- trigger (Syscall "print_string" [("call: " ++ string_of_ident gsym)%string]↑ top1);;
           if type_eq (type_of_fundef fd)
                (Tfunction tyargs tyres cconv)
           then
@@ -1091,7 +1093,19 @@ Section DECOMP.
                     then
                       _ <- trigger (Call "yield" (@nil val)↑);;
                       ccallU fn vargs
-                    else ccallU fn vargs
+                    else
+                      if (fn =? "thread_create")
+                      then
+                        match vargs with
+                        | [Vptr bid ofsid;Vptr bf ofsf;Vptr barg ofsarg] =>
+                            '(gsym', gd') <- (nth_error sk (get_idx bf))?;;
+                            _ <- (match gd' with Gfun fd => Some fd | _ => None end)?;;
+                            `pid : nat <- trigger (EventsL.Spawn (string_of_ident gsym') [Vptr barg ofsarg]↑);;
+                            `_ : unit <- ccallU "store" (Mint16signed, bid, ofs, Vint (Int.repr (Z.of_nat pid)));;
+                            Ret (Vint Int.zero)
+                        | _ => triggerUB
+                        end
+                      else ccallU fn vargs
                 | EF_malloc => (* need check by yhkim *)
                     match vargs with
                     | nil => triggerUB
