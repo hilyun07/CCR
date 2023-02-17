@@ -157,7 +157,10 @@ Section PROOF.
 
   Definition SysSem: ModSem.t :=
     {|
-      ModSem.fnsems := [("puts", cfunU printF); ("dprintf", cfunU dprintfF)];
+      ModSem.fnsems := [("puts", cfunU printF); ("dprintf0", cfunU dprintfF);
+      ("dprintf1i", cfunU dprintfF); ("dprintf2si", cfunU dprintfF);
+      ("dprintf2ii", cfunU dprintfF); ("dprintf3isi", cfunU dprintfF);
+      ("dprintf3iii", cfunU dprintfF)];
       ModSem.mn := "Sys";
       ModSem.initial_st := tt↑;
     |}
