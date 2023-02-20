@@ -1111,11 +1111,13 @@ Section DECOMP.
                     | nil => triggerUB
                     | [v1] => match Archi.ptr64, v1 with
                              | true, Vlong i =>
-                                 b <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int64.unsigned i);;
+                                 v <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int64.unsigned i);;
+                                 b <- (match v with Vptr b ofs => Some b | _ => None end)?;;
                                  `_ : () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong i);;
                                  Ret (Vptr b Ptrofs.zero)
                              | false, Vint i => 
-                                 b <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int.unsigned i);;
+                                 v <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int.unsigned i);;
+                                 b <- (match v with Vptr b ofs => Some b | _ => None end)?;;
                                  `_ : () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vint i);;
                                  Ret (Vptr b Ptrofs.zero)
                              | _, _ => triggerUB
