@@ -1088,11 +1088,6 @@ Section DECOMP.
             | External ef _ retty _ =>
                 match ef with
                 | EF_external fn _ =>
-                    if orb (fn =? "send") (fn =? "recv")
-                    then
-                      _ <- trigger (Call "yield" (@nil val)↑);;
-                      ccallU fn vargs
-                    else
                       if (fn =? "thread_create")
                       then
                         match vargs with
