@@ -21,6 +21,7 @@ Section PROOF.
     Context {Es: Type -> Type}.
     Context `{has_pE: pE -< Es}.
     Context `{has_eventE: eventE -< Es}.
+    Context {has_callE: callE -< Es}.
 
     Definition allocF: Z * Z -> itree Es val :=
       fun varg =>
@@ -30,7 +31,7 @@ Section PROOF.
         let (m1, blk) := Mem.alloc m0 lo hi in
         trigger (PPut m1↑);;;
         Ret (Vptr blk (Ptrofs.repr 0)).
-    
+
     Definition freeF: block * Z * Z -> itree Es unit :=
       fun varg =>
         mp0 <- trigger (PGet);;
@@ -86,6 +87,43 @@ Section PROOF.
         let '(b, ofs) := varg in
         Ret (Coqlib.proj_sumbool (Mem.perm_dec m0 b ofs Cur Nonempty))
     .
+
+    Definition reallocF: val * Z -> itree Es val :=
+      fun varg =>
+        let (ptr, sz') := varg in
+        match ptr with
+        | Vptr b ofs =>
+          (* Read the size of the allocated memory *)
+          v_sz <- ccallU "load" (Mptr, b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z);;
+          let sz := match Archi.ptr64, v_sz with
+            | true, Vlong i =>
+              Int64.unsigned i
+            | false, Vint i =>
+              Int.unsigned i
+            | _, _ => (- 1)%Z
+            end in
+          if (sz >=? 0)%Z
+          then
+            if (sz' =? 0)%Z (* Behaviours vary depending on implementations *)
+            then triggerUB
+            else if (sz >=? sz')%Z then (* Reducing the size of the allocated memory *)
+              `_: () <- ccallU "free" (b, sz', sz);;
+              `_: () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));;
+              Ret ptr
+            else (* Increasing the size of the allocated memory *)
+              `ptr': val <- ccallU "alloc" ((- size_chunk Mptr)%Z, sz');;
+              match ptr' with
+              | Vptr b' _ =>
+                `data: list memval <- ccallU "loadbytes" (b, ofs, sz);;
+                `_: () <- ccallU "free" (b, (- size_chunk Mptr)%Z, sz);;
+                `_: () <- ccallU "storebytes" (b', 0, data);;
+                `_: () <- ccallU "store" (Mptr, b', (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));;
+                Ret ptr'
+              | _ => triggerUB
+              end
+          else triggerUB
+        | _ => triggerUB
+        end.
 
   End BODY.
 
@@ -165,6 +203,7 @@ Section PROOF.
       ModSem.fnsems := [("alloc", cfunU allocF); ("free", cfunU freeF);
                         ("load", cfunU loadF); ("loadbytes", cfunU loadbytesF);
                         ("store", cfunU storeF); ("storebytes", cfunU storebytesF);
+                        ("realloc", cfunU reallocF);
                         ("valid_pointer", cfunU valid_pointerF)];
       ModSem.mn := "Mem";
       ModSem.initial_st := (load_mem)↑;
