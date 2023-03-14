@@ -249,7 +249,7 @@ Section PROOF.
     eapply (Seal.sealing "stb").
     apply [("alloc", alloc_spec); ("free", free_spec); ("load", load_spec);
            ("loadbytes", loadbytes_spec); ("store", store_spec); ("storebytes", storebytes_spec);
-           ("valid_pointer", valid_pointer_spec)].
+           ("realloc", realloc_spec); ("valid_pointer", valid_pointer_spec)].
   Defined.
 
   Definition MemSbtb: list (gname * fspecbody) :=
@@ -259,6 +259,7 @@ Section PROOF.
     ("loadbytes",   mk_specbody loadbytes_spec (fun _ => trigger (Choose _)));
     ("store",  mk_specbody store_spec (fun _ => trigger (Choose _)));
     ("storebytes",   mk_specbody storebytes_spec (fun _ => trigger (Choose _)));
+    ("realloc",   mk_specbody realloc_spec (fun _ => trigger (Choose _)));
     ("valid_pointer",   mk_specbody valid_pointer_spec (fun _ => trigger (Choose _)))
     ]
   .
