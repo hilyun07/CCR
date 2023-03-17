@@ -1566,12 +1566,7 @@ Section DECOMP_PROG.
       | Gvar _ => decomp_fundefs skenv sk defs'
       | Gfun fd =>
         match fd with
-        | Internal f =>
-          match SkEnv.id2blk (string_of_ident id) with
-          | Some _ =>
-            (id, decomp_func sk ce f) :: decomp_fundefs skenv sk defs'
-          | None => decomp_fundefs skenv sk defs'
-          end
+        | Internal f => (id, decomp_func sk ce f) :: decomp_fundefs skenv sk defs'
         | _ => decomp_fundefs skenv sk defs'
         end
       end
