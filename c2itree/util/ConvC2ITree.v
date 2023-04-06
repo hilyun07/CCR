@@ -1332,7 +1332,7 @@ Section DECOMP.
       triggerUB
     end.
 
-  Fixpoint decomp_func
+  Definition decomp_func
            (f: Clight.function)
            (vargs: list val)
     : itree eff val :=
