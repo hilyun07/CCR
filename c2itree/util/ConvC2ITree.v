@@ -1066,7 +1066,6 @@ Section DECOMP.
       end
     | None => Ret tt
     end.
-  Set Printing All.
 
   Definition _scall_c e le a al
     : itree eff val :=
@@ -1355,9 +1354,9 @@ Notation call_data := (block * (* fundef * *) list val * mem)%type.
 
 Section TRANS.
 
-  Variable cprog_app: Clight.program.
-  Let global_definitions := cprog_app.(prog_defs).
-  Let public_idents := cprog_app.(prog_public).
+  (* Variable cprog_app: Clight.program. *)
+  Variable global_definitions : list (ident * cglobdef).
+  Variable public_idents : list ident.
   Let defined_names := List.map fst global_definitions.
 
   Fixpoint filter_dec_not {A: Type} {P: A -> Prop} (f: forall x: A, {P x} + {~ P x}) (l: list A) : list A :=
@@ -1449,19 +1448,21 @@ Section TRANS.
   Definition trans_global_defs (g_defs: list (ident * globdef fundef type)) :=
     List.map (fun x => (rpl_pos (fst x), trans_global_def (snd x))) g_defs.
 
-  Program Definition append_srcname : Clight.program := 
-    {|
-      prog_defs := trans_global_defs global_definitions;
-      prog_public := public_idents;
-      prog_main := cprog_app.(prog_main);
-      prog_types := cprog_app.(prog_types);
-      prog_comp_env := cprog_app.(prog_comp_env);
-    |}.
-  Next Obligation. destruct cprog_app;auto. Qed.
+  (* Program Definition append_srcname : Clight.program :=  *)
+  (*   {| *)
+  (*     prog_defs := trans_global_defs global_definitions; *)
+  (*     prog_public := public_idents; *)
+  (*     prog_main := cprog_app.(prog_main); *)
+  (*     prog_types := cprog_app.(prog_types); *)
+  (*     prog_comp_env := cprog_app.(prog_comp_env); *)
+  (*   |}. *)
+  (* Next Obligation. destruct cprog_app;auto. Qed. *)
 
 End TRANS.
 
 Section SITE_APP.
+  (* for site specific execution *)
+  (* not for proof *)
   Import EventsL.
 
   Definition sname := string.
@@ -1548,10 +1549,13 @@ End SITE_APP.
 Section DECOMP_PROG.
 
   (* Context `{SystemEnv}. *)
-
-  Variable cprog_app: Clight.program.
-  Variable mn: string.           (* source code file name *)
-  Let ce: composite_env := genv_cenv (Clight.globalenv cprog_app).
+  Variable types: list composite_definition.
+  Variable defs: list (ident * cglobdef).
+  Variable public: list ident.
+  Variable wf: wf_composites types.
+  Let ce: composite_env := let (ce, _) := build_composite_env' types wf in ce.
+  
+  Variable mn: string.
 
   Fixpoint get_source_name (filename : string) :=
     String.substring 0 (String.length filename - 2) filename.
@@ -1573,14 +1577,14 @@ Section DECOMP_PROG.
     end.
 
   Definition modsem (sk: Sk.t) : ModSem.t := {|
-    ModSem.fnsems := List.map (fun '(fn, f) => (string_of_ident fn, cfunU f)) (decomp_fundefs (load_skenv sk) sk cprog_app.(prog_defs));
+    ModSem.fnsems := List.map (fun '(fn, f) => (string_of_ident fn, cfunU f)) (decomp_fundefs (load_skenv sk) sk defs);
     ModSem.mn := mn;
     ModSem.initial_st := tt↑;
   |}.
 
   Definition get_mod : Mod.t := {|
     Mod.get_modsem := modsem;
-    Mod.sk := cprog_app.(prog_defs);
+    Mod.sk := defs;
   |}.
 
 End DECOMP_PROG.
