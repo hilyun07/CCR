@@ -1263,11 +1263,15 @@ Section DECOMP.
       end
     end.
 
+  Definition hide {A: Type} {a: A} := a.
+
+  Arguments hide {A} {a}: simpl never.
+
   Fixpoint decomp_stmt
            (retty: type)
            (stmt: statement) (* (k: cont) *)
-           (e: env) (le: temp_env)
-    : itr_t :=
+    : env -> temp_env -> itr_t :=
+    @hide _ (fun (e: env) (le: temp_env) =>
     match stmt with
     | Sskip =>
       Ret ((* k, *) e, le, None, None)
@@ -1330,13 +1334,13 @@ Section DECOMP.
     | _ =>
       (* not supported *)
       triggerUB
-    end.
+    end).
 
-  Fixpoint decomp_func
+  Definition decomp_func
            (f: Clight.function)
            (vargs: list val)
     : itree eff val :=
-    t <- function_entry_c ce f vargs;;
+    t <- function_entry_c ce (@hide _ f) vargs;;
     match t with
     | None => triggerUB
     | Some (e, le) =>
