@@ -1080,7 +1080,6 @@ Section DECOMP.
       | Vptr b ofs =>
           '(gsym, gd) <- (nth_error sk (get_idx b))?;;
           fd <- (match gd with Gfun fd => Some fd | _ => None end)?;;
-          `_ : Any.t <- trigger (Syscall "print_string" [("call: " ++ string_of_ident gsym)%string]↑ top1);;
           if type_eq (type_of_fundef fd)
                (Tfunction tyargs tyres cconv)
           then
