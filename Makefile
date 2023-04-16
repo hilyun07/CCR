@@ -1,5 +1,6 @@
 COQMODULE    := SimComp
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
+CORETHEORIES := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -not -path "./examples/*" -not -path "./imp/*" -not -path "./mem/*" -iname '*.v')
 
 .PHONY: all proof proof-quick graph
 
@@ -18,6 +19,9 @@ proof-quick: Makefile.coq $(COQTHEORIES)
 
 proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
+
+core: Makefile.coq $(COQTHEORIES)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(CORETHEORIES))
 
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-R lib $(COQMODULE)"; \
