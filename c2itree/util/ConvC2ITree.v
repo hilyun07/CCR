@@ -159,7 +159,7 @@ Section EVAL_EXPR_COMP.
            (v: val): itree eff unit :=
   match access_mode ty with
   | By_value chunk =>
-    ccallU "store" (chunk, b, ofs, v)
+    ccallU "store" (chunk, Vptr b ofs, v)
   | By_copy =>
     match v with
     | Vptr b' ofs' =>
@@ -181,8 +181,8 @@ Section EVAL_EXPR_COMP.
         in
         if negb chk2 then Ret tt else
           bytes <- @ccallU _ _ _ _ (option (list memval))
-                           "loadbytes" (b', ofs', sizeof ce ty);;
-          ccallU "storebytes" (b, ofs, bytes)
+                           "loadbytes" (Vptr b' ofs', sizeof ce ty);;
+          ccallU "storebytes" (Vptr b ofs, bytes)
     | _ => Ret tt
     end
   | By_reference => Ret tt
@@ -192,7 +192,7 @@ Section EVAL_EXPR_COMP.
   Definition deref_loc_c (ty: type)
              (b:block) (ofs: ptrofs): itree eff (option val) :=
     match access_mode ty with
-    | By_value chunk => (v <- ccallU "load" (chunk, b, ofs);; Ret(Some v) )
+    | By_value chunk => (v <- ccallU "load" (chunk, Vptr b ofs);; Ret(Some v) )
     | By_reference => Ret (Some (Vptr b ofs))
     | By_copy => Ret (Some (Vptr b ofs))
     | By_nothing => Ret None
@@ -1079,7 +1079,6 @@ Section DECOMP.
       | Vptr b ofs =>
           '(gsym, gd) <- (nth_error sk (get_idx b))?;;
           fd <- (match gd with Gfun fd => Some fd | _ => None end)?;;
-          `_ : Any.t <- trigger (Syscall "print_string" [("call: " ++ string_of_ident gsym)%string]↑ top1);;
           if type_eq (type_of_fundef fd)
                (Tfunction tyargs tyres cconv)
           then
@@ -1108,54 +1107,13 @@ Section DECOMP.
                 | EF_malloc => (* need check by yhkim *)
                     match vargs with
                     | nil => triggerUB
-                    | [v1] => match Archi.ptr64, v1 with
-                             | true, Vlong i =>
-                                 v <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int64.unsigned i);;
-                                 b <- (match v with Vptr b ofs => Some b | _ => None end)?;;
-                                 `_ : () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong i);;
-                                 Ret (Vptr b Ptrofs.zero)
-                             | false, Vint i => 
-                                 v <- ccallU "alloc" ( (- size_chunk Mptr)%Z, Int.unsigned i);;
-                                 b <- (match v with Vptr b ofs => Some b | _ => None end)?;;
-                                 `_ : () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vint i);;
-                                 Ret (Vptr b Ptrofs.zero)
-                             | _, _ => triggerUB
-                             end
+                    | [v_sz] => ccallU "malloc" v_sz
                     | _ => triggerUB
                     end
-                | EF_free =>   (* needed consult by yhkim, can free know range of freeing offset? *)
+                | EF_free =>
                     match vargs with
                     | nil => triggerUB
-                    | [v1] =>
-                        match Archi.ptr64, v1 with
-                        | true, Vptr b ofs =>
-                            v <- ccallU "load" (Mptr, b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z);;
-                            match v with
-                            | Vlong i =>
-                                if (Int64.unsigned i >? 0)%Z
-                                then `_ : () <- ccallU "free" (b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z, (Ptrofs.unsigned ofs + Int64.unsigned i)%Z);;
-                                     Ret Vundef
-                                else triggerUB
-                            | _ => triggerUB
-                            end
-                        | false, Vptr b ofs =>
-                            v <- ccallU "load" (Mptr, b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z);;
-                            match v with
-                            | Vint i =>
-                                if (Int.unsigned i >? 0)%Z
-                                then `_ : () <- ccallU "free" (b, (Ptrofs.unsigned ofs - size_chunk Mptr)%Z, (Ptrofs.unsigned ofs + Int.unsigned i)%Z);;
-                                     Ret Vundef
-                                else triggerUB
-                            | _ => triggerUB
-                          end
-                        | true, Vlong i =>
-                            if (Z.eqb 0%Z (Int64.unsigned i)) then Ret Vundef
-                            else triggerUB
-                        | false, Vint i =>
-                            if (Z.eqb 0%Z (Int.unsigned i)) then Ret Vundef
-                            else triggerUB
-                        | _, _ => triggerUB
-                        end
+                    | [addr] => ccallU "mfree" addr
                     | _ => triggerUB
                     end
                 | _ => triggerUB
