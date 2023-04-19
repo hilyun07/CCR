@@ -12,7 +12,7 @@ Require Import ConvC2ITree.
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
 From compcert Require Import
-     Ctypes Clight.
+     Ctypes Clight Ctypesdefs.
 
 Set Implicit Arguments.
 
@@ -168,7 +168,13 @@ Section PROOF.
 
   Definition Sys: Mod.t := {|
     Mod.get_modsem := fun _ => SysSem;
-    Mod.sk := Sk.unit ;
+    Mod.sk := [("puts", (Cgfun (Tfunction (Tcons (tptr tvoid) Tnil) tvoid cc_default))↑);
+               ("dprintf0", (Cgfun (Tfunction (Tcons (tptr tvoid) Tnil) tvoid cc_default))↑); 
+               ("dprintf1i", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons tint Tnil)) tvoid cc_default))↑); 
+               ("dprintf2si", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons tshort (Tcons tint Tnil))) tvoid cc_default))↑); 
+               ("dprintf2ii", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons tint (Tcons tint Tnil))) tvoid cc_default))↑); 
+               ("dprintf3iii", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons tint (Tcons tint (Tcons tint Tnil)))) tvoid cc_default))↑); 
+               ("dprintf3isi", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons tint (Tcons tshort (Tcons tint Tnil)))) tvoid cc_default))↑)];
   |}
   .
 

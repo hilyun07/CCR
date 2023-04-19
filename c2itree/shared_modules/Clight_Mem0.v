@@ -97,28 +97,29 @@ Section PROOF.
         Ret (Coqlib.proj_sumbool (Mem.perm_dec m0 b ofs Cur Nonempty))
     .
 
-    Definition mallocF: val -> itree Es val :=
+    Definition mallocF: list val -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
         '(m1, b) <- (match Archi.ptr64, varg with
-                    | true, Vlong i =>
+                    | true, [Vlong i] =>
                         Ret (Mem.alloc m0 (- size_chunk Mptr) (Int64.unsigned i))
-                    | false, Vint i =>
+                    | false, [Vint i] =>
                         Ret (Mem.alloc m0 (- size_chunk Mptr) (Int.unsigned i))
                     | _, _ => triggerUB
                     end);;
-        m2 <- (Mem.store Mptr m1 b (- size_chunk Mptr) varg)?;;
+        v <- (hd_error varg)?;;
+        m2 <- (Mem.store Mptr m1 b (- size_chunk Mptr) v)?;;
         trigger (PPut m2↑);;;
         Ret (Vptr b Ptrofs.zero)
     .
 
-    Definition mfreeF: val -> itree Es val :=
+    Definition mfreeF: list val -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
         match Archi.ptr64, varg with
-        | _, Vptr b ofs =>
+        | _, [Vptr b ofs] =>
             v_sz <- (Mem.load Mptr m0 b (Ptrofs.unsigned ofs - size_chunk Mptr))?;;
             let sz := match Archi.ptr64, v_sz with
                       | true, Vlong i =>
@@ -132,8 +133,8 @@ Section PROOF.
                  trigger (PPut m1↑);;;
                  Ret Vundef
             else triggerUB
-        | true, Vlong (Int64.mkint 0 _) => Ret Vundef
-        | false, Vint (Int.mkint 0 _) => Ret Vundef
+        | true, [Vlong (Int64.mkint 0 _)] => Ret Vundef
+        | false, [Vint (Int.mkint 0 _)] => Ret Vundef
         | _, _ => triggerUB
         end
     .
@@ -184,11 +185,8 @@ Section PROOF.
     
   End BODY.
 
-  Import Cskel.
-  Variable optpgm: option Clight.program.
   Variable sk: Sk.t.
-  Let skenv: SkEnv.t := load_skenv sk.
-  Local Existing Instance skenv.
+  Let skenv: SkEnv.t := Sk.load_skenv sk.
 
   Definition store_init_data (m : mem) (b : block) (p : Z) (id : init_data) :=
     match id with
@@ -200,8 +198,8 @@ Section PROOF.
     | Init_float64 n => Mem.store Mfloat64 m b p (Vfloat n)
     | Init_space _ => Some m
     | Init_addrof symb ofs =>
-        match SkEnv.id2blk (string_of_ident symb) with
-        | Some b' => Mem.store Mptr m b p (Vptr b' ofs)
+        match SkEnv.id2blk skenv (string_of_ident symb) with
+        | Some b' => Mem.store Mptr m b p (Vptr (Pos.of_nat (S b')) ofs)
         | None => None
         end
     end.
@@ -217,11 +215,11 @@ Section PROOF.
         end
     end.
   
-  Definition alloc_global (m : mem) (idg : ident * cglobdef) :=
+  Definition alloc_global (m : mem) (idg : string * C_SkelEntry) :=
     let (_, g) := idg in
     match g with
-    | Gfun _ => let (m1, b) := Mem.alloc m 0 1 in Mem.drop_perm m1 b 0 1 Nonempty
-    | Gvar v =>
+    | Cgfun _ => let (m1, b) := Mem.alloc m 0 1 in Mem.drop_perm m1 b 0 1 Nonempty
+    | Cgvar v =>
         let init := gvar_init v in
         let sz := init_data_list_size init in
         let (m1, b) := Mem.alloc m 0 sz in
@@ -236,7 +234,7 @@ Section PROOF.
     end.
       
 
-  Fixpoint alloc_globals (m: mem) (gl: list (ident * cglobdef))
+  Fixpoint alloc_globals (m: mem) (gl: list (string * C_SkelEntry))
                        {struct gl} : option mem :=
   match gl with
   | nil => Some m
@@ -247,11 +245,23 @@ Section PROOF.
       end
   end.
 
-  Definition _load_mem := alloc_globals Mem.empty sk.
-  
+  Fixpoint unfold_skel (sk: Sk.t) : option (list (string * C_SkelEntry)) :=
+    match sk with
+    | [] => Some []
+    | (ident, any) :: t =>
+        match Any.downcast any with
+        | Some d => match unfold_skel t with Some t' => Some ((ident, d) :: t') | None => @None (list (string * C_SkelEntry)) end
+        | _ => @None (list (string * C_SkelEntry))
+        end
+    end.
+
   Definition load_mem :=
-    match _load_mem with
-    | Some mem => mem
+    match unfold_skel sk with
+    | Some gl =>
+        match alloc_globals Mem.empty gl with
+        | Some m => m
+        | None => Mem.empty
+        end
     | None => Mem.empty
     end.
   
@@ -267,10 +277,16 @@ Section PROOF.
       ModSem.initial_st := (load_mem)↑;
     |}
   .
+  
 End PROOF.
 
-  Definition Mem: Mod.t := {|
-    Mod.get_modsem := fun sk => MemSem sk;
-    Mod.sk := Sk.unit;
+Definition size_t := if Archi.ptr64 then tulong else tuint.
+
+Definition Mem: Mod.t :=
+  {|
+    Mod.get_modsem := MemSem;
+    Mod.sk := [("malloc", (Cgfun (Tfunction (Tcons size_t Tnil) (tptr tvoid) cc_default))↑);
+               ("mfree", (Cgfun (Tfunction (Tcons (tptr tvoid) Tnil) tvoid cc_default))↑); 
+               ("realloc", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons size_t Tnil)) (tptr tvoid) cc_default))↑)]
   |}
-  .
+.
