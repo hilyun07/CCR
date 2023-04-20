@@ -23,6 +23,23 @@ Section PROOF.
     Context `{has_eventE: eventE -< Es}.
     Context {has_callE: callE -< Es}.
 
+    Definition check_value: val -> itree Es nat :=
+      fun varg =>
+        match varg with
+        | Vint _ => 
+            _ <- trigger (Syscall "print_string" ["is int"]↑ top1);; Ret 0
+        | Vlong _ =>
+            _ <- trigger (Syscall "print_string" ["is long"]↑ top1);; Ret 0
+        | Vfloat _ =>
+            _ <- trigger (Syscall "print_string" ["is float"]↑ top1);; Ret 0
+        | Vsingle _ =>
+            _ <- trigger (Syscall "print_string" ["is single"]↑ top1);; Ret 0
+        | Vptr _ _ =>
+            _ <- trigger (Syscall "print_string" ["is ptr"]↑ top1);; Ret 0
+        | Vundef =>
+            _ <- trigger (Syscall "print_string" ["is undef"]↑ top1);; Ret 0
+        end.
+
     (* low level allocation of memory *)
     Definition allocF: Z * Z -> itree Es val :=
       fun varg =>
@@ -48,7 +65,16 @@ Section PROOF.
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
         let '(chunk, addr) := varg in
+        _ <- trigger (Syscall "print_string" ["try load"]↑ top1);;
+        _ <- trigger (Syscall "print_string" ["check value"]↑ top1);;
+        _ <- check_value addr;;
+        '(b, ofs) <- (match addr with Vptr b ofs => Some (Zpos b, Ptrofs.unsigned ofs)| _ => None end)?;;
+        _ <- trigger (Syscall "print_num" [b]↑ top1);;
+        _ <- trigger (Syscall "print_string" [": block"]↑ top1);;
+        _ <- trigger (Syscall "print_num" [ofs]↑ top1);;
+        _ <- trigger (Syscall "print_string" [": offset"]↑ top1);;
         v <- (Mem.loadv chunk m0 addr)?;;
+        _ <- trigger (Syscall "print_string" ["load success"]↑ top1);;
         Ret v
     .
 

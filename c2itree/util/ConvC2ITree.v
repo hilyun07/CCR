@@ -955,23 +955,36 @@ Section DECOMP.
     : itree eff val :=
     match Cop.classify_fun (typeof a) with
     | Cop.fun_case_f tyargs tyres cconv =>
+      _ <- trigger (Syscall "print_string" ["call process start"]↑ top1);;
       vf <- (eval_expr_c e le a);;
       vf <- vf?;;
+      _ <- trigger (Syscall "print_string" ["function pointer evaluation complete"]↑ top1);;
       vargs <- eval_exprlist_c e le al tyargs;;
       vargs <- vargs?;;
+      _ <- trigger (Syscall "print_string" ["arguments evaluation complete"]↑ top1);;
       match vf with
       | Vptr b ofs =>
           '(gsym, skentry) <- (nth_error sk (pred (Pos.to_nat b)))?;;
+          _ <- trigger (Syscall "print_string" ["found global from skeleton"]↑ top1);;
+          _ <- trigger (Syscall "print_string" [String.append "try to call : " gsym]↑ top1);;
           gd <- (skentry↓)?;;
+          _ <- trigger (Syscall "print_string" ["unfold process successful"]↑ top1);;
           fd <- (match gd with Cgfun fd => Some fd | _ => None end)?;;
+          _ <- trigger (Syscall "print_string" ["global is function"]↑ top1);;
           if type_eq fd
                (Tfunction tyargs tyres cconv)
           then
+            _ <- trigger (Syscall "print_string" ["type equality check successful"]↑ top1);;
             if orb (gsym =? "send") (gsym =? "recv")
             then
               _ <- trigger (Call "yield" (@nil val)↑);;
-              ccallU gsym vargs
-            else ccallU gsym vargs
+              v <- ccallU gsym vargs;;
+              _ <- trigger (Syscall "print_string" [String.append gsym " worked well"]↑ top1);;
+              Ret v
+            else
+              v <- ccallU gsym vargs;;
+              _ <- trigger (Syscall "print_string" [String.append gsym " worked well"]↑ top1);;
+              Ret v
           else triggerUB
       | _ => triggerUB (* unreachable b*)
       end
@@ -1080,11 +1093,14 @@ Section DECOMP.
     : itr_t :=
     match stmt with
     | Sskip =>
+      _ <- trigger (Syscall "print_string" ["syntax : skip"]↑ top1);;
       Ret ((* k, *) e, le, None, None)
     | Sassign a1 a2 =>
+      _ <- trigger (Syscall "print_string" ["syntax : assign"]↑ top1);;
       _sassign_c e le a1 a2;;;
       Ret (e, le, None, None)
     | Sset id a =>
+      _ <- trigger (Syscall "print_string" ["syntax : set"]↑ top1);;
       v <- eval_expr_c e le a ;;
       match v with
       | Some v =>
@@ -1094,9 +1110,12 @@ Section DECOMP.
         triggerUB
       end
     | Scall optid a al =>
+      _ <- trigger (Syscall "print_string" ["syntax : call"]↑ top1);;
         v <- _scall_c e le a al;;
         Ret (e, (set_opttemp optid v le), None, None)
-    | Sbuiltin optid ef targs el => triggerUB
+    | Sbuiltin optid ef targs el =>
+      _ <- trigger (Syscall "print_string" ["syntax : builtin call"]↑ top1);;
+        triggerUB
     | Ssequence s1 s2 =>
       '(e', le', bc, v) <- decomp_stmt retty s1 e le;;
       match v with
@@ -1111,6 +1130,7 @@ Section DECOMP.
         end
       end
     | Sifthenelse a s1 s2 =>
+      _ <- trigger (Syscall "print_string" ["syntax : if then else"]↑ top1);;
       b <- _site_c e le a;;
       match b with
       | Some b =>
@@ -1120,16 +1140,20 @@ Section DECOMP.
         triggerUB
       end
     | Sloop s1 s2 =>
+      _ <- trigger (Syscall "print_string" ["syntax : loop"]↑ top1);;
       let itr1 := decomp_stmt retty s1 in
       let itr2 := decomp_stmt retty s2 in
       _sloop_itree e le itr1 itr2
     (* '(e, le, m, bc, v) <- itr ;; *)
 
     | Sbreak =>
+      _ <- trigger (Syscall "print_string" ["syntax : break"]↑ top1);;
       Ret (e, le, Some true, None)
     | Scontinue =>
+      _ <- trigger (Syscall "print_string" ["syntax : continue"]↑ top1);;
       Ret (e, le, Some false, None)
     | Sreturn oa =>
+      _ <- trigger (Syscall "print_string" ["syntax : return"]↑ top1);;
       v <- _sreturn_c retty e le oa;;
       match v with
       | Some v =>
@@ -1137,7 +1161,16 @@ Section DECOMP.
       | None =>
         triggerUB
       end
-    | _ =>
+    | Sswitch _ _ =>
+      _ <- trigger (Syscall "print_string" ["syntax : switch"]↑ top1);;
+      (* not supported *)
+      triggerUB
+    | Slabel _ _ =>
+      _ <- trigger (Syscall "print_string" ["syntax : label"]↑ top1);;
+      (* not supported *)
+      triggerUB
+    | Sgoto _ =>
+      _ <- trigger (Syscall "print_string" ["syntax : goto"]↑ top1);;
       (* not supported *)
       triggerUB
     end.
@@ -1146,11 +1179,15 @@ Section DECOMP.
            (f: Clight.function)
            (vargs: list val)
     : itree eff val :=
+    _ <- trigger (Syscall "print_string" ["c translation process start"]↑ top1);;
     t <- function_entry_c ce f vargs;;
+    _ <- trigger (Syscall "print_string" ["call stack formation success"]↑ top1);;
     match t with
     | None => triggerUB
     | Some (e, le) =>
+      _ <- trigger (Syscall "print_string" ["function semantics check start"]↑ top1);;
       '(_, _, _, ov) <- decomp_stmt (fn_return f) (fn_body f) e le;;
+      _ <- trigger (Syscall "print_string" ["function semantics check end"]↑ top1);;
       let v := match ov with
                | None => Vundef
                | Some v => v
