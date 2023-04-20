@@ -3,8 +3,6 @@ Require Import STS.
 Require Import Behavior.
 Require Import ModSem.
 Require Import Skeleton.
-Require Import ImpPrelude.
-Import ImpSkel.
 Require Import PCM.
 Require Import Any.
 Require Export HoareDef STB.

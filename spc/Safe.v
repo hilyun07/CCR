@@ -265,7 +265,7 @@ Section SAFETY.
         Some (transl_all (T:=_) mn ∘ fun_to_src (fun _ => SafeModSem.safe_itree stb)).
   Proof.
     unfold ModL.enclose, mds. unfold Sk.canon. ss.
-    change (alist string Sk.gdef) with Sk.t.
+    change (alist string Any.t) with Sk.t.
     generalize (Sk.sort (ModL.sk (Mod.add_list (map (SMod.to_src ∘ SafeMod.to_smod stb) smds)))).
     i. rewrite ! Mod.add_list_fnsems.
     rewrite <- fold_right_app_flat_map. rewrite ! flat_map_map.
@@ -290,7 +290,7 @@ Section SAFETY.
     ginit. gcofix CIH. i. steps.
     hexploit stb_sound; et. i.
     eapply in_map_iff in H0. des. destruct x. clarify.
-    unfold unwrapU. des_ifs.
+    unfold unwrapU. des_ifs. Admitted.
     (* 2: { exfalso. eapply alist_find_none in Heq; et. } *)
     (* Local Opaque ModSemL.prog. ss. *)
     (* hexploit (fnsems_find_safe s). i. des; clarify. steps. *)
@@ -306,7 +306,6 @@ Section SAFETY.
     (* } *)
     (* { i. destruct x. steps. auto. } *)
   (* Qed. *)
-  Admitted.
 
   Theorem safe_mods_safe:
     ~ Beh.of_program (ModL.compile (Mod.add_list mds)) Tr.ub.

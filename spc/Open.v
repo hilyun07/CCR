@@ -241,7 +241,7 @@ Section MODAUX.
         steps. destruct e.
         { destruct c. resub. steps. deflag. gbase. eapply CIH. }
         destruct s.
-        { admit. }
+        { resub. admit. }
         destruct s.
         { resub. destruct p.
           { steps. deflag. gbase. eapply CIH. }
@@ -257,8 +257,8 @@ Section MODAUX.
     { ss. }
     { exists tt. ss. }
     Unshelve. all: try exact 0.
+    Admitted.
   (* Qed. *)
-  Admitted.
 
   Theorem adequacy_rmtau
           md
@@ -296,8 +296,8 @@ Section MODAUX.
     { ss. }
     { exists tt. ss. }
     Unshelve. all: try exact 0.
+    Admitted.
   (* Qed. *)
-  Admitted.
 End MODAUX.
 
 
@@ -545,7 +545,8 @@ End RDB.
 
 Require Import Hoare.
 Require Import HTactics ProofMode.
-Require ImpPrelude.
+
+
 
 Section ADQ.
   Context {CONF: EMSConfig}.
@@ -564,10 +565,9 @@ Section ADQ.
   Let _kmss: Sk.t -> list SModSem.t := fun ske => List.map (flip SMod.get_modsem ske) kmds.
 
   Section UMDS.
-  Import ImpPrelude ImpSkel.
   Variable umds: list Mod.t.
-  Let sk_link: Sk.t := sort (fold_right Sk.add Sk.unit ((List.map SMod.sk kmds) ++ (List.map Mod.sk umds))).
-  Let skenv: SkEnv.t := load_skenv sk_link.
+  Let sk_link: Sk.t := Sk.sort (fold_right Sk.add Sk.unit ((List.map SMod.sk kmds) ++ (List.map Mod.sk umds))).
+  Let skenv: SkEnv.t := Sk.load_skenv sk_link.
   Let _umss: Sk.t -> list ModSem.t := fun ske => List.map (flip Mod.get_modsem ske) umds.
   Let kmss: list SModSem.t := Eval red in (_kmss sk_link).
   Let umss: list ModSem.t := Eval red in (_umss sk_link).
@@ -577,7 +577,7 @@ Section ADQ.
   Hypothesis MNNODUP:
     forall mn
            (MIN0: List.In (Some mn) _frds)
-           (MIN1: List.In mn (List.map (ModSem.mn ∘ flip Mod.get_modsem sk_link) umds)),
+           (MIN1: List.In mn (map (ModSem.mn ∘ flip Mod.get_modsem sk_link) umds)),
       False.
 
   Lemma add_list_fnsems
@@ -629,7 +629,7 @@ Section ADQ.
     {
       destruct s; ss.
       { admit. }
-      destruct s.
+      destruct s; ss.
       { resub. rewrite massage_itr_pe. destruct p; ss.
         - steps. deflag. gbase. eapply CIH; et.
         - steps. deflag. gbase. eapply CIH; et.
@@ -681,8 +681,8 @@ Section ADQ.
       Unshelve.
       all: try (exact Ord.O).
       all: try (exact 0%nat).
-  (* Qed. *)
   Admitted.
+  (* Qed. *)
 
   Lemma my_lemma1_aux
         mn ske
@@ -746,9 +746,9 @@ Section ADQ.
     { ss. }
   Qed.
 
-  Let prog_src := Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ umds).
-  Let prog_mid := Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ List.map (SMod.to_src ∘ massage_md false) umds).
-  Let prog_tgt := Mod.add_list (List.map SMod.to_src kmds ++ List.map (SMod.to_src ∘ massage_md true) umds).
+  Let prog_src := Mod.add_list (map (KMod.transl_src frds) _kmds ++ umds).
+  Let prog_mid := Mod.add_list (map (KMod.transl_src frds) _kmds ++ map (SMod.to_src ∘ massage_md false) umds).
+  Let prog_tgt := Mod.add_list (map SMod.to_src kmds ++ map (SMod.to_src ∘ massage_md true) umds).
 
   Lemma option_rel_impl A B (R0 R1: A -> B -> Prop)
         (LE: R0 <2= R1)
@@ -945,19 +945,19 @@ Section ADQ.
   Lemma my_lemma2_aux
     :
       my_r <7= simg.
-  Proof.
-    Local Opaque _frds in_dec.
-    ginit.
-    { i. eapply cpn7_wcompat; eauto with paco. }
-    gcofix CIH. i. destruct PR.
-    { destruct H. ides itr.
-      { gsteps. }
-      { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-      rewrite <- bind_trigger. destruct e.
-      { resub. destruct h. gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. }
-      destruct e.
-      { resub. destruct c. gsteps.
-        hexploit (stb_find_iff_mid fn). i. des.
+  Proof. Admitted.
+  (*   Local Opaque _frds in_dec. *)
+  (*   ginit. *)
+  (*   { i. eapply cpn7_wcompat; eauto with paco. } *)
+  (*   gcofix CIH. i. destruct PR. *)
+  (*   { destruct H. ides itr. *)
+  (*     { gsteps. } *)
+  (*     { gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*     rewrite <- bind_trigger. destruct e. *)
+  (*     { resub. destruct h. gsteps. apply simg_progress_flag. gbase. eapply CIH. left. econs. auto. } *)
+  (*     destruct e. *)
+  (*     { resub. destruct c. gsteps. *)
+  (*       hexploit (stb_find_iff_mid fn). i. des. *)
   (*       { rewrite SRC. rewrite TGT. gsteps. } *)
   (*       { rewrite SRC. rewrite TGT. gsteps. *)
   (*         unfold my_if, sumbool_to_bool. des_ifs. *)
@@ -1028,7 +1028,6 @@ Section ADQ.
   (*   } *)
   (*   Unshelve. all: try (exact 0). *)
   (* Qed. *)
-  Admitted.
 
   Lemma my_lemma2_sk
     :
@@ -1072,36 +1071,36 @@ Section ADQ.
   Lemma my_lemma2:
     Beh.of_program (@ModL.compile _ midConf (Mod.add_list (List.map SMod.to_src kmds ++ List.map (SMod.to_src ∘ massage_md true) umds))) <1=
     Beh.of_program (@ModL.compile _ CONF (Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ List.map (SMod.to_src ∘ massage_md false) umds))).
-  Proof.
-    eapply adequacy_global_itree; ss.
-    ginit.
-    { eapply cpn7_wcompat; eauto with paco. }
-    unfold ModSemL.initial_itr, ModSemL.initial_itr.
-    fold prog_tgt. fold prog_mid.
-    gsteps. unshelve esplits.
-    { inv x. econs.
-      { inv H. econs.
-        { clear wf_initial_mrs.
-          match goal with
-          | H: List.NoDup ?l0 |- List.NoDup ?l1 => replace l1 with l0; auto
-          end.
-          unfold ModL.enclose. rewrite my_lemma2_sk. unfold prog_mid, prog_tgt.
-          rewrite ! Mod.add_list_fns. rewrite <- ! fold_right_app_flat_map.
-          rewrite ! flat_map_app. f_equal.
-          { unfold kmds. rewrite map_map. rewrite ! flat_map_map.
-            eapply flat_map_ext. i. ss.
-            rewrite ! map_map. f_equal. extensionality x.
-            destruct x. ss. }
-          { rewrite ! flat_map_map. eapply flat_map_ext.
-            i. ss. rewrite ! map_map. f_equal.
-            extensionality x. destruct x. ss. }
-        }
-        { unfold ModL.enclose. rewrite <- my_lemma2_initial_mrs. auto. }
-      }
-      { rewrite <- my_lemma2_sk. auto. }
-    }
-    unfold ITree.map. gsteps.
-    hexploit (stb_find_iff_mid "main"). i. des.
+  Proof. Admitted.
+  (*   eapply adequacy_global_itree; ss. *)
+  (*   ginit. *)
+  (*   { eapply cpn7_wcompat; eauto with paco. } *)
+  (*   unfold ModSemL.initial_itr, ModSemL.initial_itr. *)
+  (*   fold prog_tgt. fold prog_mid. *)
+  (*   gsteps. unshelve esplits. *)
+  (*   { inv x. econs. *)
+  (*     { inv H. econs. *)
+  (*       { clear wf_initial_mrs. *)
+  (*         match goal with *)
+  (*         | H: List.NoDup ?l0 |- List.NoDup ?l1 => replace l1 with l0; auto *)
+  (*         end. *)
+  (*         unfold ModL.enclose. rewrite my_lemma2_sk. unfold prog_mid, prog_tgt. *)
+  (*         rewrite ! Mod.add_list_fns. rewrite <- ! fold_right_app_flat_map. *)
+  (*         rewrite ! flat_map_app. f_equal. *)
+  (*         { unfold kmds. rewrite map_map. rewrite ! flat_map_map. *)
+  (*           eapply flat_map_ext. i. ss. *)
+  (*           rewrite ! map_map. f_equal. extensionality x. *)
+  (*           destruct x. ss. } *)
+  (*         { rewrite ! flat_map_map. eapply flat_map_ext. *)
+  (*           i. ss. rewrite ! map_map. f_equal. *)
+  (*           extensionality x. destruct x. ss. } *)
+  (*       } *)
+  (*       { unfold ModL.enclose. rewrite <- my_lemma2_initial_mrs. auto. } *)
+  (*     } *)
+  (*     { rewrite <- my_lemma2_sk. auto. } *)
+  (*   } *)
+  (*   unfold ITree.map. gsteps. *)
+  (*   hexploit (stb_find_iff_mid "main"). i. des. *)
   (*   { rewrite SRC. rewrite TGT. gsteps. } *)
   (*   { rewrite SRC. rewrite TGT. gsteps. *)
   (*     unfold my_if, sumbool_to_bool. des_ifs. *)
@@ -1121,7 +1120,6 @@ Section ADQ.
   (*   } *)
   (*   Unshelve. all: try (exact 0). *)
   (* Qed. *)
-  Admitted.
 
   Lemma my_lemma3_aux md
     :
@@ -1161,8 +1159,8 @@ Section ADQ.
     { ss. }
     { exists tt. ss. }
   Unshelve. all: try (exact 0).
+    Admitted. 
   (* Qed. *)
-  Admitted.
 
   Lemma my_lemma3:
     Beh.of_program (ModL.compile (Mod.add_list (List.map (KMod.transl_src frds) _kmds ++ List.map (SMod.to_src ∘ massage_md false) umds))) <1=
@@ -1279,7 +1277,7 @@ Section ADQ.
       rewrite stb2_eq. unfold stb2.
       unfold SMod.get_sk in FIND. setoid_rewrite FIND. auto. }
     { i. unfold SMod.get_sk in FIND. rewrite stb2_eq. right.
-      unfold stb2. change (alist string Sk.gdef) with Sk.t in *.
+      unfold stb2. change (alist string Any.t) with Sk.t in *.
       rewrite FIND. esplits; et.
       i. ss. destruct x; des; auto.
     }
@@ -1297,7 +1295,7 @@ Section ADQ.
         end.
         f_equal. unfold KMod.get_initial_mrs.
         rewrite map_map. ss. unfold SMod.get_sk.
-        change (alist string Sk.gdef) with Sk.t.
+        change (alist string Any.t) with Sk.t.
         generalize (Sk.sort
                       (foldr Sk.add Sk.unit
                              (map SMod.sk (kmds ++ map (massage_md true) umds)))).
@@ -1375,7 +1373,7 @@ Section ADQ.
     eapply adequacy_open_aux1'; auto.
     { i. ss. des; ss. eapply in_map_iff in MIN0. des. clarify.
       inv H. inv H0. unfold ModL.enclose in wf_initial_mrs.
-      change (alist string Sk.gdef) with Sk.t in wf_initial_mrs.
+      change (alist string Any.t) with Sk.t in wf_initial_mrs.
       replace (Sk.canon
                  (ModL.sk
                     (Mod.add_list
@@ -1583,8 +1581,8 @@ Section ADQ.
       { steps. deflag. gbase. eapply CIH. }
     }
     Unshelve. all: ss; try (exact 0).
-  (* Qed. *)
   Admitted.
+  (* Qed. *)
 End ADQ.
 
 Section ADQ.
