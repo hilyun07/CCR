@@ -966,12 +966,7 @@ Section DECOMP.
           fd <- (match gd with Cgfun fd => Some fd | _ => None end)?;;
           if type_eq fd
                (Tfunction tyargs tyres cconv)
-          then
-            if orb (gsym =? "send") (gsym =? "recv")
-            then
-              _ <- trigger (Call "yield" (@nil val)↑);;
-              ccallU gsym vargs
-            else ccallU gsym vargs
+          then ccallU gsym vargs
           else triggerUB
       | _ => triggerUB (* unreachable b*)
       end
