@@ -171,10 +171,10 @@ Section PROOF.
     Mod.sk := [("puts", (Cgfun (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))↑);
                ("dprintf0", (Cgfun (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))↑); 
                ("dprintf1i", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint Tnil)) tint cc_default))↑); 
-               ("dprintf2si", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tshort (Tcons tint Tnil))) tint cc_default))↑); 
+               ("dprintf2si", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons (tptr tschar) (Tcons tint Tnil))) tint cc_default))↑); 
                ("dprintf2ii", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons tint Tnil))) tint cc_default))↑); 
                ("dprintf3iii", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons tint (Tcons tint Tnil)))) tint cc_default))↑); 
-               ("dprintf3isi", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons tshort (Tcons tint Tnil)))) tint cc_default))↑)];
+               ("dprintf3isi", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons (tptr tschar) (Tcons tint Tnil)))) tint cc_default))↑)];
   |}
   .
 
