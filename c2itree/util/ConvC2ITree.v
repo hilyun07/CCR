@@ -1392,7 +1392,11 @@ Section DECOMP_PROG.
     | [] => []
     | (id, gdef) :: defs' =>
         match gdef with
-        | Gvar gv => (string_of_ident id, (Cgvar gv)↑) :: get_sk defs'
+        | Gvar gv =>
+            match gv.(gvar_init) with
+            | [] => get_sk defs'
+            | _ => (string_of_ident id, (Cgvar gv)↑) :: get_sk defs'
+            end
         | Gfun gf =>
             match gf with
             | Internal f => (string_of_ident id, (Cgfun (type_of_function f))↑) :: get_sk defs'
