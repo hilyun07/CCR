@@ -23,6 +23,7 @@ Section PROOF.
     Context `{has_eventE: eventE -< Es}.
     Context {has_callE: callE -< Es}.
 
+    (* low level allocation of memory *)
     Definition allocF: Z * Z -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
@@ -42,42 +43,50 @@ Section PROOF.
         Ret tt
     .
 
-    Definition loadF: memory_chunk * block * Z -> itree Es val :=
+    Definition loadF: memory_chunk * val -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        let '(chunk, b, ofs) := varg in
-        v <- (Mem.load chunk m0 b ofs)?;;
+        let '(chunk, addr) := varg in
+        v <- (Mem.loadv chunk m0 addr)?;;
         Ret v
     .
 
-    Definition loadbytesF: block * Z * Z -> itree Es (list memval) :=
+    Definition loadbytesF: val * Z -> itree Es (list memval) :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        let '(b, ofs, n) := varg in
-        v <- (Mem.loadbytes m0 b ofs n)?;;
-        Ret v
+        let '(addr, n) := varg in
+        match addr with
+        | Vptr b ofs =>
+            v <- (Mem.loadbytes m0 b (Ptrofs.unsigned ofs) n)?;;
+            Ret v
+        | _ => triggerUB
+        end
     .
 
-    Definition storeF: memory_chunk * block * Z * val -> itree Es unit :=
+    Definition storeF: memory_chunk * val * val -> itree Es unit :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        let '(chunk, b, ofs, v) := varg in
-        m1 <- (Mem.store chunk m0 b ofs v)?;;
+        let '(chunk, addr, v) := varg in
+        m1 <- (Mem.storev chunk m0 addr v)?;;
         trigger (PPut m1↑);;;
         Ret tt
     .
 
-    Definition storebytesF: block * Z * list memval -> itree Es unit :=
+    Definition storebytesF: val * list memval -> itree Es unit :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        let '(b, ofs, bytes) := varg in
-        m1 <- (Mem.storebytes m0 b ofs bytes)?;;
-        trigger (PPut m1↑);;;
-        Ret tt
+        let '(addr, bytes) := varg in
+        match addr with
+        | Vptr b ofs =>
+            m1 <- (Mem.storebytes m0 b (Ptrofs.unsigned ofs) bytes)?;;
+            trigger (PPut m1↑);;;
+            Ret tt
+        | _ => triggerUB
+        end
     .
 
     Definition valid_pointerF: block * Z -> itree Es bool :=
@@ -88,46 +97,96 @@ Section PROOF.
         Ret (Coqlib.proj_sumbool (Mem.perm_dec m0 b ofs Cur Nonempty))
     .
 
-    Definition reallocF: block * Z * Z -> itree Es val :=
+    Definition mallocF: list val -> itree Es val :=
       fun varg =>
-        let '(b, ofs, sz') := varg in
-        (* Read the size of the allocated memory *)
-        v_sz <- ccallU "load" (Mptr, b, (ofs - size_chunk Mptr)%Z);;
-        let sz := match Archi.ptr64, v_sz with
-          | true, Vlong i =>
-            Int64.unsigned i
-          | false, Vint i =>
-            Int.unsigned i
-          | _, _ => (- 1)%Z
-          end in
-        if (sz >=? 0)%Z
-        then
-          if (sz' =? 0)%Z (* Behaviours vary depending on implementations *)
-          then triggerUB
-          else if (sz >=? sz')%Z then (* Reducing the size of the allocated memory *)
-            `_: () <- ccallU "free" (b, sz', sz);;
-            `_: () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));;
-            Ret (Vptr b (Ptrofs.repr ofs))
-          else (* Increasing the size of the allocated memory *)
-            `ptr': val <- ccallU "alloc" ((- size_chunk Mptr)%Z, sz');;
-            match ptr' with
-            | Vptr b' _ =>
-              `data: list memval <- ccallU "loadbytes" (b, ofs, sz);;
-              `_: () <- ccallU "free" (b, (- size_chunk Mptr)%Z, sz);;
-              `_: () <- ccallU "storebytes" (b', 0, data);;
-              `_: () <- ccallU "store" (Mptr, b', (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));;
-              Ret ptr'
-            | _ => triggerUB
-            end
-        else triggerUB.
+        mp0 <- trigger (PGet);;
+        m0 <- mp0↓?;;
+        '(m1, b) <- (match Archi.ptr64, varg with
+                    | true, [Vlong i] =>
+                        Ret (Mem.alloc m0 (- size_chunk Mptr) (Int64.unsigned i))
+                    | false, [Vint i] =>
+                        Ret (Mem.alloc m0 (- size_chunk Mptr) (Int.unsigned i))
+                    | _, _ => triggerUB
+                    end);;
+        v <- (hd_error varg)?;;
+        m2 <- (Mem.store Mptr m1 b (- size_chunk Mptr) v)?;;
+        trigger (PPut m2↑);;;
+        Ret (Vptr b Ptrofs.zero)
+    .
 
+    Definition mfreeF: list val -> itree Es val :=
+      fun varg =>
+        mp0 <- trigger (PGet);;
+        m0 <- mp0↓?;;
+        match Archi.ptr64, varg with
+        | _, [Vptr b ofs] =>
+            v_sz <- (Mem.load Mptr m0 b (Ptrofs.unsigned ofs - size_chunk Mptr))?;;
+            let sz := match Archi.ptr64, v_sz with
+                      | true, Vlong i =>
+                          Int64.unsigned i
+                      | false, Vint i =>
+                          Int.unsigned i
+                      | _, _ => (- 1)%Z
+                      end in
+            if (sz >? 0)%Z
+            then m1 <- (Mem.free m0 b (Ptrofs.unsigned ofs - size_chunk Mptr) (Ptrofs.unsigned ofs + sz))?;;
+                 trigger (PPut m1↑);;;
+                 Ret Vundef
+            else triggerUB
+        | true, [Vlong (Int64.mkint 0 _)] => Ret Vundef
+        | false, [Vint (Int.mkint 0 _)] => Ret Vundef
+        | _, _ => triggerUB
+        end
+    .
+    
+    Definition reallocF: list val -> itree Es val :=
+      fun varg =>
+        match varg with
+        | [addr;v_sz'] =>
+            match Archi.ptr64, addr with
+            | true, Vlong (Int64.mkint 0 _)
+            | false, Vint (Int.mkint 0 _) => ccallU "malloc" v_sz'
+            | _, Vptr b ofs =>
+                (* Read the size of the allocated memory *)
+                mp0 <- trigger (PGet);;
+                m0 <- mp0↓?;;
+                v_sz <- (Mem.load Mptr m0 b (Ptrofs.unsigned ofs - size_chunk Mptr)%Z)?;;
+                let sz := match Archi.ptr64, v_sz with
+                      | true, Vlong i =>
+                          Int64.unsigned i
+                      | false, Vint i =>
+                          Int.unsigned i
+                      | _, _ => (- 1)%Z
+                      end in
+                let sz' := match Archi.ptr64, v_sz' with
+                      | true, Vlong i =>
+                          Int64.unsigned i
+                      | false, Vint i =>
+                          Int.unsigned i
+                      | _, _ => (- 1)%Z
+                      end in
+                if (sz >=? 0)%Z && (sz' >=? 0)%Z
+                then
+                    (* if (sz >=? sz')%Z then (* Reducing the size of the allocated memory *) *)
+                    (*      `_: () <- ccallU "free" (b, sz', sz);; *)
+                    (*          `_: () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));; *)
+                    (*          Ret (Vptr b (Ptrofs.repr ofs)) *)
+                    (*    else (* Increasing the size of the allocated memory *) *)
+                    `addr': val <- ccallU "malloc" sz';;
+                    `data: list memval <- ccallU "loadbytes" (addr, sz);;
+                    `_: () <- ccallU "mfree" addr;;
+                    `_: () <- ccallU "storebytes" (addr, firstn (Z.to_nat sz') data);;
+                    Ret addr'
+                else triggerUB (* Behaviours vary depending on implementations *)
+            | _, _ => triggerUB
+            end
+        | _ => triggerUB
+        end.
+    
   End BODY.
 
-  Import Cskel.
-  Variable optpgm: option Clight.program.
   Variable sk: Sk.t.
-  Let skenv: SkEnv.t := load_skenv sk.
-  Local Existing Instance skenv.
+  Let skenv: SkEnv.t := Sk.load_skenv sk.
 
   Definition store_init_data (m : mem) (b : block) (p : Z) (id : init_data) :=
     match id with
@@ -139,8 +198,8 @@ Section PROOF.
     | Init_float64 n => Mem.store Mfloat64 m b p (Vfloat n)
     | Init_space _ => Some m
     | Init_addrof symb ofs =>
-        match SkEnv.id2blk (string_of_ident symb) with
-        | Some b' => Mem.store Mptr m b p (Vptr b' ofs)
+        match SkEnv.id2blk skenv (string_of_ident symb) with
+        | Some b' => Mem.store Mptr m b p (Vptr (Pos.of_nat (S b')) ofs)
         | None => None
         end
     end.
@@ -156,11 +215,11 @@ Section PROOF.
         end
     end.
   
-  Definition alloc_global (m : mem) (idg : ident * cglobdef) :=
+  Definition alloc_global (m : mem) (idg : string * C_SkelEntry) :=
     let (_, g) := idg in
     match g with
-    | Gfun _ => let (m1, b) := Mem.alloc m 0 1 in Mem.drop_perm m1 b 0 1 Nonempty
-    | Gvar v =>
+    | Cgfun _ => let (m1, b) := Mem.alloc m 0 1 in Mem.drop_perm m1 b 0 1 Nonempty
+    | Cgvar v =>
         let init := gvar_init v in
         let sz := init_data_list_size init in
         let (m1, b) := Mem.alloc m 0 sz in
@@ -175,7 +234,7 @@ Section PROOF.
     end.
       
 
-  Fixpoint alloc_globals (m: mem) (gl: list (ident * cglobdef))
+  Fixpoint alloc_globals (m: mem) (gl: list (string * C_SkelEntry))
                        {struct gl} : option mem :=
   match gl with
   | nil => Some m
@@ -186,11 +245,23 @@ Section PROOF.
       end
   end.
 
-  Definition _load_mem := alloc_globals Mem.empty sk.
-  
+  Fixpoint unfold_skel (sk: Sk.t) : option (list (string * C_SkelEntry)) :=
+    match sk with
+    | [] => Some []
+    | (ident, any) :: t =>
+        match Any.downcast any with
+        | Some d => match unfold_skel t with Some t' => Some ((ident, d) :: t') | None => @None (list (string * C_SkelEntry)) end
+        | _ => @None (list (string * C_SkelEntry))
+        end
+    end.
+
   Definition load_mem :=
-    match _load_mem with
-    | Some mem => mem
+    match unfold_skel sk with
+    | Some gl =>
+        match alloc_globals Mem.empty gl with
+        | Some m => m
+        | None => Mem.empty
+        end
     | None => Mem.empty
     end.
   
@@ -199,16 +270,23 @@ Section PROOF.
       ModSem.fnsems := [("alloc", cfunU allocF); ("free", cfunU freeF);
                         ("load", cfunU loadF); ("loadbytes", cfunU loadbytesF);
                         ("store", cfunU storeF); ("storebytes", cfunU storebytesF);
+                        ("malloc", cfunU mallocF); ("mfree", cfunU mfreeF); 
                         ("realloc", cfunU reallocF);
                         ("valid_pointer", cfunU valid_pointerF)];
       ModSem.mn := "Mem";
       ModSem.initial_st := (load_mem)↑;
     |}
   .
+  
 End PROOF.
 
-  Definition Mem: Mod.t := {|
-    Mod.get_modsem := fun sk => MemSem sk;
-    Mod.sk := Sk.unit;
+Definition size_t := if Archi.ptr64 then tulong else tuint.
+
+Definition Mem: Mod.t :=
+  {|
+    Mod.get_modsem := MemSem;
+    Mod.sk := [("malloc", (Cgfun (Tfunction (Tcons size_t Tnil) (tptr tvoid) cc_default))↑);
+               ("mfree", (Cgfun (Tfunction (Tcons (tptr tvoid) Tnil) tvoid cc_default))↑); 
+               ("realloc", (Cgfun (Tfunction (Tcons (tptr tvoid) (Tcons size_t Tnil)) (tptr tvoid) cc_default))↑)]
   |}
-  .
+.

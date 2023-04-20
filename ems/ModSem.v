@@ -603,10 +603,12 @@ End ModSem.
 Coercion ModSem.lift: ModSem.t >-> ModSemL.t.
 
 
+Require Import Orders.
 
 
 Module ModL.
 Section MODL.
+  
   Context `{Sk.ld}.
 
   Record t: Type := mk {
@@ -1179,12 +1181,12 @@ Section REFINE.
 End REFINE.
 
 
-(* Global Existing Instance Sk.gdefs. *)
-(* Arguments Sk.unit: simpl never. *)
-(* Arguments Sk.add: simpl never. *)
-(* Arguments Sk.wf: simpl never. *)
-(* Coercion Sk.load_skenv: Sk.t >-> SkEnv.t. *)
-(* Global Opaque Sk.load_skenv. *)
+Global Existing Instance Sk.gdefs.
+Arguments Sk.unit: simpl never.
+Arguments Sk.add: simpl never.
+Arguments Sk.wf: simpl never.
+Coercion Sk.load_skenv: Sk.t >-> SkEnv.t.
+Global Opaque Sk.load_skenv.
 
 
 (* (*** TODO: Move to ModSem.v ***) *)

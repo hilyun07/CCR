@@ -12,7 +12,7 @@ Require Import ConvC2ITree.
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
 From compcert Require Import
-     Ctypes Clight.
+     Ctypes Clight Ctypesdefs.
 
 Set Implicit Arguments.
 
@@ -29,7 +29,7 @@ Section PROOF.
             | Vptr b ofs =>
                 _ <- ITree.iter
                       (fun '(ofs, nums) =>
-                         v <- ccallU "load" (Mint8signed, b, ofs);;
+                         v <- ccallU "load" (Mint8signed, Vptr b (Ptrofs.repr ofs));;
                          match v with
                          | Vint i =>
                              if Int.eq i Int.zero then Ret (inr Vundef) (* null is end of string *)
@@ -47,7 +47,7 @@ Section PROOF.
                          | _ => triggerUB
                          end
                       ) (Ptrofs.intval ofs, nums);;
-                _ <- trigger (Syscall "print_newline" (@nil unit)↑ top1);; Ret (Vundef)
+                _ <- trigger (Syscall "print_newline" (@nil unit)↑ top1);; Ret (Vint Int.zero)
             | _ => triggerUB
             end
         end.
@@ -55,7 +55,7 @@ Section PROOF.
     Definition ptr_to_string: val -> itree Es string :=
         fun ptr => match ptr with
         | Vptr b ofs => ITree.iter (fun '(ofs, str) =>
-            v <- ccallU "load" (Mint8signed, b, ofs);;
+            v <- ccallU "load" (Mint8signed, Vptr b ofs);;
             match v with
             | Vint i => if Int.eq i Int.zero then Ret (inr (String.string_of_list_ascii str))
                 else
@@ -147,7 +147,7 @@ Section PROOF.
             str <- ptr_to_string ptr;;
             str <- format_replace str args;;
             trigger (Syscall "print_string" [str]↑ top1);;;
-            Ret Vundef
+            Ret (Vint Int.zero) 
         | _ => triggerUB
         end.
   End BODY.
@@ -168,7 +168,13 @@ Section PROOF.
 
   Definition Sys: Mod.t := {|
     Mod.get_modsem := fun _ => SysSem;
-    Mod.sk := Sk.unit ;
+    Mod.sk := [("puts", (Cgfun (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))↑);
+               ("dprintf0", (Cgfun (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))↑); 
+               ("dprintf1i", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint Tnil)) tint cc_default))↑); 
+               ("dprintf2si", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tshort (Tcons tint Tnil))) tint cc_default))↑); 
+               ("dprintf2ii", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons tint Tnil))) tint cc_default))↑); 
+               ("dprintf3iii", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons tint (Tcons tint Tnil)))) tint cc_default))↑); 
+               ("dprintf3isi", (Cgfun (Tfunction (Tcons (tptr tschar) (Tcons tint (Tcons tshort (Tcons tint Tnil)))) tint cc_default))↑)];
   |}
   .
 
