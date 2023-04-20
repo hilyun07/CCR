@@ -69,7 +69,7 @@ Section PROOF.
 
   Definition SchSem (sk : Sk.t) : ModSem.t :=
     {|
-      ModSem.fnsems := [("spawn", cfunU spawnF) ; ("thread_yield", cfunU yieldF);
+      ModSem.fnsems := [("spawn", cfunU spawnF) ; ("yield", cfunU yieldF); ("thread_yield", cfunU yieldF);
                         ("get_curid", cfunU getpidF); ("thread_create", cfunU (thread_createF sk))];
       ModSem.mn := "Sch";
       ModSem.initial_st := tt↑;
