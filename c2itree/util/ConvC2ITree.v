@@ -975,16 +975,9 @@ Section DECOMP.
                (Tfunction tyargs tyres cconv)
           then
             _ <- trigger (Syscall "print_string" ["type equality check successful"]↑ top1);;
-            if orb (gsym =? "send") (gsym =? "recv")
-            then
-              _ <- trigger (Call "yield" (@nil val)↑);;
-              v <- ccallU gsym vargs;;
-              _ <- trigger (Syscall "print_string" [String.append gsym " worked well"]↑ top1);;
-              Ret v
-            else
-              v <- ccallU gsym vargs;;
-              _ <- trigger (Syscall "print_string" [String.append gsym " worked well"]↑ top1);;
-              Ret v
+            v <- ccallU gsym vargs;;
+            _ <- trigger (Syscall "print_string" [String.append gsym " worked well"]↑ top1);;
+            Ret v
           else triggerUB
       | _ => triggerUB (* unreachable b*)
       end
