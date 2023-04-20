@@ -3,8 +3,6 @@ Require Import STS.
 Require Import Behavior.
 Require Import ModSem.
 Import ModSemL.
-Require Import ImpPrelude.
-Import ImpSkel.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Any.
@@ -40,7 +38,7 @@ Section CANCEL.
 
   Variable mds: list SMod.t.
 
-  Let sk: Sk.t := ImpSkel.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
+  Let sk: Sk.t := Sk.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
   (* Let skenv: SkEnv.t := Sk.load_skenv sk. *)
   Let mss: list SModSem.t := (List.map ((flip SMod.get_modsem) sk) mds).
   Let sbtb: list (gname * fspecbody) := (List.flat_map (SModSem.fnsems) mss).
@@ -97,7 +95,7 @@ Section CANCEL.
     Beh.of_program (ModL.compile (Mod.add_list mds_src)).
   Proof.
     eapply ModSem.refines_close.
-    eapply (@adequacy_local_list_strong _ mds_src mds_mid2).
+    eapply adequacy_local_list_strong.
     unfold mds_src, mds_mid2.
     eapply Forall2_apply_Forall2.
     { refl. }
@@ -132,7 +130,9 @@ Section CANCEL.
         deflag. gbase. et.
       }
       destruct s0.
-      { admit. }
+      { resub. (* destruct s0. *)
+        (* { ired_both.  admit. } *)
+        admit . }
       destruct s0.
       { resub. destruct p.
         { ired_both. force_r. force_l. steps.
@@ -156,7 +156,7 @@ Section CANCEL.
     }
     { exists tt. ss. }
     Unshelve. all: ss.
+    Admitted.
   (* Qed. *)
-  Admitted.
 
 End CANCEL.
