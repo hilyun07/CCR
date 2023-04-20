@@ -8,7 +8,6 @@ Require Export ITreelib.
 Require Export AList.
 Require Import Skeleton.
 Require Import ModSem.
-Require Orders List.
 
 Set Implicit Arguments.
 
@@ -16,6 +15,8 @@ Local Open Scope nat_scope.
 
 Notation mblock := nat (only parsing).
 Notation ptrofs := Z (only parsing).
+
+Inductive gdef: Type := Gfun | Gvar (gv: Z).
 
 Inductive val: Type :=
 | Vint (n: Z): val
@@ -179,6 +180,7 @@ Module Mem.
     Mem.mk
       (fun blk ofs =>
          do '(g, gd) <- (List.nth_error sk blk);
+         do gd <- (Any.downcast gd);
          match gd with
          | Gfun =>
            None
