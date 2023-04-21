@@ -8,7 +8,6 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import AList.
-Require Orders List.
 
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
@@ -1448,3 +1447,48 @@ Section DECOMP_PROG.
   |}.
 
 End DECOMP_PROG.
+
+Section EXECUTION_STRUCTURE.
+  (*   execution modules consist of modules executes in sites independently  *)
+  (*   and modules accessable in every sites. *)
+  (* ------------------------------------------------------------------------ *)
+  (* example *)
+  (* site A : A1 A2 A3 *)
+  (* site B : B1 B2 B3 *)
+  (* shared : C1 C2 C3 *)
+  (* f: function append site name in local state and its own function *)
+  (* g: function append current site name in site specific function (so, its site name dynamically determined) *)
+  (* A's ModSemL: f (MemA + A1 + A2 + A3) <_ (enclose) skel of site A and shared *)
+  (* B's ModSemL: f (MemB + B1 + B2 + B3) <_ (enclose) skel of site B and shared *)
+  (* shared's ModSemL: g (C1 + C2 + C3) <_(enclose) skel of site A(appended with site name) and site B(appended with site name) and shared *)
+
+  Variable Mem: Mod.t.
+
+  (* for skeleton padding *)
+  Definition sk_padmod (sk: Sk.t) := ModL.mk ModL.empty.(ModL.get_modsem) sk.
+
+  (* get one site's ModSemL *)
+  Definition proc_gen (shared_module: ModL.t) : sname * list Mod.t -> ModSemL.t :=
+    fun '(sn, modlist) =>
+      (append_site_1 sn (List.map fst shared_module.(ModL.enclose).(ModSemL.fnsems))
+         (ModL.enclose (ModL.add (Mod.add_list (Mem::modlist)) (sk_padmod shared_module.(ModL.sk))))).
+  
+  (* turns exec_profile into one ModSemL *)
+  Definition sum_of_site_modules_view (exec_profile: list (sname * list Mod.t)) (shared_module: ModL.t) : ModSemL.t :=
+    List.fold_left ModSemL.add (List.map (proc_gen shared_module) exec_profile) (ModSemL.mk [] []).
+
+  (* get all skeletons in sites and concat *)
+  Definition sum_of_site_skeletons (exec_profile: list (sname * list Mod.t)) : Sk.t :=
+    List.concat
+      (List.map
+         (fun '(sn, modlist) => List.map
+                               (fun '(gn, gd) => ((sn ++ "." ++gn)%string, gd))
+                               (Mod.add_list modlist).(ModL.sk))
+         exec_profile).
+
+  (* turn shared modules into one ModSemL *)
+  Definition view_shared_module (exec_profile: list (sname * list Mod.t)) (shared_module: ModL.t) : ModSemL.t :=
+    append_site_2 (List.map fst shared_module.(ModL.enclose).(ModSemL.fnsems))
+      (ModL.enclose (ModL.add shared_module (sk_padmod (sum_of_site_skeletons exec_profile)))).
+  
+End EXECUTION_STRUCTURE.
