@@ -67,10 +67,11 @@ Section MODSEML.
                          | h :: t => _ <- trigger (Syscall "print_string" [String.append "exists :" h]↑ top1);; Ret (inl t)
                          end
              ) (List.map fst ms.(fnsems));;
+      _ <- trigger (Syscall "print_string" [String.append "try to call: " fn]↑ top1);;
       sem <- (alist_find fn ms.(fnsems))?;;
-      _ <- trigger (Syscall "print_string" [String.append "called :" fn]↑ top1);;
+      _ <- trigger (Syscall "print_string" [String.append "called: " fn]↑ top1);;
       rv <- (sem (mn, args));;
-      _ <- trigger (Syscall "print_string" [String.append "call end :" fn]↑ top1);;
+      _ <- trigger (Syscall "print_string" [String.append "call end: " fn]↑ top1);;
       Ret rv
   .
 
