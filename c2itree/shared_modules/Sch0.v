@@ -58,7 +58,7 @@ Section PROOF.
             gd <- (gdata↓)?;;
             _ <- (match gd with Cgfun fd => Some fd | _ => None end)?;;
             `v_pid : val <- ccallU "spawn" (gsym, [Vptr barg ofsarg]);;
-            `_ : unit <- ccallU "store" (Mint16signed, bid, ofsid, v_pid);;
+            `_ : unit <- ccallU "store" (Mint16signed, Vptr bid ofsid, v_pid);;
             Ret (Vint Int.zero)
         | _ => triggerUB
         end.
