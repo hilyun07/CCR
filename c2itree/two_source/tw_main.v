@@ -46,25 +46,18 @@ Section TEST.
 
   (** module is classified with whether its memory and local state is shared between process **)
   (** memory directly corresponds to one process **)
-  
-  Definition local_sharing_modules : ModL.t := Mod.add_list [Sys;Sch(* ;Net *)].
-  Definition erase_get_mod `{Sk.ld} (md: ModL.t): ModL.t := ModL.mk (fun _ => ModSemL.mk [] []) md.(ModL.sk).
 
-  Definition shared_fun_list := List.map fst local_sharing_modules.(ModL.enclose).(ModSemL.fnsems).
+  (* basic component *)
+  (* ----------------------------------------------------------------------------------- *)
 
-  Definition execution_profile : list (string * list Mod.t) := [("first", [src10.c_module;src20.c_module]);("second", [tiny0.c_module])].
+  Definition shared_module : ModL.t := Mod.add_list [Sys;Sch(* ;Net *)].
 
-  Definition proc_gen :=
-    fun '(sn, modlist) =>
-    (append_site_1 sn shared_fun_list
-       (ModL.enclose (ModL.add (Mod.add_list (Mem::modlist)) (erase_get_mod local_sharing_modules)))).
+  Definition execution_profile : list (string * list Mod.t) :=
+    [("first", [src10.c_module;src20.c_module]);("second", [tiny0.c_module])].
 
-
-  Definition test_modseml : ModSemL.t := List.fold_left ModSemL.add (List.map proc_gen execution_profile) (ModSemL.mk [] []).
-
-  Definition pre_local := append_site_2 shared_fun_list local_sharing_modules.(ModL.enclose).
-
+  (* ----------------------------------------------------------------------------------- *)
+    
   Definition test_itr :=
-    ModSemL.initial_itr (ModSemL.add MainSem (ModSemL.add pre_local test_modseml)) None.
+    ModSemL.initial_itr (ModSemL.add MainSem (ModSemL.add (view_shared_module execution_profile shared_module) (sum_of_site_modules_view Mem execution_profile shared_module))) None.
   
 End TEST.
