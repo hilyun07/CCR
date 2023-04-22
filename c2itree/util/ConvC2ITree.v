@@ -1425,9 +1425,7 @@ Section EXECUTION_STRUCTURE.
   (* g: function append current site name in site specific function (so, its site name dynamically determined) *)
   (* A's ModSemL: f (MemA + A1 + A2 + A3) <_ (enclose) skel of site A and shared *)
   (* B's ModSemL: f (MemB + B1 + B2 + B3) <_ (enclose) skel of site B and shared *)
-  (* shared's ModSemL: g (C1 + C2 + C3) <_(enclose) skel of site A(appended with site name) and site B(appended with site name) and shared *)
-
-  Variable Mem: Mod.t.
+  (* shared's ModSemL: g (C1 + C2 + C3) <_(enclose) skel of site A and site B and shared *)
 
   Fixpoint remove_mult_name (l : Sk.t) : Sk.t :=
     match l with
@@ -1442,7 +1440,7 @@ Section EXECUTION_STRUCTURE.
   Definition proc_gen (shared_module: ModL.t) : sname * list Mod.t -> ModSemL.t :=
     fun '(sn, modlist) =>
       (append_site_1 sn (List.map fst shared_module.(ModL.enclose).(ModSemL.fnsems))
-         (ModL.enclose (ModL.add (Mod.add_list (Mem::modlist)) (sk_padmod shared_module.(ModL.sk))))).
+         (ModL.enclose (ModL.add (Mod.add_list modlist) (sk_padmod shared_module.(ModL.sk))))).
   
   (* turns exec_profile into one ModSemL *)
   Definition sum_of_site_modules_view (exec_profile: list (sname * list Mod.t)) (shared_module: ModL.t) : ModSemL.t :=
