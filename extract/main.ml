@@ -97,6 +97,9 @@ let handle_Event = fun e k ->
           (try int_of_string (read_line())
            with Failure _ -> 0) in
         k (Obj.repr (Any.upcast (Nat.of_int tid)))
+     | "dummy_return" ->
+        print_endline("thread finished");
+        k (Obj.repr (Any.upcast (Nat.of_int 0)))
      | _ ->
         print_string (cl2s str ^ "(" ^ string_of_zs argv ^ " ): ");
         let n =
@@ -109,7 +112,7 @@ let handle_Event = fun e k ->
 let rec run t =
   match observe t with
   | RetF r ->
-     print_endline ("Return: ")
+     print_endline ("ret")
   | TauF t -> run t
   | VisF (e, k) -> handle_Event e (fun x -> run (k x))
 

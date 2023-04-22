@@ -198,6 +198,8 @@ Section EVENTSL.
       | None => "control"
       end.
 
+    Definition dummy_return {E}: itree Es E := trigger (inr1 (Choose E)).
+
     Definition interp_executeE {E}:
       (callE ~> itree Es) * (threads E) * nat * (itree ((@executeE E) +' eventE) E) ->
       itree (pE +' eventE) E.
@@ -215,7 +217,7 @@ Section EVENTSL.
                      Ret (inl (prog, ts', next_tid, ktr (List.map fst ts', (inl (inl r)))))
                  | inl (inr (fn, args, k)) => (* spawn what is root?*)
                      let new_itr := interp_mrec prog (_ <- (prog _ (Call None fn args));;
-                                                      v <- trigger (inr1 (Choose E));; Ret v) in
+                                                      v <- dummy_return;; Ret v) in
                      let ts' := alist_add next_tid (get_site fn, new_itr) (alist_replace tid (sname, k next_tid) ts) in
                      Ret (inl (prog, ts', next_tid + 1, ktr (List.map fst ts', (inl (inr tid)))))
                  | inr t' => (* yield *)

@@ -26,6 +26,27 @@ Extract Constant EventsL.choose_from =>
             (coq_ReSum_id (Obj.magic (fun _ _ -> coq_Id_IFun)) __))
           (Any.Any.downcast tid)) (fun tid0 -> lazy (Coq_go (RetF tid0))))".
 
+Extract Constant EventsL.dummy_return =>
+ " let coq_ReSum_sum bif h1 a b c h4 h5 =
+  case_ bif h1 a b c (resum a c h4) (resum b c h5) in
+ITree.trigger
+      (subevent
+        (coq_ReSum_sum (Obj.magic __)
+          (Obj.magic (fun _ _ _ x x0 _ -> coq_Case_sum1 x x0)) __ __ __
+          (coq_ReSum_id (Obj.magic (fun _ _ -> coq_Id_IFun)) __)
+          (coq_ReSum_inr (Obj.magic __)
+            (Obj.magic (fun _ _ _ x x0 _ -> coq_Cat_IFun x x0))
+            (Obj.magic (fun _ _ _ -> coq_Inr_sum1)) __ __ __
+            (coq_ReSum_inr (Obj.magic __)
+              (Obj.magic (fun _ _ _ x x0 _ -> coq_Cat_IFun x x0))
+              (Obj.magic (fun _ _ _ -> coq_Inr_sum1)) __ __ __
+              (coq_ReSum_inr (Obj.magic __)
+                (Obj.magic (fun _ _ _ x x0 _ -> coq_Cat_IFun x x0))
+                (Obj.magic (fun _ _ _ -> coq_Inr_sum1)) __ __ __
+                (coq_ReSum_id (Obj.magic (fun _ _ -> coq_Id_IFun)) __)))))
+        (Coq_inr1 (Syscall (('d'::('u'::('m'::('m'::('y'::('_'::('r'::('e'::('t'::('u'::('r'::('n'::[])))))))))))), (Any.Any.upcast [])))))".
+
+
 Require Import tiny_main tw_main test.
         (* EchoAll *)
 
