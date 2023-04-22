@@ -52,14 +52,16 @@ Section TEST.
   (* basic component *)
   (* ----------------------------------------------------------------------------------- *)
 
-  Definition shared_module : ModL.t := Mod.add_list [Sys;Sch(* ;Net *)].
+  Definition shared_module : ModL.t := Mod.add_list [].
+
+  Definition system_module : list Mod.t := [Sys;Sch].
 
   Definition execution_profile : list (string * list Mod.t) :=
-    [("first", [amisc0.c_module;bmisc0.c_module]); ("second", [amisc0.c_module;bmisc0.c_module])].
+    [("first", system_module ++ [amisc0.c_module;bmisc0.c_module]); ("second", system_module ++ [amisc0.c_module;bmisc0.c_module])].
 
   (* ----------------------------------------------------------------------------------- *)
     
   Definition test_itr :=
-    ModSemL.initial_itr (ModSemL.add MainSem (ModSemL.add (view_shared_module execution_profile shared_module) (sum_of_site_modules_view Mem execution_profile shared_module))) None.
+    ModSemL.initial_itr (ModSemL.add MainSem (ModSemL.add (view_shared_module execution_profile shared_module) (sum_of_site_modules_view execution_profile shared_module))) None.
 
 End TEST.
