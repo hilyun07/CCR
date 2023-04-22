@@ -1464,6 +1464,12 @@ Section EXECUTION_STRUCTURE.
 
   Variable Mem: Mod.t.
 
+  Fixpoint remove_mult_name (l : Sk.t) : Sk.t :=
+    match l with
+      | [] => []
+      | (gn, gd)::xs => if in_dec string_dec gn (List.map fst xs) then remove_mult_name xs else (gn, gd)::(remove_mult_name xs)
+    end.
+
   (* for skeleton padding *)
   Definition sk_padmod (sk: Sk.t) := ModL.mk ModL.empty.(ModL.get_modsem) sk.
 
@@ -1479,12 +1485,7 @@ Section EXECUTION_STRUCTURE.
 
   (* get all skeletons in sites and concat *)
   Definition sum_of_site_skeletons (exec_profile: list (sname * list Mod.t)) : Sk.t :=
-    List.concat
-      (List.map
-         (fun '(sn, modlist) => List.map
-                               (fun '(gn, gd) => ((sn ++ "." ++gn)%string, gd))
-                               (Mod.add_list modlist).(ModL.sk))
-         exec_profile).
+      remove_mult_name (List.concat (List.map (fun '(sn, modlist) => (Mod.add_list modlist).(ModL.sk)) exec_profile)).
 
   (* turn shared modules into one ModSemL *)
   Definition view_shared_module (exec_profile: list (sname * list Mod.t)) (shared_module: ModL.t) : ModSemL.t :=
