@@ -145,7 +145,7 @@ Section PROOF.
         | [addr;v_sz'] =>
             match Archi.ptr64, addr with
             | true, Vlong (Int64.mkint 0 _)
-            | false, Vint (Int.mkint 0 _) => ccallU "malloc" v_sz'
+            | false, Vint (Int.mkint 0 _) => ccallU "malloc" [v_sz']
             | _, Vptr b ofs =>
                 (* Read the size of the allocated memory *)
                 mp0 <- trigger (PGet);;
@@ -172,9 +172,9 @@ Section PROOF.
                     (*          `_: () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));; *)
                     (*          Ret (Vptr b (Ptrofs.repr ofs)) *)
                     (*    else (* Increasing the size of the allocated memory *) *)
-                    `addr': val <- ccallU "malloc" sz';;
+                    `addr': val <- ccallU "malloc" [v_sz'];;
                     `data: list memval <- ccallU "loadbytes" (addr, sz);;
-                    `_: () <- ccallU "mfree" addr;;
+                    `_: () <- ccallU "mfree" [addr];;
                     `_: () <- ccallU "storebytes" (addr, firstn (Z.to_nat sz') data);;
                     Ret addr'
                 else triggerUB (* Behaviours vary depending on implementations *)
