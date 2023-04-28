@@ -238,6 +238,74 @@ Module Sk.
     eapply IHsk1; et.
   Qed.
 
+  Lemma find_idx_nth: forall {A} f (l: list A) i x,
+    find_idx f l = Some (i, x) -> (nth_error l i = Some x /\ f x = true).
+  Proof.
+    do 3 intro.
+    induction l; ii.
+    - inversion H.
+    - rewrite find_idx_red in H.
+      destruct (f a) eqn: fa.
+      + inversion H.
+        ss.
+        rewrite H2 in fa; et.
+      + destruct (find_idx f l); ss.
+        destruct p; ss.
+        inversion H; ss.
+        apply IHl.
+        rewrite H2.
+        reflexivity.
+  Qed.
+
+  Lemma Sk_nodup: forall sk (SKWF: wf sk) gn gd n x,
+    In (gn, gd) sk -> nth_error sk n = Some (gn, x) ->
+    x = gd.
+  Proof.
+    do 2 intro.
+    unfold wf in SKWF.
+    ss. i.
+    apply In_nth_error in H.
+    destruct H.
+    destruct (NoDup_nth_error (map fst sk)) as [? _].
+    destruct (H1 SKWF n x0).
+    - destruct (nth_error_Some sk n) as [? _].
+      rewrite map_length.
+      apply H2.
+      intro.
+      rewrite H3 in H0.
+      inversion H0.
+    - repeat rewrite nth_error_map.
+      rewrite H.
+      rewrite H0.
+      reflexivity.
+    - rewrite H in H0.
+      inversion H0.
+      reflexivity.
+  Qed.
+
+  Lemma incl_incl_env2 sk0 sk1 (SKWF: wf sk1)
+        (INCL: incl sk0 sk1):
+      forall gn gd (IN: List.In (gn, gd) sk0),
+      exists blk, (load_skenv sk1).(SkEnv.id2blk) gn = Some blk
+      /\ nth_error sk1 blk = Some (gn, gd).
+  Proof.
+    i. exploit INCL; et. i. ss. uo. des_ifs.
+    { exists n. apply find_idx_nth in Heq0.
+    destruct Heq0.
+    split; [reflexivity|].
+    rewrite H.
+    destruct p0.
+    compute in H0.
+    destruct (string_dec gn s); [|inversion H0].
+    subst s.
+    rewrite (Sk_nodup SKWF _ _ x0 H).
+    reflexivity. }
+    exfalso. clear - x0 Heq0. ginduction sk1; et.
+    i. ss. rewrite find_idx_red in Heq0. des_ifs.
+    des_sumbool. uo.  des_ifs. des; clarify.
+    eapply IHsk1; et.
+  Qed.
+
   Lemma in_env_in_sk :
     forall sk blk symb
       (FIND: SkEnv.blk2id (load_skenv sk) blk = Some symb),
