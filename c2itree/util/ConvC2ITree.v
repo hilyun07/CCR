@@ -15,6 +15,10 @@ From compcert Require Import
 From compcert Require Import
      Ctypes Clight Clightdefs.
 
+Definition hide {A: Type} {a: A} := a.
+
+Arguments hide {A} {a}: simpl never.
+
 Section GType.
   
   Inductive C_SkelEntry:=
@@ -1039,7 +1043,7 @@ Section DECOMP.
              (itr1 itr2: env -> temp_env -> itr_t)
     : itr_t :=
     '(e', le', v) <-
-    ITree.iter (sloop_iter_body itr1 itr2) (e, le) ;;
+    ITree.iter (@hide _ (sloop_iter_body itr1 itr2)) (e, le) ;;
     Ret (e', le', None, v).
 
   Fixpoint free_list_aux (l: list (block * Z * Z)): itree eff unit :=
@@ -1072,10 +1076,6 @@ Section DECOMP.
         sem_cast_c v (typeof a) retty
       end
     end.
-
-  Definition hide {A: Type} {a: A} := a.
-
-  Arguments hide {A} {a}: simpl never.
 
   Fixpoint decomp_stmt
            (retty: type)
