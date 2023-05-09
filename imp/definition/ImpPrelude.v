@@ -16,7 +16,10 @@ Local Open Scope nat_scope.
 Notation mblock := nat (only parsing).
 Notation ptrofs := Z (only parsing).
 
-Inductive gdef: Type := Gfun | Gvar (gv: Z).
+Inductive gdef :=
+| Gfun
+| Gvar (gv: Z)
+.
 
 Inductive val: Type :=
 | Vint (n: Z): val
@@ -110,6 +113,8 @@ Definition vmul (x y: val): option val :=
 
 
 
+
+
 Module Mem.
 
   (* Definition t: Type := mblock -> option (Z -> val). *)
@@ -175,18 +180,19 @@ Module Mem.
 
 (*** NOTE: Probably we can support comparison between nullptr and 0 ***)
 (*** NOTE: Unlike CompCert, we don't support comparison with weak_valid_ptr (for simplicity) ***)
-
+  
+  
   Definition load_mem (csl: gname -> bool) (sk: Sk.t): Mem.t :=
     Mem.mk
       (fun blk ofs =>
          do '(g, gd) <- (List.nth_error sk blk);
-         do gd <- (Any.downcast gd);
-         match gd with
-         | Gfun =>
+         match Any.downcast gd with
+         | Some Gfun =>
            None
-         | Gvar gv =>
+         | Some (Gvar gv) =>
            if csl g then None else
            if (dec ofs 0%Z) then Some (Vint gv) else None
+         | _ => None
          end)
       (*** TODO: This simplified model doesn't allow function pointer comparsion.
            To be more faithful, we need to migrate the notion of "permission" from CompCert.

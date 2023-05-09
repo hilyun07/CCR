@@ -50,7 +50,7 @@ Section PROOF.
 
   Definition Sch_exam: Mod.t := {|
     Mod.get_modsem := fun _ => Sch_examSem;
-    Mod.sk := [("sch_exam", Sk.Gfun)];
+    Mod.sk := [("sch_exam", Gfun↑)];
   |}
   .
 End PROOF.

@@ -84,10 +84,11 @@ Section PROOF.
         2: { ur. i. ur. i. ur. des_ifs. }
         { repeat rewrite URA.unit_id. ur. eexists ε.
           repeat rewrite URA.unit_id. extensionality k. extensionality n.
-          unfold sumbool_to_bool, andb. des_ifs.
-          { ss. clarify. }
-          { ss. clarify. exfalso. lia. }
-          { repeat (destruct k; ss). }
+          unfold sumbool_to_bool, andb.
+          des_ifs; ss; clarify; try erewrite Any.upcast_downcast in Heq1; clarify.
+          { exfalso. lia. }
+          { destruct k; try lia.
+            repeat (destruct k; ss; clarify; try rewrite Any.upcast_downcast in Heq1; clarify). }
         }
       }
       { unfold knot_full. ur. splits; auto.

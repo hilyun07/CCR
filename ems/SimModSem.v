@@ -975,12 +975,11 @@ End ModSemPair.
 
 Module ModPair.
 Section SIMMOD.
-  Context `{Sk.ld}.
    Variable (md_src md_tgt: Mod.t).
    Inductive sim: Prop := mk {
      sim_modsem:
        forall sk
-              (SKINCL: Sk.extends md_tgt.(Mod.sk) sk)
+              (SKINCL: Sk.incl md_tgt.(Mod.sk) sk)
               (SKWF: Sk.wf sk),
          <<SIM: ModSemPair.sim (md_src.(Mod.get_modsem) sk) (md_tgt.(Mod.get_modsem) sk)>>;
      sim_sk: <<SIM: md_src.(Mod.sk) = md_tgt.(Mod.sk)>>;
@@ -995,7 +994,6 @@ End ModPair.
 Section SIMMOD.
 
   Context {CONF: EMSConfig}.
-  Context `{Sk.ld}.
 
   Lemma ModL_add_fnsems md0 md1 sk
     :
@@ -1276,7 +1274,6 @@ Section ADEQUACY.
     Admitted.
   End SEMPAIR.
 
-  Context `{JL: Sk.ld}.
   Theorem adequacy_local_strong md_src md_tgt
           (SIM: ModPair.sim md_src md_tgt)
     :
