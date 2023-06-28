@@ -72,6 +72,11 @@ Definition wf_val (v : val) :=
 
 Definition Vnullptr := Vint 0.
 
+(* Definition is_null (v: val) : bool := *)
+(*   match v with *)
+(*   | Vptr b ofs => Nat.eqb b 0 && Z.eqb ofs 0 *)
+(*   | _ => false end. *)
+
 Definition scale_int (n : Z) : option Z :=
   if (Zdivide_dec 8 n) then Some (Z.div n 8) else None.
 
@@ -104,7 +109,11 @@ Definition vmul (x y: val): option val :=
   end
 .
 
-
+Definition vxor (x y: val): option val :=
+  match x, y with
+  | Vint n, Vint m => Some (Vint (Z.lxor n m))
+  | _, _ => None
+  end.
 
 
 
@@ -112,9 +121,11 @@ Definition vmul (x y: val): option val :=
 
 Module Mem.
 
+
   (* Definition t: Type := mblock -> option (Z -> val). *)
   Record t: Type := mk {
     cnts: mblock -> Z -> option val;
+    pmap: mblock -> option Z;
     nb: mblock;
     (*** Q: wf conditions like nextmblock_noaccess ? ***)
     (*** A: Unlike in CompCert, the memory object will not float in various places in the program.
@@ -123,19 +134,32 @@ Module Mem.
   }
   .
 
-  Definition wf (m0: t): Prop := forall blk ofs (LT: (blk < m0.(nb))%nat), m0.(cnts) blk ofs = None.
+  Variant addr_in_block (m: t) (paddr: Z) (blk: mblock) : Prop :=
+    | addr_in_block_intro
+        bID
+        (CAPTURED: m.(pmap) blk = Some bID)
+        (PERM: exists val, m.(cnts) blk (Z.sub paddr bID) = Some val)
+      : addr_in_block m paddr blk.
+
+  Variant pmap_wf (m: t): Prop :=
+    | mk_wf
+        (FRESH_BLOCKS_UNCAPTURED: forall b (FRESH: b >= m.(nb)),  m.(pmap) b = None)
+        (PHYSICAL_ADDR_IN_RANGE: forall b addr (IN_BLOCK: addr_in_block m addr b), (1 <= addr < modulus_64)%Z)
+        (NO_OVERLAPPED_BLOCKS: forall paddr, uniqueness (addr_in_block m paddr)).
+
 
   Definition alloc (m0: Mem.t) (sz: Z): (mblock * Mem.t) :=
     ((m0.(nb)),
      Mem.mk (update (m0.(cnts)) (m0.(nb))
                     (fun ofs => if (0 <=? ofs)%Z && (ofs <? sz)%Z then Some (Vundef) else None))
+            (m0.(pmap))
             (S m0.(nb))
     )
   .
 
   Opaque Z.ltb Z.leb Z.mul Z.eq_dec Nat.eq_dec.
   (* Definition empty: t := mk (update (fun _ _ => None) 0 (fun ofs => if dec ofs 0%Z then Some Vundef else None)) 0. *)
-  Definition empty: t := mk (fun _ _ => None) 0.
+  Definition empty: t := mk (fun _ _ => None) (fun _ => None) 0.
   (* Let empty2: t := Eval compute in *)
   (*   let m0 := mk (fun _ _ => None) 0 in *)
   (*   let (_, m1) := alloc m0 1%Z in *)
@@ -155,7 +179,7 @@ Module Mem.
 
   Definition free (m0: Mem.t) (b: mblock) (ofs: Z): option (Mem.t) :=
     match m0.(cnts) b ofs with
-    | Some _ => Some (Mem.mk (update m0.(cnts) b (update (m0.(cnts) b) ofs None)) m0.(nb))
+    | Some _ => Some (Mem.mk (update m0.(cnts) b (update (m0.(cnts) b) ofs None)) m0.(pmap) m0.(nb))
     | _ => None
     end
   .
@@ -166,16 +190,76 @@ Module Mem.
     match m0.(cnts) b ofs with
     | Some _ => Some (Mem.mk (fun _b _ofs => if (dec b _b) && (dec ofs _ofs)
                                              then Some v
-                                             else m0.(cnts) _b _ofs) m0.(nb))
+                                             else m0.(cnts) _b _ofs) m0.(pmap) m0.(nb))
     | _ => None
     end
   .
 
   Definition valid_ptr (m0: Mem.t) (b: mblock) (ofs: ptrofs): bool := is_some (m0.(cnts) b ofs).
 
-(*** NOTE: Probably we can support comparison between nullptr and 0 ***)
-(*** NOTE: Unlike CompCert, we don't support comparison with weak_valid_ptr (for simplicity) ***)
+  Definition weak_valid_ptr (m0: Mem.t) (b: mblock) (ofs: ptrofs): bool := valid_ptr m0 b ofs || valid_ptr m0 b (ofs - 1)%Z.
 
+(*** NOTE: Probably we can support comparison between nullptr and 0 ***)
+  
+  Inductive capture (m1:Mem.t) (b:mblock) (paddr:Z) (m2:Mem.t): Prop :=
+  | capture_intro
+      (VALID: b < m1.(nb))
+      (CONTENTS: m1.(cnts) = m2.(cnts))
+      (NEXTBLOCK: m1.(nb) = m2.(nb))
+      (PHYSICAL_MAP: forall b0, b0 <> b -> m1.(pmap) b0 = m2.(pmap) b0)
+      (CASE_CAPTURE: m1.(pmap) b = None ->
+                 m2.(pmap) b = Some paddr)
+      (CASE_NOP: forall previous_paddr, m1.(pmap) b = Some previous_paddr ->
+                                  previous_paddr = paddr) :
+    capture m1 b paddr m2.
+
+  Variant paddr2laddr (m: Mem.t) (paddr: Z) (laddr: mblock * Z) : Prop :=
+    | case_paddr_valid bID
+        (IN_BLOCK: addr_in_block m paddr (fst laddr))
+        (BID: m.(pmap) (fst laddr) = Some bID)
+        (OFFSET: paddr = (bID + (snd laddr))%Z)
+    | case_paddr_weak_vaild bID
+        (IN_BLOCK: addr_in_block m (paddr - 1) (fst laddr))
+        (BID: m.(pmap) (fst laddr) = Some bID)
+        (OFFSET: paddr = (bID + (snd laddr))%Z).
+  
+  (* Definition logical2physical (b:mblock) (o:Z) (m:Mem.t): option Z := *)
+  (*   match m.(conc) b with *)
+  (*   | None => None *)
+  (*   | Some caddr => Some (Z.add caddr o) *)
+  (*   end. *)
+
+  (* Definition denormalize_aux := *)
+  (*   fun i m b => *)
+  (*     match m.(conc) b with *)
+  (*     | Some caddr => if ((b <? m.(nb)) && (is_some (m.(cnts) b i))) *)
+  (*                    then Some (b, Z.sub i caddr) else None *)
+  (*     | _ => None *)
+  (*     end. *)
+
+  (* Fixpoint _denormalize i m b acc : list (mblock * Z) := *)
+  (*   let acc' := match denormalize_aux i m b with *)
+  (*               | Some bo => bo :: acc *)
+  (*               | None => acc *)
+  (*               end *)
+  (*   in *)
+  (*   match b with *)
+  (*   | 0 => acc' *)
+  (*   | S b' => _denormalize i m b' acc' *)
+  (*   end. *)
+  
+  (* Definition denormalize (i: Z) (m: Mem.t): list (mblock * Z) := _denormalize i m m.(nb) []. *)
+
+  (* Definition addr2ptr (i: Z) (m: Mem.t): list val := *)
+  (*   List.map (fun bo => Vptr (fst bo) (snd bo)) (denormalize i m ++ denormalize (i - 1) m). *)
+
+  (* Definition val2ptr (v:val) (m:Mem.t) : list val := *)
+  (*   match v with *)
+  (*   | Vint n => addr2ptr n m *)
+  (*   | Vptr b ofs => [Vptr b ofs] *)
+  (*   | _ => [] *)
+  (*   end. *)
+  
   Definition load_mem (csl: gname -> bool) (sk: Sk.t): Mem.t :=
     Mem.mk
       (fun blk ofs =>
@@ -187,6 +271,7 @@ Module Mem.
            if csl g then None else
            if (dec ofs 0%Z) then Some (Vint gv) else None
          end)
+      (fun _ => None)
       (*** TODO: This simplified model doesn't allow function pointer comparsion.
            To be more faithful, we need to migrate the notion of "permission" from CompCert.
            CompCert expresses it with "nonempty" permission.
@@ -198,36 +283,65 @@ Module Mem.
   .
 
   Definition mem_pad (m0: Mem.t) (delta: nat): Mem.t :=
-    Mem.mk m0.(Mem.cnts) (m0.(Mem.nb) + delta)
+    Mem.mk m0.(Mem.cnts) m0.(pmap) (m0.(Mem.nb) + delta)
   .
 
 End Mem.
 
-Definition vcmp (m0: Mem.t) (x y: val): option bool :=
-  match x, y with
-  | Vint x, Vint y => Some (dec x y: bool)
-  | Vptr x xofs, Vptr y yofs =>
-    if Mem.valid_ptr m0 x xofs && Mem.valid_ptr m0 y yofs
-    then Some (dec x y && dec xofs yofs)
-    else None
-  | Vptr x xofs, Vint y =>
-    if Mem.valid_ptr m0 x xofs && dec y 0%Z
-    then Some false
-    else None
-  | Vint x, Vptr y yofs =>
-    if Mem.valid_ptr m0 y yofs && dec x 0%Z
-    then Some false
-    else None
-  | _, _ => None
-  (* | Vundef, _ => None *)
-  (* | _, Vundef => None *)
-  end.
+Section ITree.
 
-Definition unptr (v: val): option (mblock * ptrofs) :=
-  match v with
-  | Vptr b ofs => Some (b, ofs)
-  | _ => None
-  end.
+  Context {Es: Type -> Type}.
+  Context `{has_pE: pE -< Es}.
+  Context `{has_eventE: eventE -< Es}.  
+
+  Local Open Scope Z.
+
+  Definition val2laddr (m: Mem.t) (v: val) : itree Es (mblock * Z) :=
+    match v with
+    | Vint i =>
+        '(exist _ laddr _) <- trigger (Take {laddr | (Mem.paddr2laddr m i laddr)});;
+        Ret laddr
+    | Vptr b ofs => Ret (b, ofs)
+    | _ => triggerUB
+    end.
+    
+
+  Definition ptr_eq_aux (m: Mem.t) (b1 b2: mblock) (ofs1 ofs2: Z) : option bool :=
+    if dec b1 b2 then
+      if Mem.weak_valid_ptr m b1 ofs1
+         && Mem.weak_valid_ptr m b2 ofs2
+      then Some (ofs1 =? ofs2)
+      else None
+    else
+      if Mem.valid_ptr m b1 ofs1
+         && Mem.valid_ptr m b2 ofs2
+      then Some false
+      else None.
+
+  Definition vcmp_eq (m: Mem.t) (x y: val): itree Es bool :=
+    match x, y with
+    | Vint x, Vint y => Ret (dec x y: bool)
+    | Vptr x xofs, Vptr y yofs =>
+        (ptr_eq_aux m x y xofs yofs)?
+    | Vptr x xofs, Vint y =>
+        if Mem.weak_valid_ptr m x xofs && dec y 0%Z
+        then Ret false
+        else
+          '(exist _ (y, yofs) _) <- trigger (Take {laddr | (Mem.paddr2laddr m y laddr)});;
+          (ptr_eq_aux m x y xofs yofs)?
+    | Vint x, Vptr y yofs =>
+        if Mem.weak_valid_ptr m y yofs && dec x 0%Z
+        then Ret false
+        else
+          '(exist _ (x, xofs) _) <- trigger (Take {laddr | (Mem.paddr2laddr m x laddr)});;
+          (ptr_eq_aux m x y xofs yofs)?
+    | _, _ => triggerUB
+               (* | Vundef, _ => None *)
+               (* | _, Vundef => None *)
+    end.
+
+End ITree.
+
 
 Definition unint (v: val): option Z :=
   match v with
@@ -241,19 +355,25 @@ Definition unbool (v: val): option bool :=
   | _ => None
   end.
 
+Definition unptr (v: val): option (mblock * ptrofs) :=
+  match v with
+  | Vptr b ofs => Some (b, ofs)
+  | _ => None
+  end.
+
 Definition unblk (v: val): option mblock :=
   match v with
   | Vptr b ofs =>
-    if (Z.eq_dec ofs 0) then Some b else None
+      if (Z.eq_dec ofs 0) then Some b else None
   | _ => None
   end.
 
 Variant val_type: Set :=
-| Tint
-| Tbool
-| Tptr
-| Tblk
-| Tuntyped
+  | Tint
+  | Tbool
+  | Tptr
+  | Tblk
+  | Tuntyped
 .
 
 Definition val_type_sem (t: val_type): Set :=
@@ -262,7 +382,7 @@ Definition val_type_sem (t: val_type): Set :=
   | Tbool => bool
   | Tptr => (mblock * ptrofs)
   | Tblk => mblock
-  | Tuptyped => val
+  | Tuntyped => val
   end.
 
 Fixpoint val_types_sem (ts: list val_type): Set :=
@@ -297,10 +417,11 @@ Proof.
       * exact None.
       * exact (match parg thd vhd with
                | Some vhd' =>
-                 match IHttl vtl with
-                 | Some vtl' => Some (vhd', vtl')
-                 | None => None
-                 end
+                   match IHttl vtl with
+                   | Some vtl' => Some (vhd', vtl')
+                   | None => None
+                   end
                | None => None
                end).
 Defined.
+

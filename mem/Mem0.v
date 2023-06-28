@@ -26,7 +26,7 @@ Section PROOF.
     Context {Es: Type -> Type}.
     Context `{has_pE: pE -< Es}.
     Context `{has_eventE: eventE -< Es}.
-    Definition allocF: (list val) -> itree Es val :=
+    Definition allocF: list val -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
@@ -44,7 +44,8 @@ Section PROOF.
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        '(b, ofs) <- (pargs [Tptr] varg)?;;
+        v <- (pargs [Tuntyped] varg)?;;
+        '(b, ofs) <- val2laddr m0 v;;
         m1 <- (Mem.free m0 b ofs)?;;
         trigger (PPut m1↑);;;
         Ret (Vint 0)
@@ -54,7 +55,8 @@ Section PROOF.
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        '(b, ofs) <- (pargs [Tptr] varg)?;;
+        v <- (pargs [Tuntyped] varg)?;;
+        '(b, ofs) <- val2laddr m0 v;;
         v <- (Mem.load m0 b ofs)?;;
         Ret v
     .
@@ -63,18 +65,19 @@ Section PROOF.
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
-        '(b, ofs, v) <- (pargs [Tptr; Tuntyped] varg)?;;
-        m1 <- (Mem.store m0 b ofs v)?;;
+        '(vaddr, vitem) <- (pargs [Tuntyped; Tuntyped] varg)?;;
+        '(b, ofs) <- val2laddr m0 vaddr;;
+        m1 <- (Mem.store m0 b ofs vitem)?;;
         trigger (PPut m1↑);;;
         Ret (Vint 0)
     .
 
-    Definition cmpF: list val -> itree Es val :=
+    Definition cmp_eqF: list val -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
         m0 <- mp0↓?;;
         '(v0, v1) <- (pargs [Tuntyped; Tuntyped] varg)?;;
-        b <- (vcmp m0 v0 v1)?;;
+        b <- vcmp_eq m0 v0 v1;;
         if b: bool
         then Ret (Vint 1%Z)
         else Ret (Vint 0%Z)
@@ -87,7 +90,7 @@ Section PROOF.
   Variable csl: gname -> bool.
   Definition MemSem (sk: Sk.t): ModSem.t :=
     {|
-      ModSem.fnsems := [("alloc", cfunU allocF) ; ("free", cfunU freeF) ; ("load", cfunU loadF) ; ("store", cfunU storeF) ; ("cmp", cfunU cmpF)];
+      ModSem.fnsems := [("alloc", cfunU allocF) ; ("free", cfunU freeF) ; ("load", cfunU loadF) ; ("store", cfunU storeF) ; ("eq", cfunU cmp_eqF)];
       ModSem.mn := "Mem";
       ModSem.initial_st := (Mem.load_mem csl sk)↑;
     |}
