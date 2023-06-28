@@ -27,6 +27,7 @@ Inductive expr : Type :=
 | Plus  (_ _ : expr)
 | Minus (_ _ : expr)
 | Mult  (_ _ : expr)
+| Xor (_ _ : expr)
 .
 
 (** function call exists only as a statement *)
@@ -40,6 +41,9 @@ Inductive stmt : Type :=
 | CallSys (x : var) (f : gname) (args : list expr) (* x = f(args), system call *)
 | AddrOf (x : var) (X : gname)         (* x = &X *)
 | Malloc (x : var) (s : expr)          (* x = malloc(s) *)
+| Capture (x : var) (s : expr)          (* x = capture(s) *)
+| Int2ptr (x : var) (s : expr)          (* x = int2ptr(s) *)
+| Ptr2int (x : var) (s : expr)          (* x = ptr2int(s) *)
 | Free (p : expr)                      (* free(p) *)
 | Load (x : var) (p : expr)            (* x = *p *)
 | Store (p : expr) (v : expr)          (* *p = v *)
@@ -55,7 +59,7 @@ Record function : Type := mk_function {
 
 (* prohibited names for Callfun/Ptr *)
 Definition call_ban f :=
-  rel_dec f "alloc" || rel_dec f "free" || rel_dec f "load" || rel_dec f "store" || rel_dec f "cmp" || rel_dec f "main".
+  rel_dec f "alloc" || rel_dec f "free" || rel_dec f "load" || rel_dec f "store" || rel_dec f "cmp" || rel_dec f "main" || rel_dec f "capture" || rel_dec f "int2ptr" || rel_dec f "ptr2int".
 
 
 (** ** Supported System Calls by Imp *)
@@ -173,6 +177,8 @@ Section Denote.
     | Mult a b  =>
       l <- denote_expr a ;; r <- denote_expr b ;; u <- (vmul l r)? ;; Ret u
 
+    | Xor a b  =>
+      l <- denote_expr a ;; r <- denote_expr b ;; u <- (vxor l r)? ;; Ret u
     end.
 
   (** Denotation of statements *)
@@ -241,6 +247,18 @@ Section Denote.
       s <- denote_expr se;;
       v <- ccallU "alloc" [s];;
       trigger (SetVar x v);;; tau;; Ret Vundef
+    | Capture x se =>
+      s <- denote_expr se;;
+      v <- ccallU "capture" [s];;
+      trigger (SetVar x v);;; tau;; Ret Vundef
+    | Int2ptr x se =>
+      s <- denote_expr se;;
+      v <- ccallU "int_to_ptr" [s];;
+      trigger (SetVar x v);;; tau;; Ret Vundef
+    | Ptr2int x se =>
+      s <- denote_expr se;;
+      v <- ccallU "ptr_to_int" [s];;
+      trigger (SetVar x v);;; tau;; Ret Vundef
     | Free pe =>
       p <- denote_expr pe;;
       `_: val <- ccallU "free" [p];; tau;; Ret Vundef
@@ -257,7 +275,7 @@ Section Denote.
     | Cmp x ae be =>
       a <- denote_expr ae;; b <- denote_expr be;;
       (if (wf_val a && wf_val b) then Ret tt else triggerUB);;;
-      v <- ccallU "cmp" [a; b];;
+      v <- ccallU "eq" [a; b];;
       trigger (SetVar x v);;; tau;; Ret Vundef
 
     end.

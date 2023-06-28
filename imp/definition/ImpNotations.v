@@ -31,6 +31,7 @@ Module ImpNotations.
   Infix "+" := Plus : expr_scope.
   Infix "-" := Minus : expr_scope.
   Infix "*" := Mult : expr_scope.
+  Infix "^" := Xor : expr_scope.
 
   Declare Scope stmt_scope.
   Bind Scope stmt_scope with stmt.
@@ -92,6 +93,15 @@ Module ImpNotations.
 
   Notation "x '=#' 'malloc#' s" :=
     (Malloc x s) (at level 60): stmt_scope.
+
+  Notation "x '=#' 'capture#' s" :=
+    (Capture x s) (at level 60): stmt_scope.
+
+  Notation "x '=#' 'int_to_ptr#' s" :=
+    (Int2ptr x s) (at level 60): stmt_scope.
+
+  Notation "x '=#' 'ptr_to_int#' s" :=
+    (Ptr2int x s) (at level 60): stmt_scope.
 
   Notation "'free#' p" :=
     (Free p) (at level 60): stmt_scope.
