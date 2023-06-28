@@ -72,6 +72,23 @@ Section PROOF.
         Ret (Vint 0)
     .
 
+
+    Definition ptr_to_intF: list val -> itree Es val :=
+      fun varg =>
+        mp0 <- trigger (PGet);;
+        m0 <- mp0↓?;;
+        '(b, ofs) <- (pargs [Tptr] varg)?;;
+        '(exist _ (bID, m1) _) <- trigger (Choose {bID_m | (Mem.capture m0 b (fst bID_m) (snd bID_m))});;
+        trigger (PPut m1↑);;;
+        Ret (Vint (bID + ofs)).
+
+
+    Definition int_to_ptrF: list val -> itree Es val :=
+      fun varg =>
+        i <- (pargs [Tint] varg)?;;
+        Ret (Vint i).
+        
+
     Definition cmp_eqF: list val -> itree Es val :=
       fun varg =>
         mp0 <- trigger (PGet);;
@@ -86,11 +103,10 @@ Section PROOF.
   End BODY.
 
 
-
   Variable csl: gname -> bool.
   Definition MemSem (sk: Sk.t): ModSem.t :=
     {|
-      ModSem.fnsems := [("alloc", cfunU allocF) ; ("free", cfunU freeF) ; ("load", cfunU loadF) ; ("store", cfunU storeF) ; ("eq", cfunU cmp_eqF)];
+      ModSem.fnsems := [("alloc", cfunU allocF) ; ("free", cfunU freeF) ; ("load", cfunU loadF) ; ("store", cfunU storeF) ; ("ptr_to_int", cfunU ptr_to_intF) ; ("int_to_ptr", cfunU int_to_ptrF) ; ("eq", cfunU cmp_eqF)];
       ModSem.mn := "Mem";
       ModSem.initial_st := (Mem.load_mem csl sk)↑;
     |}

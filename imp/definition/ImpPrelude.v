@@ -201,17 +201,18 @@ Module Mem.
 
 (*** NOTE: Probably we can support comparison between nullptr and 0 ***)
   
-  Inductive capture (m1:Mem.t) (b:mblock) (paddr:Z) (m2:Mem.t): Prop :=
+  Inductive capture (m1: Mem.t) (b: mblock) (bID: Z) (m2: Mem.t): Prop :=
   | capture_intro
       (VALID: b < m1.(nb))
       (CONTENTS: m1.(cnts) = m2.(cnts))
       (NEXTBLOCK: m1.(nb) = m2.(nb))
       (PHYSICAL_MAP: forall b0, b0 <> b -> m1.(pmap) b0 = m2.(pmap) b0)
       (CASE_CAPTURE: m1.(pmap) b = None ->
-                 m2.(pmap) b = Some paddr)
-      (CASE_NOP: forall previous_paddr, m1.(pmap) b = Some previous_paddr ->
-                                  previous_paddr = paddr) :
-    capture m1 b paddr m2.
+                 m2.(pmap) b = Some bID)
+      (CASE_NOP: forall previous_bID, m1.(pmap) b = Some previous_bID ->
+                                  previous_bID = bID) :
+    capture m1 b bID m2.
+
 
   Variant paddr2laddr (m: Mem.t) (paddr: Z) (laddr: mblock * Z) : Prop :=
     | case_paddr_valid bID
