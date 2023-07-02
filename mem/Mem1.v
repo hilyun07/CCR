@@ -18,10 +18,21 @@ Compute (URA.car (t:=_memRA)).
 Instance memRA: URA.t := Auth.t _memRA.
 Compute (URA.car).
 
+
+Let _memRACAP: URA.t := (mblock ==> (OneShot.t Z))%ra.
+Compute (URA.car (t:=_memRACAP)).
+Instance memRACAP: URA.t := Auth.t _memRACAP.
+Compute (URA.car).
+
+Let _memRASZ: URA.t := (mblock ==> (Excl.t Z))%ra.
+Compute (URA.car (t:=_memRASZ)).
+Instance memRASZ: URA.t := Auth.t _memRASZ.
+Compute (URA.car).
+
 Local Arguments Z.of_nat: simpl nomatch.
 
 
-Section PROOF.
+Section POINTSTO.
   Context `{@GRA.inG memRA Σ}.
 
   Definition _points_to (loc: mblock * Z) (vs: list val): _memRA :=
@@ -41,56 +52,56 @@ Section PROOF.
 
   Definition points_to (loc: mblock * Z) (vs: list val): memRA := Auth.white (_points_to loc vs).
 
-  Definition var_points_to (skenv: SkEnv.t) (var: gname) (v: val): memRA :=
-    match (skenv.(SkEnv.id2blk) var) with
-    | Some  blk => points_to (blk, 0%Z) [v]
-    | None => ε
-    end.
+  (* Definition var_points_to (skenv: SkEnv.t) (var: gname) (v: val): memRA := *)
+  (*   match (skenv.(SkEnv.id2blk) var) with *)
+  (*   | Some  blk => points_to (blk, 0%Z) [v] *)
+  (*   | None => ε *)
+  (*   end. *)
 
-  Lemma points_to_split
-        blk ofs hd tl
-    :
-      (points_to (blk, ofs) (hd :: tl)) = (points_to (blk, ofs) [hd]) ⋅ (points_to (blk, (ofs + 1)%Z) tl)
-  .
-  Proof.
-    ss. unfold points_to. unfold Auth.white. repeat (rewrite URA.unfold_add; ss).
-    f_equal.
-    repeat (apply func_ext; i).
-    des_ifs; bsimpl; des; des_sumbool; subst; ss;
-      try rewrite Z.leb_gt in *; try rewrite Z.leb_le in *; try rewrite Z.ltb_ge in *; try rewrite Z.ltb_lt in *; try lia.
-    - clear_tac. subst. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *.
-      assert(x0 = ofs). { lia. } subst.
-      rewrite Z.sub_diag in *. ss.
-    - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *.
-      destruct (Z.to_nat (x0 - ofs)) eqn:T; ss.
-      { exfalso. lia. }
-      rewrite Z.sub_add_distr in *. rewrite Z2Nat.inj_sub in Heq1; ss. rewrite T in *. ss. rewrite Nat.sub_0_r in *. ss.
-    - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *.
-      destruct (Z.to_nat (x0 - ofs)) eqn:T; ss.
-      { exfalso. lia. }
-      rewrite Z.sub_add_distr in *. rewrite Z2Nat.inj_sub in Heq1; ss. rewrite T in *. ss. rewrite Nat.sub_0_r in *. ss.
-    - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *.
-      assert(x0 = ofs). { lia. } subst.
-      rewrite Z.sub_diag in *. ss.
-    - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *.
-      destruct (Z.to_nat (x0 - ofs)) eqn:T; ss.
-      { exfalso. lia. }
-      rewrite Z.sub_add_distr in *. rewrite Z2Nat.inj_sub in Heq1; ss. rewrite T in *. ss. rewrite Nat.sub_0_r in *. ss.
-    - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *.
-      assert(x0 = ofs). { lia. } subst.
-      rewrite Z.sub_diag in *. ss.
-  Qed.
+  (* Lemma points_to_split *)
+  (*       blk ofs hd tl *)
+  (*   : *)
+  (*     (points_to (blk, ofs) (hd :: tl)) = (points_to (blk, ofs) [hd]) ⋅ (points_to (blk, (ofs + 1)%Z) tl) *)
+  (* . *)
+  (* Proof. *)
+  (*   ss. unfold points_to. unfold Auth.white. repeat (rewrite URA.unfold_add; ss). *)
+  (*   f_equal. *)
+  (*   repeat (apply func_ext; i). *)
+  (*   des_ifs; bsimpl; des; des_sumbool; subst; ss; *)
+  (*     try rewrite Z.leb_gt in *; try rewrite Z.leb_le in *; try rewrite Z.ltb_ge in *; try rewrite Z.ltb_lt in *; try lia. *)
+  (*   - clear_tac. subst. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *. *)
+  (*     assert(x0 = ofs). { lia. } subst. *)
+  (*     rewrite Z.sub_diag in *. ss. *)
+  (*   - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *. *)
+  (*     destruct (Z.to_nat (x0 - ofs)) eqn:T; ss. *)
+  (*     { exfalso. lia. } *)
+  (*     rewrite Z.sub_add_distr in *. rewrite Z2Nat.inj_sub in Heq1; ss. rewrite T in *. ss. rewrite Nat.sub_0_r in *. ss. *)
+  (*   - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *. *)
+  (*     destruct (Z.to_nat (x0 - ofs)) eqn:T; ss. *)
+  (*     { exfalso. lia. } *)
+  (*     rewrite Z.sub_add_distr in *. rewrite Z2Nat.inj_sub in Heq1; ss. rewrite T in *. ss. rewrite Nat.sub_0_r in *. ss. *)
+  (*   - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *. *)
+  (*     assert(x0 = ofs). { lia. } subst. *)
+  (*     rewrite Z.sub_diag in *. ss. *)
+  (*   - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *. *)
+  (*     destruct (Z.to_nat (x0 - ofs)) eqn:T; ss. *)
+  (*     { exfalso. lia. } *)
+  (*     rewrite Z.sub_add_distr in *. rewrite Z2Nat.inj_sub in Heq1; ss. rewrite T in *. ss. rewrite Nat.sub_0_r in *. ss. *)
+  (*   - clear_tac. rewrite Zpos_P_of_succ_nat in *. rewrite <- Zlength_correct in *. *)
+  (*     assert(x0 = ofs). { lia. } subst. *)
+  (*     rewrite Z.sub_diag in *. ss. *)
+  (* Qed. *)
 
-  Definition initial_mem_mr (csl: gname -> bool) (sk: Sk.t): _memRA :=
-    fun blk ofs =>
-      match List.nth_error sk blk with
-      | Some (g, gd) =>
-        match gd with
-        | Sk.Gfun => ε
-        | Sk.Gvar gv => if csl g then if (dec ofs 0%Z) then Some (Vint gv) else ε else ε
-        end
-      | _ => ε
-      end.
+  (* Definition initial_mem_mr (csl: gname -> bool) (sk: Sk.t): _memRA := *)
+  (*   fun blk ofs => *)
+  (*     match List.nth_error sk blk with *)
+  (*     | Some (g, gd) => *)
+  (*       match gd with *)
+  (*       | Sk.Gfun => ε *)
+  (*       | Sk.Gvar gv => if csl g then if (dec ofs 0%Z) then Some (Vint gv) else ε else ε *)
+  (*       end *)
+  (*     | _ => ε *)
+  (*     end. *)
 
 
 (* Lemma points_tos_points_to *)
@@ -116,11 +127,58 @@ Section PROOF.
 (*     + rewrite Z.ltb_ge in *. lia. *)
 (* Qed. *)
 
-End PROOF.
+End POINTSTO.
+
+Section RELTO.
+
+  Context `{@GRA.inG memRACAP Σ}.
+
+  Local Open Scope Z.
+
+  Definition _relates_to (laddr: mblock * Z) (paddr: Z): _memRACAP :=
+    let (b, ofs) := laddr in
+    (fun _b => if (dec _b b) then OneShot.white (paddr - ofs) else ε).
+
+  Lemma unfold_relates_to laddr paddr:
+    _relates_to laddr paddr =
+    let (b, ofs) := laddr in
+    (fun _b => if (dec _b b) then OneShot.white (paddr - ofs) else ε).
+  Proof. refl. Qed.
+
+  Definition relates_to (laddr: mblock * Z) (paddr: Z) : memRACAP := Auth.white (_relates_to laddr paddr).
+
+  Lemma dup_relates_to (laddr: mblock * Z) (paddr: Z) : (_relates_to laddr paddr) = (_relates_to laddr paddr) ⋅ (_relates_to laddr paddr).
+  Proof.
+    unfold _relates_to. destruct laddr. unfold _relates_to. repeat ur.
+    apply func_ext. intros. des_ifs.
+  Qed.
+  
+End RELTO.
+
+Section SZOF.
+
+  Context `{@GRA.inG memRASZ Σ}.
+
+  Definition _size_of (loc: block * Z) (sz: Z) : _memRASZ :=
+    let (b, ofs) := loc in
+    (fun _b _ofs => if (dec _b b) && (dec _ofs ofs)
+                 then Excl.just sz
+                 else ε)
+  .
+
+  Lemma unfold_size_of laddr paddr:
+    _size_of laddr paddr =
+    let (b, ofs) := laddr in
+    (fun _b => if (dec _b b) then OneShot.white (paddr - ofs) else ε).
+  Proof. refl. Qed.
+
+  Definition sz_of (loc: block * Z) (sz: Z) : iProp := OwnM (_sz_of loc sz).
+
+End SZOF.
 
 Notation "loc |-> vs" := (points_to loc vs) (at level 20).
-
-
+Notation "loc ~~ z" := (relates_to loc z) (at level 25).
+Notation "loc :== z" := (sz_of loc z) (at level 30).
 
 Section AUX.
   Context `{@GRA.inG memRA Σ}.
@@ -180,8 +238,27 @@ Section AUX.
   Qed.
 
   (* Global Opaque is_list. *)
-End AUX.
 
+  Context `{@GRA.inG memRACAP Σ}.
+
+  (* Lemma dup_relates_to : forall loc addr, ((loc ~~ addr) -∗ ((loc ~~ addr) ** (loc ~~ addr))). *)
+  (* Proof. *)
+  (*   intros. unfold relates_to. unfold Auth.white.  *)
+  (*   set (_relates_to _ _) at 2 3. *)
+  (*   rewrite dup__relates_to. unfold c. *)
+  (*   replace (Auth.frag (_relates_to loc addr ⋅ _relates_to loc addr)) with ((Auth.frag (_relates_to loc addr)) ⋅ (Auth.frag (_relates_to loc addr))) by repeat (ur;auto). *)
+  (*   iIntros "A". iDestruct "A" as "[B C]". *)
+  (*   iSplitL "B";iFrame. *)
+  (* Qed. *)
+
+  Lemma slide_relates_to : forall b ofs delta addr, (OwnM ((b, ofs) ~~ addr) -∗ OwnM((b, (ofs + delta)%Z) ~~ (addr + delta))).
+  Proof.
+    intros. unfold relates_to. unfold _relates_to.
+    replace (addr + delta - (ofs + delta))%Z with (Z.sub addr ofs) by nia.
+    auto.
+  Qed.
+
+End AUX.
 
 
 
