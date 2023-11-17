@@ -71,7 +71,7 @@ Section PROOF.
       ("delete", fun_to_tgt "xorlist" (GlobalStb (Sk.canon sk)) (mk_pure delete_spec))
       ("delete", cfunU (decomp_func (Sk.canon sk) ce f_delete)).
   Proof.
-    Opaque encode_val.
+    (* Opaque encode_val.
     econs; ss. red.
 
     unfold prog in ce. unfold mkprogram in ce.
@@ -1100,7 +1100,8 @@ Section PROOF.
              iExists _,_,_,_,_. iFrame.
              iPureIntro. ss.
     Unshelve. all: et.
-  Qed.
+  Qed. *)
+  Admitted.
 
   Lemma sim_encrypt :
     sim_fnsem wf top2

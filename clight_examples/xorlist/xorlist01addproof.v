@@ -79,7 +79,7 @@ Section PROOF.
       ("add", fun_to_tgt "xorlist" (GlobalStb (Sk.canon sk)) (mk_pure add_spec))
       ("add", cfunU (decomp_func (Sk.canon sk) ce f_add)).
   Proof.
-    Opaque encode_val.
+    (* Opaque encode_val.
     Opaque cast_to_ptr.
     econs; ss. red.
 
@@ -189,8 +189,7 @@ Section PROOF.
 
     destruct lfull.
     (* case: nil list *)
-    - admit "".
-      (* unfold frag_xorlist at 1.
+    - unfold frag_xorlist at 1.
       iDestruct "LIST" as "[end_equiv %]". des. clarify.
       replace (Vptrofs Ptrofs.zero) with Vnullptr by et.
 
@@ -247,15 +246,6 @@ Section PROOF.
         with (Vptrofs (Ptrofs.repr (length (encode_val Mint64 (Vlong item))))) by ss.
       iCombine "new_point_item new_point_key" as "new_point".
       iPoseProof (points_to_collect with "new_point") as "new_point".
-      (* iPoseProof (points_to_collect with "new_point") as "new_point".
-      iPoseProof (capture_dup with "new_addr") as "[new_addr new_addr']".
-      iPoseProof (capture_dup with "new_addr'") as "[new_addr' new_addr'']".
-      iPoseProof (capture_offset_comm with "new_addr'") as "comm".
-      iPoseProof (capture_pointto_comm with "new_addr''") as "comm'".
-      iPoseProof ("comm" with "new_ofs") as "new_ofs".
-      iPoseProof ("comm'" with "new_point") as "new_point".
-      iPoseProof (capture_refl with "new_addr") as "new_addr".
-      iPoseProof (capture_dup with "new_addr") as "[new_addr new_addr']". *)
       iExists _,_,_,_,_,_,_,_. iFrame.
       iSplit.
       { iPureIntro. splits; ss. }
@@ -276,7 +266,7 @@ Section PROOF.
         iSplitL.
         { iSplit; ss. Transparent captured_to. unfold captured_to. des_ifs.
           Opaque captured_to. }
-        { iSplit; ss. iLeft. ss. } *)
+        { iSplit; ss. iLeft. ss. }
     - ss. destruct v; try solve [iDestruct "LIST" as "%"; clarify].
       iDestruct "LIST" as (i_prev i_next m_prev m_hd) 
         "[[[[% prev_addr] hd_ofs] hd_point] LIST]".
@@ -592,18 +582,7 @@ Section PROOF.
           replace i_next' with i_next by admit "captured int is equal".
           iExists _,_,_,_. iFrame. iSplit; ss.
           iPoseProof (capture_refl with "hd_addr") as "?".
-          iFrame.
-          
-    +
-
-          
-
-
-
-
-
-        
-
+          iFrame. *)
   Admitted.
 
   End SIMFUNS.
