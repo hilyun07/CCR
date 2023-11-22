@@ -4,6 +4,7 @@ Require Import Coqlib.
 Require Import Any.
 Require Import STS.
 Require Import Behavior.
+Require Import sflib.
 
 Set Implicit Arguments.
 
@@ -539,6 +540,9 @@ Definition transl_beh (p: program_behavior): Tr.t :=
   | Goes_wrong tr =>
     let '(es, succ) := squeeze (List.map decompile_event tr) in
     Tr.app es Tr.ub
+  | Partial_terminates tr =>
+    let '(es, succ) := squeeze (List.map decompile_event tr) in
+    Tr.app es Tr.nb
   end
 .
 
@@ -1252,7 +1256,7 @@ Section SIM.
             { eapply decompile_match_event; ss. }
           * des_ifs_safe. ss. pfold; econsr; et; ss. r. esplits; et.
             rewrite behavior_app_E0; et.
-
+      - admit.
       - (* diverge *)
         (rename t into tr).
         esplits; et.
@@ -1377,7 +1381,7 @@ Section SIM.
         eapply match_event_iff in Heq.
         eapply match_beh_cons; ss; et. rewrite <- behavior_app_assoc. ss.
     }
-  Qed.
+Admitted.
 
 End SIM.
 Hint Constructors _sim.
