@@ -21,61 +21,6 @@ Section LENV.
   Qed. *)
 
 
-  Lemma match_sizeof ty ce tce
-      (MCE: match_ce ce tce)
-    :
-      Ctypes.sizeof tce ty = ClightPlusExprgen.sizeof ce ty.
-  Proof.
-    induction ty; ss.
-    - rewrite IHty. et.
-    - destruct (tce ! i) eqn:?; destruct alist_find eqn:?.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + eapply cenv_match_none in Heqo0; et. clarify.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + et.
-    - destruct (tce ! i) eqn:?; destruct alist_find eqn:?.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + eapply cenv_match_none in Heqo0; et. clarify.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + et.
-  Qed.
-
-  Lemma match_alignof_blockcopy ty ce tce
-      (MCE: match_ce ce tce)
-    :
-      Ctypes.alignof_blockcopy tce ty = ClightPlusExprgen.alignof_blockcopy ce ty.
-  Proof.
-    induction ty; ss.
-    - destruct (tce ! i) eqn:?; destruct alist_find eqn:?.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + eapply cenv_match_none in Heqo0; et. clarify.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + et.
-    - destruct (tce ! i) eqn:?; destruct alist_find eqn:?.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + eapply cenv_match_none in Heqo0; et. clarify.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + et.
-  Qed.
-
-  Lemma match_alignof ty ce tce
-      (MCE: match_ce ce tce)
-    :
-      Ctypes.alignof tce ty = ClightPlusExprgen.alignof ce ty.
-  Proof.
-    induction ty; ss.
-    - rewrite IHty. et.
-    - destruct (tce ! i) eqn:?; destruct alist_find eqn:?.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + eapply cenv_match_none in Heqo0; et. clarify.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + et.
-    - destruct (tce ! i) eqn:?; destruct alist_find eqn:?.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + eapply cenv_match_none in Heqo0; et. clarify.
-      + eapply cenv_match_some in Heqo0; et. clarify.
-      + et.
-  Qed.
 
   Lemma update_le
         sk defs x id v sv le tle

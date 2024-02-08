@@ -345,7 +345,7 @@ Section MODSEM.
       end
     end.
 
-  Fixpoint alloc_globals (m: mem) (sk: Sk.t) : option mem :=
+  Fixpoint alloc_globals (m: mem) (sk: alist gname gdef) : option mem :=
     match sk with
     | nil => Some m
     | g :: gl' =>
@@ -356,12 +356,12 @@ Section MODSEM.
       end
     end.
 
-  Definition load_mem := alloc_globals Mem.empty sk.
+  Definition load_mem := alloc_globals Mem.empty (fst sk).
 
   Definition default_mem : mem.
   Proof.
     destruct Mem.empty. unfold block in *.
-    eapply (Mem.mkmem mem_contents mem_access mem_concrete (Pos.add nextblock (Pos.of_nat (List.length sk)))); et.
+    eapply (Mem.mkmem mem_contents mem_access mem_concrete (Pos.add nextblock (Pos.of_nat (List.length (fst sk))))); et.
     - i. apply nextblock_noaccess. unfold Coqlib.Plt in *. nia.
     - i. apply nextblocks_logical. unfold Coqlib.Plt in *. nia.
   Defined.
@@ -393,7 +393,7 @@ Local Open Scope clight_scope.
 Definition Mem: Mod.t :=
   {|
     Mod.get_modsem := MemSem;
-    Mod.sk := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default));
-               ("free", Gfun (External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))];
+    Mod.sk := ([("malloc", Gfun (F:=Clight.fundef) (V:=type) (External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default));
+               ("free", Gfun (External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))], []);
   |}
 .

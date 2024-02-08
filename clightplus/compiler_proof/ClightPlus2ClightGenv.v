@@ -20,7 +20,78 @@ Set Implicit Arguments.
 
 Section GENV.
 
-  Context `{Σ: GRA.t}.
+  Lemma cenv_match_some sk ge co i
+      (MGCE: match_gce sk ge)
+    :
+      alist_find i (snd sk) = Some co -> ge.(genv_cenv) ! i = Some co.
+  Proof.
+    i. apply PTree.elements_complete. inv MGCE. rewrite MCE. et.
+  Qed.
+
+  Lemma cenv_match_none sk ge i
+      (MGCE: match_gce sk ge)
+    :
+      alist_find i (snd sk) = None -> ge.(genv_cenv) ! i = None.
+  Proof.
+    i. destruct (ge.(genv_cenv) ! i) eqn:?; et. apply PTree.elements_correct in Heqo. 
+    inv MGCE. rewrite MCE in Heqo. clarify.
+  Qed.
+
+  Lemma match_sizeof ty sk ge
+      (MCE: match_gce sk ge)
+    :
+      Ctypes.sizeof ge ty = ClightPlusExprgen.sizeof (snd sk) ty.
+  Proof.
+    induction ty; ss.
+    - rewrite IHty. et.
+    - destruct (ge.(genv_cenv) ! i) eqn:?; destruct alist_find eqn:?.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + eapply cenv_match_none in Heqo0; et. clarify.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + et.
+    - destruct (ge.(genv_cenv) ! i) eqn:?; destruct alist_find eqn:?.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + eapply cenv_match_none in Heqo0; et. clarify.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + et.
+  Qed.
+
+  Lemma match_alignof_blockcopy ty sk ge
+      (MCE: match_gce sk ge)
+    :
+      Ctypes.alignof_blockcopy ge ty = ClightPlusExprgen.alignof_blockcopy (snd sk) ty.
+  Proof.
+    induction ty; ss.
+    - destruct (ge.(genv_cenv) ! i) eqn:?; destruct alist_find eqn:?.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + eapply cenv_match_none in Heqo0; et. clarify.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + et.
+    - destruct (ge.(genv_cenv) ! i) eqn:?; destruct alist_find eqn:?.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + eapply cenv_match_none in Heqo0; et. clarify.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + et.
+  Qed.
+
+  Lemma match_alignof ty sk ge
+      (MCE: match_gce sk ge)
+    :
+      Ctypes.alignof ge ty = ClightPlusExprgen.alignof (snd sk) ty.
+  Proof.
+    induction ty; ss.
+    - rewrite IHty. et.
+    - destruct (ge.(genv_cenv) ! i) eqn:?; destruct alist_find eqn:?.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + eapply cenv_match_none in Heqo0; et. clarify.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + et.
+    - destruct (ge.(genv_cenv) ! i) eqn:?; destruct alist_find eqn:?.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + eapply cenv_match_none in Heqo0; et. clarify.
+      + eapply cenv_match_some in Heqo0; et. clarify.
+      + et.
+  Qed.
 
   Variable prog : program.
   Variable sk : Sk.t.

@@ -84,20 +84,70 @@ Section PROOF.
   Hypothesis SKINCL1 : Sk.le (xorlist0.xor.(Mod.sk)) sk.
   Hypothesis SKINCL2 : Sk.le (ClightPlusMem0.Mem.(Mod.sk)) sk.
   Hypothesis SKWF : Sk.wf sk.
+Ltac alist_composites ce cel :=
+  match cel with
+  | (?name, Build_composite ?su ?mem ?attr ?size ?align ?rank _ _ _) :: ?tl =>
+    pose (s_size := size);
+    vm_compute in s_size;
+    let s_align := fresh in
+    pose (s_align := align);
+    vm_compute in s_align;
+    let Hco := fresh in
+    (assert (Hco: exists co, alist_find name ce = Some co /\
+    co_su co = su /\ co_members co = mem /\ co_attr co = attr /\
+    co_sizeof co = s_size /\ co_alignof co = s_align /\ co_rank co = rank)
+    by now subst ce; ss; eexists; repeat (split; try reflexivity));
+    let co := fresh "co" in
+    let get_co := fresh "get_co" in
+    let co_co_su := fresh "co_co_su" in
+    let co_co_members := fresh "co_co_members" in
+    let co_co_attr := fresh "co_co_attr" in
+    let co_co_sizeof := fresh "co_co_sizeof" in
+    let co_co_alignof := fresh "co_co_alignof" in
+    let co_co_rank := fresh "co_co_rank" in
+    destruct Hco as [co [get_co
+      [co_co_su [co_co_members [co_co_attr [co_co_sizeof
+      [co_co_alignof co_co_rank]]]]]]];
+    unfold s_size in co_co_sizeof;
+    unfold s_align in co_co_alignof;
+    clear s_size;
+    clear s_align;
+    match tl with
+    | [] => idtac
+    | _ => alist_composites ce tl
+    end
+  end.
+
+Ltac get_composite ce e :=
+  let comp_env := fresh in 
+  match goal with
+  | e: build_composite_env ?composites = Errors.OK _ |- _ =>
+    pose (comp_env := unfold_build_composite_env composites);
+    rewrite e in comp_env; ss
+  end;
+  let comp_env' := fresh in
+  inversion comp_env as [comp_env']; clarify;
+  ss; clear e; clear comp_env; unfold Maps.PTree.elements in ce; ss;
+  match goal with
+  | ce := ?cel |- _ => alist_composites ce cel
+  end; clearbody ce;
+  repeat match goal with
+         | H : alist_find _ ce = Some _ |- _ => unfold Maps.PTree.prev in H
+         end; ss.
 
   Lemma sim_add_tl :
     sim_fnsem wf top2
       ("add_tl", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
-      ("add_tl", cfunU (decomp_func sk ce f_add_tl)).
+      ("add_tl", cfunU (decomp_func sk f_add_tl)).
   Proof.
     Opaque encode_val.
     Opaque cast_to_ptr.
     econs; ss. red.
 
     (* current state: 1 *)
-    unfold prog in ce. unfold mkprogram in ce.
+    (* unfold prog in ce. unfold mkprogram in ce.
     destruct (build_composite_env'). ss.
-    get_composite ce e.
+    get_composite ce e. *)
 
     dup SKINCL1. rename SKINCL0 into SKINCLENV1.
     apply incl_incl_env in SKINCLENV1.

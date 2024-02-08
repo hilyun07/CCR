@@ -127,7 +127,7 @@ Context {HasCall : callE -< eff}.
 Context {HasEvent : eventE -< eff}.
 Variable sk: Sk.t.
 Let skenv: SkEnv.t := load_skenv sk.
-Variable ce: comp_env.
+Let ce: comp_env := snd sk.
 
 Section EVAL_EXPR_COMP.
 

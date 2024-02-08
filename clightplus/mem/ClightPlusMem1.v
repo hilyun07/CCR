@@ -1454,7 +1454,7 @@ Section MRS.
       end
     end.
 
-  Fixpoint alloc_globals (res: _pointstoRA * _allocatedRA * blocksizeRA) (b: block) (sk: Sk.t) : option (_pointstoRA * _allocatedRA * blocksizeRA) :=
+  Fixpoint alloc_globals (res: _pointstoRA * _allocatedRA * blocksizeRA) (b: block) (sk: alist gname gdef) : option (_pointstoRA * _allocatedRA * blocksizeRA) :=
     match sk with
     | nil => Some res
     | g :: gl' => 
@@ -1466,7 +1466,7 @@ Section MRS.
     end.
 
   Definition res_init : Σ :=
-    match alloc_globals (ε, ε, ε) xH sk with
+    match alloc_globals (ε, ε, ε) xH (fst sk) with
     | Some (p, a, s) => GRA.embed (Auth.black p) ⋅ GRA.embed (Auth.black a) ⋅ GRA.embed s
     | None => GRA.embed (Auth.black ε : pointstoRA) ⋅ GRA.embed (Auth.black ε : allocatedRA)
     end.
@@ -1507,7 +1507,7 @@ Section SMOD.
                                                    | None => OneShot.white Ptrofs.zero
                                                    end) : blockaddressRA)
                             ⋅ GRA.embed ((fun ob => match  ob with
-                                                   | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
+                                                   | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length (fst sk))) then OneShot.unit else OneShot.black
                                                    | None => OneShot.white 0
                                                    end) : blocksizeRA);
       SModSem.initial_st := tt↑;
@@ -1515,8 +1515,8 @@ Section SMOD.
 
   Definition SMem: SMod.t := {|
     SMod.get_modsem := SMemSem;
-    SMod.sk := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default));
-                ("free", Gfun (External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))];
+    SMod.sk := ([("malloc", Gfun (F:=Clight.fundef) (V:=type) (External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default));
+                ("free", Gfun (External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))], []);
   |}
   .
 

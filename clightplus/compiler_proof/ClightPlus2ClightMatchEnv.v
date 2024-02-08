@@ -16,7 +16,7 @@ Section MATCH.
 
   (* global env is fixed when src program is fixed *)
   Variable sk : Sk.t.
-  Variable tge : Genv.t Clight.fundef type.
+  Variable ge : genv.
 
   (* should dummy value in map_blk*)
   Definition dummy_blk : positive := 1%positive.
@@ -32,9 +32,9 @@ Section MATCH.
 
   Definition map_blk : positive -> block :=
     fun blk =>
-      if (le_dec (Pos.of_succ_nat (length sk)) blk)%positive
+      if (le_dec (Pos.of_succ_nat (length (fst sk))) blk)%positive
       then 
-        match Zpos blk + (Z.pos tge.(Genv.genv_next) - Z.pos (Pos.of_succ_nat (length sk))) with
+        match Zpos blk + (Z.pos ge.(Genv.genv_next) - Z.pos (Pos.of_succ_nat (length (fst sk)))) with
         | Zpos tblk => tblk
         | _ => dummy_blk (* unreachable *)
         end
@@ -42,7 +42,7 @@ Section MATCH.
         let sg := load_skenv sk in
         match sg.(SkEnv.blk2id) (pred (Pos.to_nat blk)) with
         | Some name =>
-          match Genv.find_symbol tge (ident_of_string name) with
+          match Genv.find_symbol ge (ident_of_string name) with
           | Some tblk => tblk
           | None => dummy_blk
           end
@@ -62,18 +62,15 @@ Section MATCH.
     | _ => mv
     end.
 
-  Variant match_ge : Prop :=
+  Variant match_gce : Prop :=
   | match_ge_intro
+      (* (CEWF: NoDup (map fst (snd sk))) *)
       (WFSK: Sk.wf sk)
-      (MGE: forall id idx, SkEnv.id2blk (load_skenv sk) (string_of_ident id) = Some idx -> Genv.find_symbol tge id = Some (map_blk (Pos.of_succ_nat idx)))
-      (ELEM: forall s n gd, nth_error sk n = Some (s, gd) -> Genv.find_def tge (map_blk (Pos.of_succ_nat n)) = Some gd)
+      (MGE: forall id idx, SkEnv.id2blk (load_skenv sk) (string_of_ident id) = Some idx -> Genv.find_symbol ge id = Some (map_blk (Pos.of_succ_nat idx)))
+      (ELEM: forall s n gd, nth_error (fst sk) n = Some (s, gd) -> Genv.find_def ge (map_blk (Pos.of_succ_nat n)) = Some gd)
+      (MCE: forall i co, In (i, co) (PTree.elements ge.(genv_cenv)) <-> alist_find i (snd sk) = Some co)
     :
-      match_ge.
-
-
-  (* alist <-> ptree conversion needs well-formedness of ptree *)
-  (* TODO: when we construct initial envs, we should check disjointness of source ids *)
-  (* this is justified with pre-existing triggerUB ofs id-repet *)
+      match_gce.
 
   Variant match_le : ClightPlusExprgen.temp_env -> temp_env -> Prop :=
   | match_le_intro
@@ -112,35 +109,11 @@ Section MATCH.
     destruct x. ss. des_ifs_safe. exfalso. eapply alist_find_none in H. apply H. et.
   Qed.
 
-  Variant match_ce : comp_env -> composite_env -> Prop :=
-  | match_ce_intro
-      sce tce
-      (* (CEWF: NoDup (map fst sce)) *)
-      (MCE: forall i co, In (i, co) (PTree.elements tce) <-> alist_find i sce = Some co)
-    :
-      match_ce sce tce.
-
-  Lemma cenv_match_some ce tce co i
-      (MCE: match_ce ce tce)
-    :
-      alist_find i ce = Some co -> tce ! i = Some co.
-  Proof.
-    i. apply PTree.elements_complete. inv MCE. rewrite MCE0. et.
-  Qed.
-
-  Lemma cenv_match_none ce tce i
-      (MCE: match_ce ce tce)
-    :
-      alist_find i ce = None -> tce ! i = None.
-  Proof.
-    i. destruct (tce ! i) eqn:?; et. apply PTree.elements_correct in Heqo. 
-    inv MCE. rewrite MCE0 in Heqo. clarify.
-  Qed.
 
   Variant match_mem : Memory.Mem.mem -> Memory.Mem.mem -> Prop :=
   | match_mem_intro
       m tm
-      (INITIALIZED: (Pos.of_succ_nat (length sk) <= m.(Mem.nextblock))%positive)
+      (INITIALIZED: (Pos.of_succ_nat (length (fst sk)) <= m.(Mem.nextblock))%positive)
       (NBLK: tm.(Mem.nextblock) = map_blk (m.(Mem.nextblock)))
       (MEM_CNT: forall b ofs mv, PMap.get ofs (PMap.get b m.(Mem.mem_contents)) = mv -> PMap.get ofs (PMap.get (map_blk b) tm.(Mem.mem_contents)) = map_memval mv)
       (MEM_PERM: forall b, PMap.get b m.(Mem.mem_access) = Maps.PMap.get (map_blk b) tm.(Mem.mem_access) )

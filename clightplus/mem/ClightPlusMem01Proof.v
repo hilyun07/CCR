@@ -672,9 +672,9 @@ Section INV.
 
   (* TODO: rollback memory local state formulation *)
   (* TODO: add UB condition in main function invocation *)
-  Lemma wf_iff sk : alloc_globals sk (ε,ε,ε) xH sk = None <-> load_mem sk = None.
+  Lemma wf_iff sk : alloc_globals sk (ε,ε,ε) xH (fst sk) = None <-> load_mem sk = None.
   Proof.
-    unfold load_mem.
+    unfold load_mem. destruct sk as [sk ce]. simpl fst.
     set sk as sk' at 2 4.
     assert (List.incl sk' sk) by refl.
     clearbody sk'.
@@ -710,7 +710,7 @@ Section INV.
     - red. i. des_ifs.
   Qed.
 
-  Lemma init_wf sk m p a s (RESWF: alloc_globals sk (ε,ε,ε) xH sk = Some (p, a, s)) (MEMWF: load_mem sk = Some m) :
+  Lemma init_wf sk m p a s (RESWF: alloc_globals sk (ε,ε,ε) xH (fst sk) = Some (p, a, s)) (MEMWF: load_mem sk = Some m) :
     Own (GRA.embed (Auth.black p) ⋅ GRA.embed (Auth.black a) ⋅ GRA.embed s
           ⋅ GRA.embed (A:= blockaddressRA) (λ ob : option block,
                         match ob with
@@ -720,7 +720,7 @@ Section INV.
             ⋅ GRA.embed (A:= blocksizeRA) (λ ob : option block,
                           match ob with
                           | Some b =>
-                              if Coqlib.plt b (Pos.of_succ_nat (strings.length sk))
+                              if Coqlib.plt b (Pos.of_succ_nat (strings.length (fst sk)))
                               then OneShot.unit
                               else OneShot.black
                           | None => OneShot.white 0
@@ -758,8 +758,8 @@ Section INV.
     Proof.
     Local Opaque Pos.add.
     Local Transparent _has_size.
-    assert (Pos.of_succ_nat (strings.length sk) = m.(Mem.nextblock)).
-    { clear - MEMWF. unfold load_mem in *.
+    assert (Pos.of_succ_nat (strings.length (fst sk)) = m.(Mem.nextblock)).
+    { clear - MEMWF. unfold load_mem in *. destruct sk as [sk ce]. simpl fst in *.
       destruct (List.length sk) eqn:?. { destruct sk; clarify. ss. clarify. }
       rewrite <- Heqn. assert (1 ≤ strings.length sk) by nia. clear Heqn.
       replace (Pos.of_succ_nat (strings.length sk)) with (Pos.add xH (Pos.of_nat (strings.length sk))) by nia.
@@ -779,7 +779,7 @@ Section INV.
     assert (Mem.mem_concrete mem = Maps.PTree.empty Z) by ss.
     assert (si None = OneShot.unit) by ss.
     assert (forall b: block, (Mem.nextblock mem ≤ b)%positive -> si (Some b) = OneShot.unit) by ss.
-    clearbody pi ai si mem.
+    clearbody pi ai si mem. destruct sk as [sk ce]. simpl fst in *.
     set sk as l in RESWF at 2. change sk with l in MEMWF at 2.
     clear H3. clearbody l. revert m mem pi ai si p a s RESWF MEMWF H4 H5 H6 H7.
     induction l; i; ss; clarify.

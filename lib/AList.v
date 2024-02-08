@@ -460,6 +460,34 @@ Module StringOrder <: TotalOrderBool.
   Qed.
 End StringOrder.
 
+Module IdentOrder <: TotalOrderBool.
+  Definition t := positive.
+  Definition leb := Pos.leb.
+  Lemma leb_total : forall x y : t, leb x y = true \/ leb y x = true.
+  Proof.
+    i. unfold leb. pose proof (Pos.leb_spec x y). inv H; et.
+    assert (y <= x)%positive by nia.
+    pose proof (Pos.leb_spec y x). inv H2; et.
+    nia.
+  Qed.
+
+  Lemma leb_trans : Transitive leb.
+  Proof.
+    ii. unfold leb in *. unfold is_true in *.
+    rewrite Pos.leb_le in *. nia.
+  Qed.
+
+  Definition eqA: t -> t -> Prop := eq.
+
+  Lemma eqb_eq : forall x y : t, eqA x y <-> leb x y = true /\ leb y x.
+  Proof.
+    i. split.
+    { i. inv H. destruct (leb_total y y); auto. }
+    { i. des. red. unfold is_true in *. apply Pos.leb_le in H.
+      apply Pos.leb_le in H0. nia. }
+  Qed.
+End IdentOrder.
+
 Module ProdFstOrder (A: TotalOrderBool) (B: Typ) <: TotalOrderBool.
   Definition t := (A.t * B.t)%type.
   Definition leb := fun (x y: t) => A.leb (fst x) (fst y).
@@ -634,5 +662,47 @@ Module AListSort (V: Typ).
     { eapply sort_StronglySorted. }
   Qed.
 End AListSort.
+
+Module AIListSort (V: Typ).
+  Module _Order := ProdFstOrder IdentOrder V.
+  Include (OrderSort _Order).
+
+  Definition t := alist positive V.t.
+
+  Lemma sort_permutation (l: t)
+    :
+      Permutation l (sort l).
+  Proof.
+    eapply Permuted_sort.
+  Qed.
+
+  Lemma sort_add_comm (l0 l1: t)
+        (ND: NoDup (List.map fst (l0 ++ l1)))
+    :
+      sort (l0 ++ l1) = sort (l1 ++ l0).
+  Proof.
+    eapply permutation_sorted_unique.
+    { etrans.
+      { symmetry. eapply sort_permutation. }
+      etrans.
+      { eapply Permutation_app_comm. }
+      { eapply sort_permutation. }
+    }
+    { eapply NoDupA_permutation.
+      { ii. eapply _Order.eqb_eq. eapply _Order.eqb_eq in H. des. auto. }
+      { eapply sort_permutation. }
+      revert ND. generalize (l0 ++ l1). clear. induction l.
+      { i. econs. }
+      { i. ss. inv ND. econs; et.
+        eapply Forall_forall. ii. eapply H1.
+        replace (fst a) with (fst x).
+        eapply in_map. ss.
+      }
+    }
+    { eapply sort_StronglySorted. }
+    { eapply sort_StronglySorted. }
+  Qed.
+
+End AIListSort.
 
 Notation "f ∘ g" := (fun x => (f (g x))). (*** It is already in CoqlibCCR but Coq seems to have a bug; it gets overriden by the one in program_scope in the files that import this file ***)

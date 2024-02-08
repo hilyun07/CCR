@@ -28,7 +28,7 @@ Context {HasCall : callE -< eff}.
 Context {HasEvent : eventE -< eff}.
 Variable sk: Sk.t.
 Let skenv: SkEnv.t := load_skenv sk.
-Variable ce: comp_env.
+Let ce: comp_env := snd sk.
 
 Definition id_list_norepet_c: list ident -> bool :=
   fun ids => if Coqlib.list_norepet_dec (ident_eq) ids then true else false.
@@ -69,8 +69,8 @@ Section DECOMP.
 
   Definition _sassign_c e le a1 a2 :=
     tau;;
-    vp <- eval_lvalue_c sk ce e le a1;;
-    v <- eval_expr_c sk ce e le a2;; 
+    vp <- eval_lvalue_c sk e le a1;;
+    v <- eval_expr_c sk e le a2;; 
     v' <- sem_cast_c v (typeof a2) (typeof a1);;
     assign_loc_c ce (typeof a1) vp v'.
 
@@ -80,14 +80,14 @@ Section DECOMP.
     match Cop.classify_fun (typeof a) with
     | Cop.fun_case_f tyargs tyres cconv =>
       tau;;
-      vf <- eval_expr_c sk ce e le a;;
-      vargs <- eval_exprlist_c sk ce e le al tyargs;;
+      vf <- eval_expr_c sk e le a;;
+      vargs <- eval_exprlist_c sk e le al tyargs;;
       match vf with
       | Vptr b ofs =>
           if Ptrofs.eq_dec ofs Ptrofs.zero
           then
             (* skeleton name = function name *)
-            '(gsym, gd) <- (nth_error sk (pred (Pos.to_nat b)))?;;
+            '(gsym, gd) <- (nth_error (fst sk) (pred (Pos.to_nat b)))?;;
             fd <- (match gd with Gfun fd => Some fd | _ => None end)?;;
             if type_eq (type_of_fundef fd) (Tfunction tyargs tyres cconv)
             then 
@@ -113,7 +113,7 @@ Section DECOMP.
              (e: env) (le: temp_env) (a: expr)
     : itree eff bool :=
     tau;;
-    v1 <- eval_expr_c sk ce e le a;;
+    v1 <- eval_expr_c sk e le a;;
     bool_val_c v1 (typeof a).
 
   Definition sloop_iter_body_one
@@ -210,7 +210,7 @@ Section DECOMP.
     | None => tau;;Ret Vundef
     | Some a =>
       tau;;
-      v <- eval_expr_c sk ce e le a;;
+      v <- eval_expr_c sk e le a;;
       sem_cast_c v (typeof a) retty
     end.
 
@@ -228,7 +228,7 @@ Section DECOMP.
       Ret (e, le, None, None)
     | Sset id a =>
       tau;;
-      v <- eval_expr_c sk ce e le a ;;
+      v <- eval_expr_c sk e le a ;;
       let le' := alist_add id v le in
       Ret (e, le', None, None)
     | Scall optid a al =>
@@ -236,7 +236,7 @@ Section DECOMP.
         Ret (e, (match optid with Some id => alist_add id v le | None => le end), None, None)
     | Sbuiltin optid ef tyargs al =>
       tau;;
-      vargs <- eval_exprlist_c sk ce e le al tyargs;;
+      vargs <- eval_exprlist_c sk e le al tyargs;;
       match ef with
       | EF_malloc => v <- ccallU "malloc" vargs;;
         Ret (e, (match optid with Some id => alist_add id v le | None => le end), None, None)
@@ -499,11 +499,8 @@ End Clight.
 
 Section DECOMP_PROG.
 
-  (* TODO: compiling of program should include sorting in positive -> compile after sorting  *)
-  Definition get_ce (prog: Clight.program) : comp_env := PTree.elements prog.(prog_comp_env).
 
   Variable prog: Clight.program.
-  Let ce: comp_env := get_ce prog.
   Let defs: list (ident * globdef Clight.fundef type) := prog.(prog_defs).
   Let public: list ident := prog.(prog_public).
   Variable mn: string.
@@ -524,24 +521,27 @@ Section DECOMP_PROG.
             cfunU (E:=Es) (fun vl =>
                             if Pos.eq_dec id prog.(prog_main)
                             then if type_eq (type_of_function f) (Tfunction Tnil type_int32s cc_default)
-                                  then v <- decomp_func sk ce f vl;; 
+                                  then v <- decomp_func sk f vl;; 
                                       match v with
                                       | Vint _ => Ret v
                                       | _ => triggerUB
                                       end
                                   else triggerUB
-                            else decomp_func sk ce f vl)) :: decomp_fundefs sk defs'
+                            else decomp_func sk f vl)) :: decomp_fundefs sk defs'
         | _ => decomp_fundefs sk defs'
         end
       end
     end.
 
-  Fixpoint get_sk (defs: list (ident * globdef Clight.fundef type)) : Sk.t :=
+  (* TODO: compiling of program should include sorting in positive -> compile after sorting  *)
+  Definition get_ce (prog: Clight.program) : comp_env := PTree.elements prog.(prog_comp_env).
+
+  Fixpoint get_ge (defs: list (ident * globdef Clight.fundef type)) : alist gname gdef :=
     match defs with
     | [] => []
-    | (id, Gvar gv) :: defs' => (string_of_ident id, Gvar gv) :: get_sk defs'
-    | (id, Gfun (Internal f)) :: defs' => (string_of_ident id, Gfun (Internal f)) :: get_sk defs'
-    | _ :: defs' => get_sk defs'
+    | (id, Gvar gv) :: defs' => (string_of_ident id, Gvar gv) :: get_ge defs'
+    | (id, Gfun (Internal f)) :: defs' => (string_of_ident id, Gfun (Internal f)) :: get_ge defs'
+    | _ :: defs' => get_ge defs'
     end.
 
   Definition modsem (sk: Sk.t) : ModSem.t := {|
@@ -552,7 +552,7 @@ Section DECOMP_PROG.
 
   Definition get_mod : Mod.t := {|
     Mod.get_modsem := modsem;
-    Mod.sk := get_sk defs;
+    Mod.sk := (get_ge defs, get_ce prog);
   |}.
 
 End DECOMP_PROG.  
