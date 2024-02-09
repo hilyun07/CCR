@@ -426,7 +426,9 @@ Section SPEC.
 
 End SPEC.
 
+Require Import xorlist.
 Require Import xorlist0.
+Require Import ClightPlusExprgen.
 
 Section SMOD.
 
@@ -439,10 +441,10 @@ Section SMOD.
     [
      (* ("encrypt",  mk_pure encrypt_spec);
      ("decrypt",  mk_pure decrypt_spec); *)
-     ("add_hd", mk_pure add_hd_spec);
-     ("add_tl", mk_pure add_tl_spec);
-     ("delete_hd", mk_pure delete_hd_spec);
-     ("delete_tl", mk_pure delete_tl_spec)
+     (p2s _delete_hd, mk_pure add_hd_spec);
+     (p2s _add_tl, mk_pure add_tl_spec);
+     (p2s _delete_hd, mk_pure delete_hd_spec);
+     (p2s _delete_tl, mk_pure delete_tl_spec)
      (* ("search",  mk_pure search_spec) *)
      ].
   

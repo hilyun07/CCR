@@ -613,8 +613,7 @@ Section PROOF.
   :
       <<SIM: sim (@ModL.compile _ EMSConfigC modl) (Clight.semantics2 clight_prog) false false ist cst>>.
   Proof.
-  Admitted.
-    (* red. red.
+    red. red.
     depgen ist. depgen cst. pcofix CIH. i.
     inv MS. des_ifs_safe.
     set (Genv.globalenv _) as tge in *.
@@ -1151,7 +1150,7 @@ Section PROOF.
     - ss. unfold hide. sim_triggerUB.
     - ss. unfold hide. sim_triggerUB.
     Unshelve. all: exact xH.
-  Qed. *)
+  Qed.
 
 
 

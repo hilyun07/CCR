@@ -83,9 +83,9 @@ Section PROOFSINGLE.
   Qed.
 
   Arguments Es_to_eventE /.
-  Arguments itree_of_stmt /. 
-  Arguments sloop_iter_body_two /. 
-  Arguments ktree_of_cont_itree /. 
+  Arguments itree_of_stmt /.
+  Arguments sloop_iter_body_two /.
+  Arguments ktree_of_cont_itree /.
 
   Theorem single_compile_behavior_improves
           mn clight_prog
@@ -109,7 +109,27 @@ Section PROOFSINGLE.
 
     destruct (alist_find "main" _) eqn:FOUNDMAIN;[|sim_triggerUB]. ss.
     rewrite alist_find_find_some in FOUNDMAIN. rewrite find_map in FOUNDMAIN. uo; des_ifs; ss.
-    destruct p. inv H0.
+    destruct p. inv H0. hexploit found_itree_clight_function; et. i. des. rename H0 into FIND_ITREE.
+    hexploit decomp_fundefs_decomp_func; eauto. i. des. rename H0 into FIND_TFUNC.
+    hexploit p2s_s2p; et. i. subst. unfold s2p in H1. destruct string_dec; ss.
+    destruct string_dec; ss. destruct string_dec; ss. sim_red.
+    rewrite <- MAIN in H1. unfold Genv.find_funct_ptr in FIND_TMAINF.
+    destruct Genv.find_def eqn: ? in FIND_TMAINF. destruct g; clarify. 2:{ clarify. }
+    hexploit tgt_genv_match_symb_def; et. 3:{ rewrite NoDup_norepeat. et. }
+    1,2: admit "". i. clarify.
+    change (s2p "main") with (ident_of_string "main").
+    rewrite MAIN. destruct (Pos.eq_dec (ident_of_string _) _); clarify.
+    destruct type_eq; clarify.
+    sim_red. unfold decomp_func. unfold hide.
+    unfold function_entry_c.
+    destruct (id_list_norepet_c _ && id_list_norepet_c _ && id_list_disjoint_c _ _); [|sim_triggerUB].
+    induction (fn_vars f); cycle 1.
+    Local Transparent ccallU.
+    - ss. destruct a. sim_red. unfold ccallU. sim_red; ss. sim_tau. unfold sallocF.
+      sim_red. sim_tau. sim_tau. sim_red. sim_tau. sim_red. unfold ModSemL.initial_p_state.
+      ss. rewrite Any.upcast_downcast. sim_red. des_ifs_safe. ss. clarify.
+      sim_red. sim_tau. sim_red. sim_tau. sim_red. sim_tau. sim_red.
+      sim_tau. sim_red. unfold alloc_variables_c.
     
 
     sim_red. rewrite alist_find_map_snd in FOUNDMAIN. uo. des_ifs.

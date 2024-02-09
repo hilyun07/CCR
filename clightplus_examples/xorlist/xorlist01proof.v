@@ -84,11 +84,12 @@ Section PROOF.
   Hypothesis SKINCL1 : Sk.le (xorlist0.xor.(Mod.sk)) sk.
   Hypothesis SKINCL2 : Sk.le (ClightPlusMem0.Mem.(Mod.sk)) sk.
   Hypothesis SKWF : Sk.wf sk.
+  Opaque p2s.
 
   Lemma sim_add_tl :
     sim_fnsem wf top2
-      ("add_tl", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
-      ("add_tl", cfunU (decomp_func sk ce f_add_tl)).
+      (p2s _add_tl, fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
+      (p2s _add_tl, cfunU (decomp_func sk ce f_add_tl)).
   Proof.
     Opaque encode_val.
     Opaque cast_to_ptr.
@@ -123,7 +124,7 @@ Section PROOF.
 
     hexploit SKINCLENV2.
     { instantiate (2:="malloc"). et. }
-    i. des. ss. rewrite FIND. rename FIND into malloc_loc.
+    i. des. ss. change (p2s _malloc) with "malloc". rewrite FIND. rename FIND into malloc_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
     rewrite cast_ptrofs.
     rename Heq1 into ptr64. rename Heq0 into get_co.
@@ -406,8 +407,8 @@ Section PROOF.
 
   Lemma sim_add_hd :
     sim_fnsem wf top2
-      ("add_hd", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_hd_spec))
-      ("add_hd", cfunU (decomp_func sk ce f_add_hd)).
+      (p2s _add_hd, fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_hd_spec))
+      (p2s _add_hd, cfunU (decomp_func sk ce f_add_hd)).
   Proof.
     Opaque encode_val.
     Opaque cast_to_ptr.
@@ -442,7 +443,7 @@ Section PROOF.
 
     hexploit SKINCLENV2.
     { instantiate (2:="malloc"). et. }
-    i. des. ss. rewrite FIND. rename FIND into malloc_loc.
+    i. des. ss. change (p2s _malloc) with "malloc". rewrite FIND. rename FIND into malloc_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
     rewrite cast_ptrofs.
     rename Heq1 into ptr64. rename Heq0 into get_co.
@@ -715,8 +716,8 @@ Section PROOF.
 
   Lemma sim_delete_tl :
     sim_fnsem wf top2
-      ("delete_tl", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure delete_tl_spec))
-      ("delete_tl", cfunU (decomp_func sk ce f_delete_tl)).
+      (p2s _delete_tl, fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure delete_tl_spec))
+      (p2s _delete_tl, cfunU (decomp_func sk ce f_delete_tl)).
   Proof.
     Opaque encode_val.
     econs; ss. red.
@@ -1009,8 +1010,8 @@ Section PROOF.
 
   Lemma sim_delete_hd :
     sim_fnsem wf top2
-      ("delete_hd", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure delete_hd_spec))
-      ("delete_hd", cfunU (decomp_func sk ce f_delete_hd)).
+      (p2s _delete_hd, fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure delete_hd_spec))
+      (p2s _delete_hd, cfunU (decomp_func sk ce f_delete_hd)).
   Proof.
     Opaque encode_val.
     econs; ss. red.
