@@ -738,6 +738,9 @@ Section MEM.
   : 
     exists m', match_mem sk tge m' tm' /\ Mem.capture m b addr m'.
   Proof.
+  (* pose proof Genv.init_mem_exists.
+  hexploit H. { i. split. 2:{ i.  Genv.init_data_list_aligned. } } *)
+
     dup TCAP. inv TCAP. inv MM.
     assert (Mem.valid_block m b).
     { unfold Mem.valid_block in *. rewrite NBLK in VALID. clear - INITIALIZED MGE VALID.

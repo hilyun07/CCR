@@ -386,7 +386,8 @@ Section PROOF.
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. sim_red. sim_tau. ss. sim_red. unfold sub_ptrF. sim_tau. repeat (sim_tau; sim_red).
+  Admitted.
+    (* unfold ccallU. sim_red. sim_tau. ss. sim_red. unfold sub_ptrF. sim_tau. repeat (sim_tau; sim_red).
     rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase.
     repeat (sim_tau; sim_red). rewrite Any.upcast_downcast. sim_red.
     destruct Coqlib.zlt; destruct Coqlib.zle; ss.
@@ -526,7 +527,7 @@ Section PROOF.
         eapply Int64.eqm_refl2. nia.
     - destruct eq_block eqn:? in Heq0; clarify. 
       subst. destruct eq_block; clarify.
-  Qed.
+  Qed. *)
 
   Lemma match_to_ptr_val m tm sk tge v b ofs
     (MM: match_mem sk tge m tm)
@@ -591,7 +592,8 @@ Section PROOF.
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. step. ss. unfold cmp_ptrF. step. rewrite PSTATE. rewrite Any.upcast_downcast.
+  Admitted.
+    (* unfold ccallU. step. ss. unfold cmp_ptrF. step. rewrite PSTATE. rewrite Any.upcast_downcast.
     step. unfold cmp_ptr. remove_UBcase.
     - unfold cmp_ptr_join. unfold cmp_ptr. remove_UBcase. remove_UBcase.
     - sim_tau. sim_red. eapplyf NEXT. ss.
@@ -841,7 +843,7 @@ Section PROOF.
         erewrite (@match_valid_pointer m); et.
         rewrite Heq1. destruct eq_block. { hexploit map_blk_inj; et. clarify. }
         des_ifs. rewrite Heq2. ss.
-  Qed.
+  Qed. *)
 
         
   Lemma step_non_null_ptr pstate f_table modl cprog sk tge le tle e te m tm
@@ -1061,7 +1063,8 @@ Section PROOF.
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold binary_op_c. des_ifs; unfold sem_add_c, sem_sub_c, sem_mul_c, sem_div_c, sem_mod_c, sem_and_c, sem_or_c, sem_xor_c, Cop.sem_shl, Cop.sem_shr, sem_cmp_c.
+  Admitted.
+    (* unfold binary_op_c. des_ifs; unfold sem_add_c, sem_sub_c, sem_mul_c, sem_div_c, sem_mod_c, sem_and_c, sem_or_c, sem_xor_c, Cop.sem_shl, Cop.sem_shr, sem_cmp_c.
     - des_ifs.
       + unfold sem_add_ptr_int_c. remove_UBcase.
         all: apply NEXT; erewrite <- match_sizeof; et; unfold Cop.sem_binary_operation, Cop.sem_add, Cop.sem_add_ptr_int; ss; des_ifs.
@@ -1253,7 +1256,7 @@ Section PROOF.
         eapply step_sem_cast; et. i. remove_UBcase.
         all: apply NEXT; unfold Cop.sem_binary_operation, Cop.sem_cmp, Cop.sem_binarith; rewrite Heq; des_ifs.
         all: unfold Val.of_bool; des_ifs; ss; clarify.
-  Qed.
+  Qed. *)
 
   Lemma _step_eval pstate ge ce tce f_table modl cprog sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)

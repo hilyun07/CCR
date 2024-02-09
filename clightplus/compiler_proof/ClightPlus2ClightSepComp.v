@@ -1,4 +1,4 @@
-From compcert Require Import Coqlib Behaviors Integers Floats AST Globalenvs Ctypes Cop Clight Clightdefs.
+From compcert Require Import Coqlib Behaviors Integers Floats Values AST Globalenvs Ctypes Cop Clight Clightdefs.
 
 Require Import CoqlibCCR.
 Require Import ITreelib.
@@ -13,21 +13,17 @@ Require Import IRed.
 Require Import ClightPlusExprgen.
 Require Import ClightPlusgen.
 
-Require Import ClightPlus2ClightMatch.
+Require Import ClightPlus2ClightMatchEnv.
 Require Import ClightPlus2ClightArith.
 Require Import ClightPlus2ClightGenv.
 Require Import ClightPlus2ClightLenv.
 Require Import ClightPlus2ClightMem.
-Require Import ClightPlus2ClightLink.
-Require Import ClightPlus2ClightSim. 
+Require Import ClightPlus2ClightSim.
 Require Import ClightPlus2ClightMatchStmt.
-Require Import ClightPlus2ClightSimAll. 
+Require Import ClightPlus2ClightSimAll.
 
-(* 
+
 Section PROOFSINGLE.
-
-  Context `{Σ: GRA.t}.
-  Context `{builtins : builtinsTy}.
 
   Ltac solve_mkprogram := unfold mkprogram, build_composite_env' in *; des_ifs; eauto.
 
@@ -70,11 +66,12 @@ Section PROOFSINGLE.
 
   Definition compile_val md := @ModL.compile _ EMSConfigC md. 
 
-  Definition clightligt_sem types defs WF_COMP mn := compile_val (ModL.add (Mod.lift Mem) (Mod.lift (get_mod types defs WF_COMP mn))).
+  Definition clightligt_sem prog mn := compile_val (ModL.add (Mod.lift Mem) (Mod.lift (get_mod prog mn))).
 
-  Definition clightlight_initial_state types defs WF_COMP mn := (clightligt_sem types defs WF_COMP mn).(STS.initial_state).
+  Definition clightlight_initial_state prog mn := (clightligt_sem prog mn).(STS.initial_state).
+
   Opaque ident_of_string.
-  
+
   Lemma NoDup_norepeat :
     forall A (l : list A), Coqlib.list_norepet l <-> NoDup l.
   Proof.
@@ -86,70 +83,50 @@ Section PROOFSINGLE.
   Qed.
 
   Arguments Es_to_eventE /.
-  Arguments itree_of_code /. 
+  Arguments itree_of_stmt /. 
   Arguments sloop_iter_body_two /. 
   Arguments ktree_of_cont_itree /. 
 
   Theorem single_compile_behavior_improves
-          (types: list Ctypes.composite_definition)
-          (defs: list (AST.ident * AST.globdef Clight.fundef Ctypes.type))
-          (public: list AST.ident)
-          (WF_TYPES: Clightdefs.wf_composites types) 
           mn clight_prog
-          (WFDEF_NODUP: NoDup (List.map fst defs))
-          (WFDEF_EXT: forall a, In a Mem.(Mod.sk) -> In a (List.map (fun '(p, gd) => (string_of_ident p, gd↑)) defs))
-          (COMP: clight_prog = mkprogram types defs public (ident_of_string "main") WF_TYPES)
           left_st right_st
-          (SINIT: left_st = clightlight_initial_state types defs WF_TYPES mn)
+          (MAIN: clight_prog.(prog_main) = ident_of_string "main")
+          (WFDEF1: forallb (fun '(i, gd) => Pos.eqb i (ident_of_string (string_of_ident i))) clight_prog.(prog_defs) = true)
+          (WFDEF2: NoDup (List.map fst clight_prog.(prog_defs)))
+          (SINIT: left_st = clightlight_initial_state clight_prog mn)
           (TINIT: Clight.initial_state clight_prog right_st)
         :
           <<IMPROVES: @improves2 _ (Clight.semantics2 clight_prog) left_st right_st>>.
   Proof.
+    Local Opaque type_eq.
     eapply adequacy; eauto.
     { apply Csharpminor_wf_semantics. }
     red. rewrite SINIT. unfold clightlight_initial_state in *. ss; clarify. inv TINIT.
     unfold ModSemL.initial_itr.
     rename ge into tge, H into INIT_TMEM, H0 into MAIN_TBLOCK, H1 into FIND_TMAINF, H2 into MAIN_TYPE, f into tmain.
-    set (Build_genv tge (let (ce, _) := build_composite_env' types WF_TYPES in ce)) as ge.
-    pfold. econs 5; eauto; unfold assume.
-    { ss. grind. dtm H H0. }
-    grind. eapply angelic_step in STEP. des; clarify.
-    unfold ITree.map. sim_red.
+    (* set (Build_genv tge (let (ce, _) := build_composite_env' types WF_TYPES in ce)) as ge. *)
+    unfold ModL.wf_bool. destruct ModL.wf_dec; ss. 2:{ sim_triggerUB. }
+    grind. unfold ITree.map. sim_red.
 
-    set (sge_init:= Sk.sort _) in *.
     destruct (alist_find "main" _) eqn:FOUNDMAIN;[|sim_triggerUB]. ss.
-    repeat match goal with | [ H : false = false |- _ ] => clear H end.
-    
-    rewrite alist_find_find_some in FOUNDMAIN. rewrite find_map in FOUNDMAIN.
-    rewrite find_map in FOUNDMAIN. uo; des_ifs; ss. inv H0. clear H1. 
-    unfold ModL.wf in WF. des. inv WF0. clear wf_initial_mrs.
-    apply found_itree_clight_function in Heq0. des. rename Heq1 into FIND_ITREE.
-    hexploit decomp_fundefs_decomp_func; eauto. i. des. rename H0 into FIND_TFUNC.
-    assert (WF_IDENT: NoDup (List.map string_of_ident (List.map fst defs))).
+    sim_red. rewrite alist_find_map_snd in FOUNDMAIN. uo. des_ifs.
+
+    (* simpl ModL.enclose in wf_fnsems. set (ClightPlusSkel.sort _) as sk_canon in *.
+    replace (ModSemL.fnsems _) with ((ModSemL.fnsems (MemSem sk_canon)) ++ (ModSemL.fnsems (modsem clight_prog mn sk_canon))) in wf_fnsems by ss.
+    rewrite map_app in wf_fnsems. hexploit nodup_app_r; et. *)
+    rewrite <- NoDup_norepeat in WFDEF2.
+    apply alist_find_some in Heq.
+    set (fun f => cfunU (E:=Es) (fun vl => if type_eq (type_of_function f) (Tfunction Ctypes.Tnil type_int32s cc_default)
+                                           then v <- decomp_func (get_sk (clight_prog.(prog_defs))) (get_ce clight_prog) f vl;; 
+                                              match v with
+                                              | Vint _ => Ret v
+                                              | _ => triggerUB
+                                              end
+                                           else triggerUB)) as main_form.
+    assert (exists f, In (prog_main clight_prog, Gfun (Internal f)) (prog_defs clight_prog) /\ main_form f = i0).
     { admit "". }
-    hexploit Globalenvs.Genv.find_symbol_inversion; et. i.
-    replace (prog_defs_names _) with (List.map fst defs) in H0.
-    2:{ unfold mkprogram. des_ifs. }
-    replace (prog_main _) with (ident_of_string "main") in * by now solve_mkprogram.
-    assert (In p (List.map fst defs)).
-    { eapply in_map with (f := fst) in FIND_TFUNC. et. }
-    assert (p = ident_of_string "main").
-    { clear -H0 H1 WF_IDENT Heq0. rewrite <- string_of_ident_of_string in Heq0.
-      revert_until defs. generalize (List.map fst defs).
-      induction l; i; ss; et. des; subst; et; inv WF_IDENT.
-      { rewrite Heq0 in H2.
-        eapply in_map with (f:=string_of_ident) in H0. contradiction. }
-      { rewrite <- Heq0 in H2.
-        eapply in_map with (f:=string_of_ident) in H1. contradiction. }
-      eapply IHl; et. }
-    subst.
-    hexploit tgt_genv_match_symb_def; et.
-    { rewrite NoDup_norepeat. et. }
-    { unfold Globalenvs.Genv.find_funct_ptr in *. des_ifs; et. }
-    { unfold mkprogram. des_ifs; et. }
-      
-    i. clarify. rename f into tmain. 
-    unfold cfunU. sim_red. unfold decomp_func. sim_red.
+    des. unfold Genv.find_funct_ptr in FIND_TMAINF. des_ifs. hexploit tgt_genv_match_symb_def; et.
+    i. clarify. unfold main_form. des_ifs; try sim_triggerUB. ss. sim_red. unfold decomp_func. sim_red. unfold hide.
     pfold_reverse. 
     eapply step_function_entry with (ge := ge) (sk := sge_init); et; ss.
     { unfold sge_init, tge, mkprogram, Globalenvs.Genv.globalenv. des_ifs_safe. ss.
@@ -267,6 +244,27 @@ Section PROOFSINGLE.
   Qed.
 
 End PROOFSINGLE.
- *)
 
 
+
+
+  Definition init_data_list_aligned_dec p il :{Genv.init_data_list_aligned p il} + {~ Genv.init_data_list_aligned p il}.
+  Proof.
+    revert p. induction il.
+    - i. left. ss.
+    - i. destruct (Zdivide_dec (Genv.init_data_alignment a) p).
+      + destruct (IHil (p + init_data_size a)). { left. ss. }
+        right. ii. apply n. ss. des. et.
+      + right. ii. apply n. ss. des. et.
+  Defined.
+
+  
+
+  Fixpoint mem_init_condition sk l :=
+    match l with
+    | [] => true
+    | (Gvar v) :: l' => if init_data_list_aligned_dec 0 (gvar_init v) 
+                        then match l with
+                        else false
+    | _ :: l' => mem_init_condition sk l'
+    end
