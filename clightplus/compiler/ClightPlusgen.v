@@ -522,7 +522,7 @@ Section DECOMP_PROG.
       | Gfun fd =>
         match fd with
         | Internal f => 
-          (string_of_ident id,
+          (p2s id,
             cfunU (E:=Es) (fun vl =>
                             if Pos.eq_dec id prog.(prog_main)
                             then if type_eq (type_of_function f) (Tfunction Tnil type_int32s cc_default)
@@ -541,8 +541,8 @@ Section DECOMP_PROG.
   Fixpoint get_sk (defs: list (ident * globdef Clight.fundef type)) : Sk.t :=
     match defs with
     | [] => []
-    | (id, Gvar gv) :: defs' => (string_of_ident id, Gvar gv) :: get_sk defs'
-    | (id, Gfun (Internal f)) :: defs' => (string_of_ident id, Gfun (Internal f)) :: get_sk defs'
+    | (id, Gvar gv) :: defs' => (p2s id, Gvar gv) :: get_sk defs'
+    | (id, Gfun (Internal f)) :: defs' => (p2s id, Gfun (Internal f)) :: get_sk defs'
     | _ :: defs' => get_sk defs'
     end.
 

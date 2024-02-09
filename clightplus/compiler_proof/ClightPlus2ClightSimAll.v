@@ -27,6 +27,7 @@ Section PROOF.
 
   Import ModSemL.
 
+  Context `{Σ : GRA.t}.
   Context `{builtins : builtinsTy}.
 
   Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (compile_val src) (Clight.semantics2 tgt)).
@@ -186,6 +187,7 @@ Section PROOF.
     - ss. remove_UBcase. eapplyf NEXT. econs.
     - ss. remove_UBcase. eapply step_eval_expr with (ge:=ge); et. i. clarify. sim_red. eapply IHal. i.
       sim_red. eapply step_sem_cast; et. i. sim_red. eapplyf NEXT. econs; et.
+    Unshelve. all: et.
   Qed.
 
   Lemma step_alloc pstate f_table modl cprog sk tge m tm

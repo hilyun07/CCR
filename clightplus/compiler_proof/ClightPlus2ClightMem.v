@@ -55,7 +55,7 @@ Section MEM.
   Proof.
     i. inv MGE. red. unfold map_blk. des_ifs; try nia.
     - eapply Genv.genv_symb_range. et.
-    - apply load_skenv_wf in WFSK. unfold SkEnv.wf in WFSK. apply WFSK in Heq. apply MGE0 in Heq. clarify.
+    - apply load_skenv_wf in WFSK. unfold SkEnv.wf in WFSK. apply WFSK in Heq. apply MGE0 in Heq. clarify. des. hexploit p2s_s2p; et. i. rewrite H in *. clarify.
     - assert (H0: (Init.Nat.pred (Pos.to_nat blk) < length sk)%nat) by nia.
       apply nth_error_Some in H0. unfold load_skenv in Heq. ss. uo. des_ifs.
   Qed.
@@ -92,15 +92,15 @@ Section MEM.
       apply load_skenv_wf in WFSK. red in WFSK. unfold SkEnv.wf in WFSK. 
       apply WFSK in H0. apply WFSK in H1.
       dup H0. dup H1.
-      apply MGE0 in H2. apply MGE0 in H3. des_ifs; clarify.
-      destruct (Pos.eq_dec (ident_of_string s) (ident_of_string s0)); cycle 1.
-      + hexploit Genv.global_addresses_distinct; et. clarify.
-      + apply ident_of_string_injective in e. subst.
-        set (Some _) as t1 in H0.
-        set (Some _) as t2 in H1.
-        assert (t1 = t2) by now rewrite <- H0; et.
-        unfold t1, t2 in H. clearbody t1 t2. clarify.
-        nia.
+      apply MGE0 in H2. apply MGE0 in H3. des.
+      hexploit (p2s_s2p p1); et. i.
+      hexploit (p2s_s2p p2); et. i. rewrite  <- H7 in H. rewrite <- H6 in H.
+      rewrite H5 in H.
+      rewrite H4 in H.
+      destruct (string_dec s s0); cycle 1.
+      + hexploit Genv.global_addresses_distinct. 2: apply H5. 2: apply H4. 2: clarify.
+        ii. subst. clarify.
+      + rewrite e in H0. rewrite H0 in H1. clarify. nia. 
   Qed.
 
   Lemma map_val_inj :

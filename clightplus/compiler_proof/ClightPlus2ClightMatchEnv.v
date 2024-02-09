@@ -42,7 +42,7 @@ Section MATCH.
         let sg := load_skenv sk in
         match sg.(SkEnv.blk2id) (pred (Pos.to_nat blk)) with
         | Some name =>
-          match Genv.find_symbol tge (ident_of_string name) with
+          match Genv.find_symbol tge (s2p name) with
           | Some tblk => tblk
           | None => dummy_blk
           end
@@ -65,7 +65,7 @@ Section MATCH.
   Variant match_ge : Prop :=
   | match_ge_intro
       (WFSK: Sk.wf sk)
-      (MGE: forall str idx, SkEnv.id2blk (load_skenv sk) str = Some idx -> Genv.find_symbol tge (ident_of_string str) = Some (map_blk (Pos.of_succ_nat idx)))
+      (MGE: forall str idx, SkEnv.id2blk (load_skenv sk) str = Some idx -> exists p, p2s p = str /\  Genv.find_symbol tge p = Some (map_blk (Pos.of_succ_nat idx)))
       (ELEM: forall s n gd, nth_error sk n = Some (s, gd) -> Genv.find_def tge (map_blk (Pos.of_succ_nat n)) = Some gd)
     :
       match_ge.

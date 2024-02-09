@@ -34,11 +34,71 @@ Tactic Notation "admit" constr(excuse) := idtac excuse; exact (admit excuse).
 
 Section ABENVS.
 
+  Fixpoint repeat_string n :=
+    match n with
+    | 0 => ""
+    | S n' => append "a" (repeat_string n')
+    end.
+
+  Definition p2s p := if Pos.eq_dec p (ident_of_string "main") 
+                      then "main" 
+                      else if Pos.eq_dec p (ident_of_string "malloc")
+                           then "malloc"
+                           else if Pos.eq_dec p (ident_of_string "free")
+                                then "free"
+                                else repeat_string (Pos.to_nat p).
+  Compute (ident_of_string "malloc").
+  Compute (ident_of_string "free").
+  Compute (ident_of_string "main").
+
+  Lemma repeat_string_len n : length (repeat_string n) = n.
+  Proof. induction n; ss. rewrite IHn. et. Qed.
+
+  Lemma p2s_inj p p' : p2s p = p2s p' -> p = p'.
+  Proof.
+    i. unfold p2s in *. des_ifs.
+    - ss. revert H. generalize (Pos.to_nat p'). i.
+      destruct n2; ss.
+    - ss. revert H. generalize (Pos.to_nat p'). i.
+      destruct n3; ss.
+    - ss. revert H. generalize (Pos.to_nat p'). i.
+      destruct n4; ss.
+    - ss. revert H. generalize (Pos.to_nat p). i.
+      destruct n2; ss.
+    - ss. revert H. generalize (Pos.to_nat p). i.
+      destruct n3; ss.
+    - ss. revert H. generalize (Pos.to_nat p). i.
+      destruct n4; ss.
+    - apply (f_equal length) in H. rewrite !repeat_string_len in H.
+      nia.
+  Qed.
+
+  Definition s2p str := if string_dec str "malloc" 
+                        then ident_of_string "malloc"
+                        else if string_dec str "free"
+                             then ident_of_string "free"
+                             else if string_dec str "main"
+                                  then ident_of_string "main"
+                                  else Pos.of_nat (length str).
+
+  Lemma p2s_s2p p s : p2s p = s -> p = s2p s.
+  Proof.
+    i. unfold p2s in *. des_ifs.
+    unfold s2p. des_ifs.
+    - ss. revert e. generalize (Pos.to_nat p). i.
+      destruct n2; ss.
+    - ss. revert e. generalize (Pos.to_nat p). i.
+      destruct n3; ss.
+    - ss. revert e. generalize (Pos.to_nat p). i.
+      destruct n4; ss.
+    - ss. rewrite repeat_string_len. nia.
+  Qed.
+
   Definition env : Type := alist ident (block * type).
   Definition temp_env : Type := alist ident val.
   Definition comp_env : Type := alist ident composite.
 
-  Definition valid_check id := Coqlib.proj_sumbool (Pos.eq_dec id (ident_of_string (string_of_ident id))).
+  (* Definition valid_check id := Coqlib.proj_sumbool (Pos.eq_dec id (ident_of_string (string_of_ident id))). *)
 
   Fixpoint sizeof (ce: comp_env) (t: type) : Z :=
     match t with
@@ -219,14 +279,12 @@ Section EVAL_EXPR_COMP.
       : itree eff val :=
       match a with
       | Evar id ty =>
-        if negb (valid_check id) then triggerUB
-        else
         match alist_find id e with
         | Some (l, ty') =>
           if type_eq ty ty' then Ret (Vptr l Ptrofs.zero)
           else triggerUB
         | None =>
-          match SkEnv.id2blk skenv (string_of_ident id) with
+          match SkEnv.id2blk skenv (p2s id) with
           | Some i => Ret (Vptr (Pos.of_succ_nat i) Ptrofs.zero)
           | None => triggerUB
           end

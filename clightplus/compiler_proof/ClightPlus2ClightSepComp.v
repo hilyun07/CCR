@@ -91,7 +91,6 @@ Section PROOFSINGLE.
           mn clight_prog
           left_st right_st
           (MAIN: clight_prog.(prog_main) = ident_of_string "main")
-          (WFDEF1: forallb (fun '(i, gd) => Pos.eqb i (ident_of_string (string_of_ident i))) clight_prog.(prog_defs) = true)
           (WFDEF2: NoDup (List.map fst clight_prog.(prog_defs)))
           (SINIT: left_st = clightlight_initial_state clight_prog mn)
           (TINIT: Clight.initial_state clight_prog right_st)
@@ -109,12 +108,16 @@ Section PROOFSINGLE.
     grind. unfold ITree.map. sim_red.
 
     destruct (alist_find "main" _) eqn:FOUNDMAIN;[|sim_triggerUB]. ss.
-    sim_red. rewrite alist_find_map_snd in FOUNDMAIN. uo. des_ifs.
+    rewrite alist_find_find_some in FOUNDMAIN. rewrite find_map in FOUNDMAIN. uo; des_ifs; ss.
+    destruct p. inv H0.
+    
 
+    sim_red. rewrite alist_find_map_snd in FOUNDMAIN. uo. des_ifs.
     (* simpl ModL.enclose in wf_fnsems. set (ClightPlusSkel.sort _) as sk_canon in *.
     replace (ModSemL.fnsems _) with ((ModSemL.fnsems (MemSem sk_canon)) ++ (ModSemL.fnsems (modsem clight_prog mn sk_canon))) in wf_fnsems by ss.
     rewrite map_app in wf_fnsems. hexploit nodup_app_r; et. *)
     rewrite <- NoDup_norepeat in WFDEF2.
+    apply alist_find_find_some in 
     apply alist_find_some in Heq.
     set (fun f => cfunU (E:=Es) (fun vl => if type_eq (type_of_function f) (Tfunction Ctypes.Tnil type_int32s cc_default)
                                            then v <- decomp_func (get_sk (clight_prog.(prog_defs))) (get_ce clight_prog) f vl;; 
@@ -177,7 +180,7 @@ Section PROOFSINGLE.
           i. des_ifs_safe. sim_redE. et. } } }
   Qed.
 
-  Theorem single_compile_program_improves
+  (* Theorem single_compile_program_improves
           (types: list Ctypes.composite_definition)
           (defs: list (AST.ident * AST.globdef Clight.fundef Ctypes.type))
           (public: list AST.ident)
@@ -241,12 +244,12 @@ Section PROOFSINGLE.
     { unfold Genv.find_funct_ptr. rewrite H3. et. }
     admit "hypothesis".
     Unshelve. inv Heq0.
-  Qed.
+  Qed. *)
 
 End PROOFSINGLE.
 
 
-
+(* 
 
   Definition init_data_list_aligned_dec p il :{Genv.init_data_list_aligned p il} + {~ Genv.init_data_list_aligned p il}.
   Proof.
@@ -267,4 +270,4 @@ End PROOFSINGLE.
                         then match l with
                         else false
     | _ :: l' => mem_init_condition sk l'
-    end
+    end *)

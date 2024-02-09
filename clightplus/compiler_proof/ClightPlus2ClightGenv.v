@@ -9,12 +9,12 @@ Require Import Any.
 Require Import ModSem.
 Require Import AList.
 
+Require Import ClightPlusExprgen.
 Require Import ClightPlusgen.
 Require Import ClightPlus2ClightMatchEnv.
 
 From compcert Require Import Ctypes Clight Clightdefs.
 
-Import Permutation.
 
 Set Implicit Arguments.
 
@@ -24,30 +24,23 @@ Section GENV.
 
   Variable prog : program.
   Variable sk : Sk.t.
-  Let types : list composite_definition := prog.(prog_types).
-  Let defs : list (ident * globdef fundef type) := prog.(prog_defs).
+  Variable defs : list (ident * globdef fundef type).
+  (* Let types : list composite_definition := prog.(prog_types).
   Let public : list ident := prog.(prog_public).
   Let _main : ident := prog.(prog_main).
-  Let ce := List.map (map_fst string_of_ident) (PTree.elements prog.(prog_comp_env)).
+  Let ce := List.map (map_fst string_of_ident) (PTree.elements prog.(prog_comp_env)). *)
 
-  (* Lemma found_itree_clight_function
-        (fn: string) 
-        (i: list Values.val -> itree Es Values.val) 
-        (mn: string) (p: ident)
+  Lemma found_itree_clight_function s i
+        (mn: string) 
         (FOUND : find
-                    ((fun '(k2, _) => fn ?[ eq ] k2) <*>
+                    ((fun '(k2, _) => s ?[ eq ] k2) <*>
                      map_snd
-                      (fun sem => transl_all mn (T:=Any.t) ∘ sem) <*>
-                     (fun '(fn, f) => (fn, cfunU f)))
-                    (decomp_fundefs prog sk defs) = 
-                 Some (p, i))
+                      (fun sem => transl_all mn (T:= Any.t) ∘ sem))
+                    (decomp_fundefs prog sk defs) = Some (s, i))
     :
-      string_of_ident p = fn /\ In (p, i) (decomp_fundefs prog sk defs).
+     exists p, p2s p = s /\ In (s, i) (decomp_fundefs prog sk defs).
   Proof.
-    apply find_some in FOUND. des. split; et.
-    unfold "<*>" in FOUND0. ss. rewrite eq_rel_dec_correct in FOUND0.
-    des_ifs.
-  Qed. *)
+  Admitted.
 
   (* Lemma decomp_fundefs_decomp_func i p
         (INLEFT: In (p, i) (decomp_fundefs prog sk defs)) 
@@ -78,7 +71,7 @@ Section GENV.
     :
       gd1 = gd2.
   Proof.
-    assert (AST.prog_defs prog = defs) by now
+    (* assert (AST.prog_defs prog = defs) by now
       unfold mkprogram, build_composite_env' in *; des_ifs.
     assert (prog_defs prog = defs) by now
       unfold mkprogram, build_composite_env' in *; des_ifs.
@@ -86,7 +79,8 @@ Section GENV.
     { unfold prog_defs_names. rewrite H. auto. }
     { eauto. }
     i. apply Genv.find_def_symbol in H1. des. clarify.
-  Qed.
+  Qed. *)
+  Admitted.
 
   Lemma tgt_genv_find_def_by_blk
         ident b gd 
@@ -96,7 +90,7 @@ Section GENV.
     :
       Genv.find_def (Genv.globalenv prog) b = Some gd.
   Proof.
-    assert (AST.prog_defs prog = defs) by now
+    (* assert (AST.prog_defs prog = defs) by now
       unfold mkprogram, build_composite_env' in *; des_ifs.
     assert (prog_defs prog = defs) by now
       unfold mkprogram, build_composite_env' in *; des_ifs.
@@ -104,6 +98,7 @@ Section GENV.
     { unfold prog_defs_names. rewrite H. auto. }
     { eauto. }
     i. apply Genv.find_def_symbol in H1. des. clarify.
-  Qed.
+  Qed. *)
+  Admitted.
 
 End GENV.
