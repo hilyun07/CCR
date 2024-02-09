@@ -441,7 +441,7 @@ Section SMOD.
     [
      (* ("encrypt",  mk_pure encrypt_spec);
      ("decrypt",  mk_pure decrypt_spec); *)
-     (p2s _delete_hd, mk_pure add_hd_spec);
+     (p2s _add_hd, mk_pure add_hd_spec);
      (p2s _add_tl, mk_pure add_tl_spec);
      (p2s _delete_hd, mk_pure delete_hd_spec);
      (p2s _delete_tl, mk_pure delete_tl_spec)

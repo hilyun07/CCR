@@ -91,6 +91,32 @@ Section PROOF.
       (p2s _add_tl, fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
       (p2s _add_tl, cfunU (decomp_func sk ce f_add_tl)).
   Proof.
+  Admitted.
+  Require Import ClightPlusMem01Proof.
+  Theorem correct : refines2 [xorlist0.xor; ClightPlusMem0.Mem] [xorlist1.xor GlobalStb; ClightPlusMem1.Mem].
+  Proof.
+    eapply adequacy_local_strong_l. econs; cycle 1.
+    { econs; ss. econs; ss. }
+    i. econs; ss; cycle 1.
+    { econs; ss. apply correct_mod; et. inv SKINCL. inv H6. ss. }
+    econstructor 1 with (wf := wf) (le := top2); et; ss; cycle 1.
+    { eexists. econs. apply to_semantic. iIntros. et. }
+    (* each functions has simulation relation *)
+    econs; cycle 1.
+    econs; cycle 1.
+    econs; cycle 1.
+    econs; cycle 1.
+    econs; et.
+    3:{ destruct Pos.eq_dec; clarify. replace (fun vl => decomp_func sk ce f_add_tl vl) with (decomp_func sk ce f_add_tl).
+     apply sim_add_tl.
+    2: destruct Pos.eq_dec; clarify. }
+    all: des_ifs; inv SKINCL; inv H6; ss.
+
+  Lemma sim_add_tl :
+    sim_fnsem wf top2
+      (p2s _add_tl, fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
+      (p2s _add_tl, cfunU (decomp_func sk ce f_add_tl)).
+  Proof.
     Opaque encode_val.
     Opaque cast_to_ptr.
     econs; ss. red.
@@ -884,7 +910,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV2.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r.
+      i. des. ss. change (p2s _free) with "free". rewrite FIND. rename FIND into free_loc. hred_r.
 
       iPoseProof ((@point_cast_ptr _ _ _ _ Es) with "tl_point_item") as "%".
       rewrite H3. rename H3 into tl_old_cast. hred_r. des_ifs_safe. clear e.
@@ -971,7 +997,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV2.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r. 
+      i. des. ss. change (p2s _free) with "free". rewrite FIND. rename FIND into free_loc. hred_r. 
       rewrite tl_old_cast. hred_r.
       destruct (Ptrofs.eq_dec) eqn:?; clarify. clear e Heqs.
       replace (pred _) with blk by nia.
@@ -1173,7 +1199,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV2.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r.
+      i. des. ss. change (p2s _free) with "free". rewrite FIND. rename FIND into free_loc. hred_r.
 
       iPoseProof ((@point_cast_ptr _ _ _ _ Es) with "hd_point_item") as "%".
       rewrite H3. rename H3 into hd_old_cast. hred_r. des_ifs_safe. clear e.
@@ -1259,7 +1285,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV2.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r. 
+      i. des. ss. change (p2s _free) with "free". rewrite FIND. rename FIND into free_loc. hred_r. 
       rewrite hd_old_cast. hred_r.
       destruct (Ptrofs.eq_dec) eqn:?; clarify. clear e Heqs.
       replace (pred _) with blk by nia.
