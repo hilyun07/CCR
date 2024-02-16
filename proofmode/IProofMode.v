@@ -33,11 +33,10 @@ Section SIM.
   Variable le: relation world.
   Variable I: world -> Any.t -> Any.t -> iProp.
 
-  Variable mn: mname.
   Variable stb: gname -> option fspec.
   Variable o: ord.
 
-  Let _hsim := _hsim le I mn stb o.
+  Let _hsim := _hsim le I stb o.
 
   Variant fn_has_spec (fn: gname) (arg_src: Any.t) (arg_tgt: Any.t)
           (pre: iProp)
@@ -47,8 +46,8 @@ Section SIM.
       fsp (x: fsp.(meta))
       (STB: stb fn = Some fsp)
       (MEASURE: ord_lt (fsp.(measure) x) o)
-      (PRE: bi_entails pre (#=> fsp.(precond) (Some mn) x arg_src arg_tgt))
-      (POST: forall ret_src ret_tgt, bi_entails (fsp.(postcond) (Some mn) x ret_src ret_tgt: iProp) (#=> post ret_src ret_tgt))
+      (PRE: bi_entails pre (#=> fsp.(precond) x arg_src arg_tgt))
+      (POST: forall ret_src ret_tgt, bi_entails (fsp.(postcond) x ret_src ret_tgt: iProp) (#=> post ret_src ret_tgt))
       (TBR: tbr = is_pure (fsp.(measure) x))
   .
 
@@ -60,8 +59,8 @@ Section SIM.
     :
       fn_has_spec
         fn arg_src arg_tgt
-        (fsp.(precond) (Some mn) x arg_src arg_tgt)
-        (fsp.(postcond) (Some mn) x)
+        (fsp.(precond) x arg_src arg_tgt)
+        (fsp.(postcond) x)
         tbr.
   Proof.
     econs; eauto.
@@ -724,7 +723,7 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, true, f_tgt) Q None (st_src1, ktr_src tt) (st_tgt, itr_tgt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src0, trigger (PPut st_src1) >>= ktr_src) (st_tgt, itr_tgt)).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src0, trigger (sPut st_src1) >>= ktr_src) (st_tgt, itr_tgt)).
   Proof.
     eapply isim_final. i. eapply hsimC_uclo. econs; eauto.
     eapply isim_current; eauto.
@@ -737,9 +736,9 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, true, f_tgt) Q None (st_src1, Ret tt) (st_tgt, itr_tgt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src0, trigger (PPut st_src1)) (st_tgt, itr_tgt)).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src0, trigger (sPut st_src1)) (st_tgt, itr_tgt)).
   Proof.
-    erewrite (@idK_spec _ _ (trigger (PPut st_src1))).
+    erewrite (@idK_spec _ _ (trigger (sPut st_src1))).
     iIntros "H". iApply isim_pput_src. iApply "H".
   Qed.
 
@@ -750,7 +749,7 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, true, f_tgt) Q None (st_src, ktr_src st_src) (st_tgt, itr_tgt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src, trigger (PGet) >>= ktr_src) (st_tgt, itr_tgt)).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src, trigger (sGet) >>= ktr_src) (st_tgt, itr_tgt)).
   Proof.
     eapply isim_final. i. eapply hsimC_uclo. econs; eauto.
     eapply isim_current; eauto.
@@ -763,9 +762,9 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, true, f_tgt) Q None (st_src, Ret st_src) (st_tgt, itr_tgt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src, trigger (PGet)) (st_tgt, itr_tgt)).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src, trigger (sGet)) (st_tgt, itr_tgt)).
   Proof.
-    erewrite (@idK_spec _ _ (trigger (PGet))).
+    erewrite (@idK_spec _ _ (trigger (sGet))).
     iIntros "H". iApply isim_pget_src. iApply "H".
   Qed.
 
@@ -776,7 +775,7 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, f_src, true) Q fuel (st_src, itr_src) (st_tgt1, ktr_tgt tt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt0, trigger (PPut st_tgt1) >>= ktr_tgt)).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt0, trigger (sPut st_tgt1) >>= ktr_tgt)).
   Proof.
     eapply isim_final. i. eapply hsimC_uclo. econs; eauto.
     eapply isim_current; eauto.
@@ -789,9 +788,9 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, f_src, true) Q fuel (st_src, itr_src) (st_tgt1, Ret tt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt0, trigger (PPut st_tgt1))).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt0, trigger (sPut st_tgt1))).
   Proof.
-    erewrite (@idK_spec _ _ (trigger (PPut st_tgt1))).
+    erewrite (@idK_spec _ _ (trigger (sPut st_tgt1))).
     iIntros "H". iApply isim_pput_tgt. iApply "H".
   Qed.
 
@@ -802,7 +801,7 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, f_src, true) Q fuel (st_src, itr_src) (st_tgt, ktr_tgt st_tgt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt, trigger (PGet) >>= ktr_tgt)).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt, trigger (sGet) >>= ktr_tgt)).
   Proof.
     eapply isim_final. i. eapply hsimC_uclo. econs; eauto.
     eapply isim_current; eauto.
@@ -815,9 +814,9 @@ Section SIM.
     :
       bi_entails
         (isim (r, g, f_src, true) Q fuel (st_src, itr_src) (st_tgt, Ret st_tgt))
-        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt, trigger (PGet))).
+        (isim (r, g, f_src, f_tgt) Q fuel (st_src, itr_src) (st_tgt, trigger (sGet))).
   Proof.
-    erewrite (@idK_spec _ _ (trigger (PGet))).
+    erewrite (@idK_spec _ _ (trigger (sGet))).
     iIntros "H". iApply isim_pget_tgt. iApply "H".
   Qed.
 
@@ -1182,14 +1181,13 @@ Section TRIVIAL.
     unfold world_wf_trivial. auto.
   Qed.
 
-  Variable mn: mname.
   Variable stb: gname -> option fspec.
   Variable o: ord.
 
   Definition isim_trivial {R} (Q: R -> iProp) (p: itree Es R): iProp :=
     (∃ fuel,
         isim
-          world_le_trivial world_wf_trivial mn stb o
+          world_le_trivial world_wf_trivial stb o
           (bot9, bot9, false, false)
           (fun st_src st_tgt ret_src ret_tgt =>
              (Q ret_tgt ** ⌜st_src = Any.upcast tt /\ st_tgt = Any.upcast tt⌝))
@@ -1206,7 +1204,7 @@ Section TRIVIAL.
            **
            isim_trivial (fun ret => Q (Any.upcast tt) (Any.upcast tt) tt ret) itr)
         (isim
-           world_le_trivial world_wf_trivial mn stb o
+           world_le_trivial world_wf_trivial stb o
            (r, g, f_src, f_tgt)
            Q
            fuel
@@ -1233,7 +1231,7 @@ Section TRIVIAL.
     :
       bi_entails
         (isim
-           world_le_trivial world_wf_trivial mn stb o
+           world_le_trivial world_wf_trivial stb o
            (bot9, bot9, false, false)
            (fun st_src st_tgt ret_src ret_tgt =>
               (Q ret_tgt ** ⌜st_src = Any.upcast tt /\ st_tgt = Any.upcast tt⌝))
@@ -1286,7 +1284,7 @@ Section TRIVIAL.
            **
            isim_trivial (fun ret => Q (Any.upcast tt) (Any.upcast tt) ret ret) itr)
         (isim
-           world_le_trivial world_wf_trivial mn stb o
+           world_le_trivial world_wf_trivial stb o
            (r, g, f_src, f_tgt)
            Q
            fuel
@@ -1401,13 +1399,13 @@ Section TRIVIAL.
                    forall fuel0,
                      bi_entails
                        (isim
-                          world_le_trivial world_wf_trivial mn stb o
+                          world_le_trivial world_wf_trivial stb o
                           (bot9, bot9, false, false)
                           (λ (st_src0 st_tgt0 : Any.t) (_ : ()) (ret_tgt0 : S),
                            Q ret_tgt0 ** ⌜st_src0 = Any.upcast tt ∧ st_tgt0 = Any.upcast tt⌝)
                           (Some fuel0) (Any.upcast tt, Ret tt) (Any.upcast tt, ktr ret))
                        (isim
-                          world_le_trivial world_wf_trivial mn stb o
+                          world_le_trivial world_wf_trivial stb o
                           (bot9, bot9, false, false)
                           (λ (st_src0 st_tgt0 : Any.t) (_ : ()) (ret_tgt0 : S),
                            Q ret_tgt0 ** ⌜st_src0 = Any.upcast tt ∧ st_tgt0 = Any.upcast tt⌝)
@@ -1420,7 +1418,7 @@ Section TRIVIAL.
     hexploit (H ret_tgt).
     { hexploit (ord_exist_iProp_mon (fun o0 =>
                                        isim
-                                         world_le_trivial world_wf_trivial mn stb o
+                                         world_le_trivial world_wf_trivial stb o
                                          (bot9, bot9, false, false)
                                          (λ (st_src0 st_tgt0 : Any.t) (_ : ()) (ret_tgt0 : S),
                                           Q ret_tgt0 ** ⌜st_src0 = Any.upcast tt ∧ st_tgt0 = Any.upcast tt⌝)
@@ -1491,7 +1489,7 @@ Section TRIVIAL.
         pre post
         (Q: Any.t -> iProp)
         fn arg_src arg_tgt
-        (SPEC: fn_has_spec mn stb o fn arg_src arg_tgt pre post true)
+        (SPEC: fn_has_spec stb o fn arg_src arg_tgt pre post true)
     :
       bi_entails
         ((pre: iProp)
@@ -1519,7 +1517,7 @@ Section TRIVIAL.
         A R
         (Q: R -> iProp)
         fn arg_src (arg_tgt: A)
-        (SPEC: fn_has_spec mn stb o fn arg_src (Any.upcast arg_tgt) pre post true)
+        (SPEC: fn_has_spec stb o fn arg_src (Any.upcast arg_tgt) pre post true)
     :
       bi_entails
         ((pre: iProp)
@@ -1646,32 +1644,32 @@ Section ADEQUACY.
   Context `{Σ: GRA.t}.
 
   Lemma isim_fun_to_tgt_aux
-        A wf (le: A -> A -> Prop) `{PreOrder _ le} mn stb
+        A wf (le: A -> A -> Prop) `{PreOrder _ le} stb
         f_src f_tgt w
         (fsp: fspecbody) x y f st_src st_tgt
         (EQ: x = y)
         (WF: mk_wf wf w (st_src, st_tgt))
-        (ISIM: forall w (x: fsp.(meta)) mn_caller arg_src arg_tgt st_src st_tgt,
+        (ISIM: forall w (x: fsp.(meta)) arg_src arg_tgt st_src st_tgt,
             bi_entails
-              ((inv_with le wf w st_src st_tgt) ** (fsp.(precond) mn_caller x arg_src arg_tgt: iProp))
+              ((inv_with le wf w st_src st_tgt) ** (fsp.(precond) x arg_src arg_tgt: iProp))
               (isim
-                 le wf mn stb (fsp.(measure) x)
+                 le wf stb (fsp.(measure) x)
                  (bot9, bot9, true, f_tgt)
                  (fun st_src st_tgt ret_src ret_tgt =>
-                    (inv_with le wf w st_src st_tgt) ** (fsp.(postcond) mn_caller x ret_src ret_tgt: iProp))
+                    (inv_with le wf w st_src st_tgt) ** (fsp.(postcond) x ret_src ret_tgt: iProp))
                  None
                  (st_src, match fsp.(measure) x with
                           | ord_pure _ => _ <- trigger hAPC;; trigger (Choose Any.t)
-                          | ord_top => fsp.(fsb_body) (mn_caller, arg_src)
-                          end) (st_tgt, f (mn_caller, arg_tgt))))
+                          | ord_top => fsp.(fsb_body) arg_src
+                          end) (st_tgt, f arg_tgt)))
     :
       sim_itree
         (mk_wf wf) le
         f_src f_tgt
         w
-        (st_src, fun_to_tgt mn stb fsp x) (st_tgt, f y).
+        (st_src, fun_to_tgt stb fsp x) (st_tgt, f y).
   Proof.
-    subst. destruct y as [mn_caller arg].
+    subst. rename y into arg.
     ginit. unfold fun_to_tgt. rewrite HoareFun_parse. harg.
     gfinal. right. eapply hsim_adequacy; auto.
     ginit. eapply isim_init; [clear ACC|eapply ACC]. start_ipm_proof.
@@ -1680,30 +1678,30 @@ Section ADEQUACY.
   Qed.
 
   Lemma isim_fun_to_tgt
-        A wf (le: A -> A -> Prop) `{PreOrder _ le} mn stb
+        A wf (le: A -> A -> Prop) `{PreOrder _ le} stb
         (fsp: fspecbody) f
-        (ISIM: forall w (x: fsp.(meta)) mn_caller arg_src arg_tgt st_src st_tgt,
+        (ISIM: forall w (x: fsp.(meta)) arg_src arg_tgt st_src st_tgt,
             bi_entails
-              ((inv_with le wf w st_src st_tgt) ** (fsp.(precond) mn_caller x arg_src arg_tgt: iProp))
+              ((inv_with le wf w st_src st_tgt) ** (fsp.(precond) x arg_src arg_tgt: iProp))
               (isim
-                 le wf mn stb (fsp.(measure) x)
+                 le wf stb (fsp.(measure) x)
                  (bot9, bot9, true, false)
                  (fun st_src st_tgt ret_src ret_tgt =>
-                    (inv_with le wf w st_src st_tgt) ** (fsp.(postcond) mn_caller x ret_src ret_tgt: iProp))
+                    (inv_with le wf w st_src st_tgt) ** (fsp.(postcond) x ret_src ret_tgt: iProp))
                  None
                  (st_src, match fsp.(measure) x with
                           | ord_pure _ => _ <- trigger hAPC;; trigger (Choose Any.t)
-                          | ord_top => fsp.(fsb_body) (mn_caller, arg_src)
-                          end) (st_tgt, f (mn_caller, arg_tgt))))
+                          | ord_top => fsp.(fsb_body) arg_src
+                          end) (st_tgt, f arg_tgt)))
     :
       sim_fsem (mk_wf wf) le
-               (fun_to_tgt mn stb fsp) f.
+               (fun_to_tgt stb fsp) f.
   Proof.
     ii. eapply isim_fun_to_tgt_aux; eauto.
   Qed.
 
-  Lemma isim_fun_to_tgt_open
-        A wf (le: A -> A -> Prop) `{PreOrder _ le} mn stb
+  (* Lemma isim_fun_to_tgt_open
+        A wf (le: A -> A -> Prop) `{PreOrder _ le} stb
         (ksp: kspecbody) f
         (FRIEND: forall w (x: ksp.(meta)) mn_caller arg_src arg_tgt st_src st_tgt,
             bi_entails
@@ -1759,5 +1757,6 @@ Section ADEQUACY.
   Proof.
     eapply isim_fun_to_tgt_open; ss; auto. i.
     iIntros "[H0 %]". subst. iApply CONTEXT. iApply "H0".
-  Qed.
+  Qed. *)
+
 End ADEQUACY.
