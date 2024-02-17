@@ -1,4 +1,4 @@
-Require Import CoqlibCCR.
+(* Require Import CoqlibCCR.
 Require Import ITreelib.
 Require Import Any.
 Require Import String.
@@ -10,7 +10,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import ProofMode.
 Require Import HoareDef Hoare.
-Require Import OpenDef.
+(* Require Import OpenDef. *)
 Require Import IRed.
 Require Import SimModSem.
 
@@ -190,7 +190,7 @@ Section ITREEAUX.
 End ADDTAU.
 End ITREEAUX.
 Goal forall `{eventE -< E} X, (addtau (E:=E) (T:=X) triggerUB) = tau;; triggerUB.
-Proof. i. my_red_both. refl. Qed.
+Proof. i. ired_both. refl. Qed.
 
 
 
@@ -208,8 +208,7 @@ Section MODAUX.
 
   Definition addtau_ms (ms: ModSem.t): ModSem.t := {|
     ModSem.fnsems := map (map_snd (addtau_ktr(T:=_))) ms.(ModSem.fnsems);
-    ModSem.mn := ms.(ModSem.mn);
-    ModSem.initial_st := ms.(ModSem.initial_st);
+    ModSem.init_st := ms.(ModSem.init_st);
   |}
   .
 
@@ -242,9 +241,8 @@ Section MODAUX.
         steps. destruct e.
         { destruct c. resub. steps. deflag. gbase. eapply CIH. }
         destruct s.
-        { resub. destruct p.
-          { steps. deflag. gbase. eapply CIH. }
-          { steps. deflag. gbase. eapply CIH. }
+        { resub. destruct s.
+          steps. deflag. gbase. eapply CIH. 
         }
         { resub. destruct e.
           { steps. force_l. exists x. steps. deflag. gbase. eapply CIH. }
@@ -254,8 +252,6 @@ Section MODAUX.
       }
     }
     { ss. }
-    { exists tt. ss. }
-    Unshelve. all: try exact 0.
   Qed.
 
   Theorem adequacy_rmtau
@@ -278,9 +274,8 @@ Section MODAUX.
       { rewrite <- bind_trigger. resub. steps. destruct e.
         { destruct c. resub. steps. deflag. gbase. eapply CIH. }
         destruct s.
-        { resub. destruct p.
-          { steps. deflag. gbase. eapply CIH. }
-          { steps. deflag. gbase. eapply CIH. }
+        { resub. destruct s.
+          steps. deflag. gbase. eapply CIH.
         }
         { resub. destruct e.
           { steps. force_l. eexists. deflag. gbase. eapply CIH. }
@@ -290,15 +285,13 @@ Section MODAUX.
       }
     }
     { ss. }
-    { exists tt. ss. }
-    Unshelve. all: try exact 0.
   Qed.
 End MODAUX.
 
 
 
 
-
+(* 
 Module Massage.
 Section MASSAGE.
   Context {CONF: EMSConfig}.
@@ -1753,4 +1746,4 @@ Section WEAKEN.
     exists tt. esplits; et.
   Qed.
 
-End WEAKEN.
+End WEAKEN. *)

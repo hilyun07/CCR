@@ -1,4 +1,4 @@
-Require Import CoqlibCCR.
+(* Require Import Coqlib.
 Require Import ITreelib.
 Require Import Any.
 Require Import STS.
@@ -426,4 +426,4 @@ Section KMOD.
 End KMOD.
 End KMod.
 
-Arguments in_dec: simpl never.
+Arguments in_dec: simpl never. *)
