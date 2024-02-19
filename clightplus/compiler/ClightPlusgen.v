@@ -556,7 +556,9 @@ Section DECOMP_PROG.
     Mod.sk := get_sk defs;
   |}.
 
-End DECOMP_PROG.  
+End DECOMP_PROG.
+
+Arguments cfunU /.
 
 (* Section EXECUTION_STRUCTURE. *)
 (*   (*   execution modules consist of modules executes in sites independently  *) *)

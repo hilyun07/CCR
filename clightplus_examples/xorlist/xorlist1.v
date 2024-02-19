@@ -448,7 +448,6 @@ Section SMOD.
   
   Definition SxorSem : SModSem.t := {|
     SModSem.fnsems := xorSbtb;
-    SModSem.mn := "xorlist";
     SModSem.initial_mr := ε;
     SModSem.initial_st := tt↑;
   |}.

@@ -1,8 +1,20 @@
-Require Import CoqlibCCR.
+Require Import CoqlibCCR AList.
 From compcert Require Import AST Integers Values Memory Globalenvs.
 From stdpp Require Import numbers.
 
 Local Open Scope Z.
+
+Global Program Instance option_Dec A `{Dec A}: Dec (option A).
+Next Obligation.
+Proof.
+  i. destruct a0, a1.
+  - destruct (H a a0).
+    + left. f_equal. apply e.
+    + right. ii. inversion H0. et.
+  - right. ss.
+  - right. ss.
+  - left. refl.
+Defined.
 
 Lemma repeat_nth_some
   X (x: X) n ofs

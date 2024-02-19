@@ -17,8 +17,6 @@ Section MEM.
   Variable le: relation world.
   Variable I: world -> Any.t -> Any.t -> iProp.
 
-  Variable mn: mname.
-
   Lemma isim_ccallU_salloc
         o stb w0 fuel1
         R_src R_tgt
@@ -38,8 +36,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
             ** (⌜m.(sz) = n /\ m.(blk) = Some b⌝ ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat n) ** vaddr (⊨_m,Local,1) Ptrofs.zero))
 
-            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt b )))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "salloc" n >>= ktr_tgt)).
+            -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt b )))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "salloc" n >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -79,8 +77,8 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt))
               
-            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sfree" (ob, size) >>= ktr_tgt)).
+            -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sfree" (ob, size) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -124,8 +122,8 @@ Section MEM.
              ** (vaddr (↦_m,q1) mvs
                 ** vaddr (⊨_m,tg,q0) ofs))
 
-             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (decode_val chunk mvs))))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "load" (chunk, vaddr) >>= ktr_tgt)).
+             -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (decode_val chunk mvs))))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "load" (chunk, vaddr) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -169,8 +167,8 @@ Section MEM.
              ** (vaddr (↦_m,1) (encode_val chunk v_new)
                 ** vaddr (⊨_m,tg,q) ofs))
 
-            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "store" (chunk, vaddr, v_new) >>= ktr_tgt)).
+            -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "store" (chunk, vaddr, v_new) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -207,8 +205,8 @@ Section MEM.
         ** (∀ st_src st_tgt,
             (inv_with le I w0 st_src st_tgt)
             
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (match c with Ceq | Cle | Cge => true | _ => false end))))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, Vnullptr, Vnullptr) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (match c with Ceq | Cle | Cge => true | _ => false end))))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, Vnullptr, Vnullptr) >>= ktr_tgt)).
   Proof.
     iIntros "[H0 H1]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -242,8 +240,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
               ** vaddr (⊨_m,tg,q) ofs)
 
-            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, Vnullptr, vaddr) >>= ktr_tgt)).
+            -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, Vnullptr, vaddr) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -283,8 +281,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt) 
              ** (vaddr (⊨_m,tg,q) ofs))
            
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, Vnullptr, vaddr) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, Vnullptr, vaddr) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -324,8 +322,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (⊨_m,tg,q) ofs))
              
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr, Vnullptr) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr, Vnullptr) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -365,8 +363,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt) 
              ** (vaddr (⊨_m,tg,q) ofs))
 
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, vaddr, Vnullptr) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, vaddr, Vnullptr) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -409,8 +407,8 @@ Section MEM.
              ** (vaddr0 (⊨_m,tg,q0) ofs0
                 ** vaddr1 (⊨_m,tg,q1) ofs1))
               
-          -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (cmp_ofs c (Ptrofs.unsigned ofs0) (Ptrofs.unsigned ofs1)))))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, vaddr0, vaddr1) >>= ktr_tgt)).
+          -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (cmp_ofs c (Ptrofs.unsigned ofs0) (Ptrofs.unsigned ofs1)))))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -455,8 +453,8 @@ Section MEM.
              ** (vaddr0 (⊨_m0,tg0,q0) ofs0
                 ** vaddr1 (⊨_m1,tg1,q1) ofs1))
 
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr0, vaddr1) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -502,8 +500,8 @@ Section MEM.
                 ** vaddr1 (⊨_m1,tg1,q1) ofs1))
               
               
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, vaddr0, vaddr1) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -550,8 +548,8 @@ Section MEM.
             ** vaddr0 (⊨_m,tg,q0) ofs0
             ** vaddr1 (⊨_m,tg,q1) ofs1)
                 
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs (Ptrofs.repr (Z.quot (Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1) size))))))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sub_ptr" (size, vaddr0, vaddr1) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs (Ptrofs.repr (Z.quot (Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1) size))))))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sub_ptr" (size, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -594,8 +592,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
              ** vaddr (⊨_m,tg,q) ofs)
 
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "non_null?" vaddr >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "non_null?" vaddr >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -636,8 +634,8 @@ Section MEM.
                 ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat (Ptrofs.unsigned n))
                 ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero)) 
                     
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt vaddr)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "malloc" [Vptrofs n] >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt vaddr)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "malloc" [Vptrofs n] >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -677,8 +675,8 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)) 
             
-        -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "free" [vaddr] >>= ktr_tgt)).
+        -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "free" [vaddr] >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -729,8 +727,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
             ** (vaddr' (⊨_m_src,tg',q') ofs_src ** vaddr (⊨_m_dst,tg,q) ofs_dst ** vaddr' (↦_m_src,qp) mvs_src ** vaddr (↦_m_dst,1) mvs_src))
               
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr']) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr']) >>= ktr_tgt)).
   Proof.
     iIntros "[[H0 H2] H1]".
     iDestruct "H2" as (mvs_dst) "[[[[% H5] H4] H3] H2]".
@@ -774,8 +772,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
             ** (vaddr (⊨_m_dst,tg,q) ofs_dst ** vaddr (↦_m_dst,1) mvs_dst))
               
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr]) >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr]) >>= ktr_tgt)).
   Proof.
     iIntros "[[H0 H2] H1]".
     iDestruct "H2" as "[[% H5] H4]".
@@ -811,8 +809,8 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt))
             
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vnullptr)))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "capture" [Vnullptr] >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vnullptr)))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "capture" [Vnullptr] >>= ktr_tgt)).
   Proof.
     iIntros "[H0 H1]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
@@ -850,8 +848,8 @@ Section MEM.
               ** (vaddr (⊨_m,tg,q) ofs 
                   ** vaddr (≃_m) (Vptrofs i)))
             
-           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs i)))))
-        (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "capture" [vaddr] >>= ktr_tgt)).
+           -* isim le I stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs i)))))
+        (isim le I stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "capture" [vaddr] >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.

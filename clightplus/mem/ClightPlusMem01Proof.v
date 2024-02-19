@@ -724,7 +724,7 @@ Section SIMMODSEM.
 
   Lemma sim_salloc :
     sim_fnsem wf top2
-      ("salloc", fun_to_tgt "Mem" (to_stb []) (mk_pure salloc_spec))
+      ("salloc", fun_to_tgt (to_stb []) (mk_pure salloc_spec))
       ("salloc", cfunU sallocF).
   Proof.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
@@ -830,7 +830,7 @@ Section SIMMODSEM.
 
   Lemma sim_sfree :
     sim_fnsem wf top2
-      ("sfree", fun_to_tgt "Mem" (to_stb []) (mk_pure sfree_spec))
+      ("sfree", fun_to_tgt (to_stb []) (mk_pure sfree_spec))
       ("sfree", cfunU sfreeF).
   Proof.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
@@ -935,7 +935,7 @@ Section SIMMODSEM.
 
   Lemma sim_load :
     sim_fnsem wf top2
-      ("load", fun_to_tgt "Mem" (to_stb []) (mk_pure load_spec))
+      ("load", fun_to_tgt (to_stb []) (mk_pure load_spec))
       ("load", cfunU loadF).
   Proof.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
@@ -1067,7 +1067,7 @@ Section SIMMODSEM.
 
   Lemma sim_store :
     sim_fnsem wf top2
-      ("store", fun_to_tgt "Mem" (to_stb []) (mk_pure store_spec))
+      ("store", fun_to_tgt (to_stb []) (mk_pure store_spec))
       ("store", cfunU storeF).
   Proof.
     Local Transparent Mem.store.
@@ -1266,7 +1266,7 @@ Section SIMMODSEM.
 
   Lemma sim_sub_ptr :
     sim_fnsem wf top2
-      ("sub_ptr", fun_to_tgt "Mem" (to_stb []) (mk_pure sub_ptr_spec))
+      ("sub_ptr", fun_to_tgt (to_stb []) (mk_pure sub_ptr_spec))
       ("sub_ptr", cfunU sub_ptrF).
   Proof.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
@@ -1422,7 +1422,7 @@ Section SIMMODSEM.
 
   Lemma sim_cmp_ptr :
     sim_fnsem wf top2
-      ("cmp_ptr", fun_to_tgt "Mem" (to_stb []) (mk_pure cmp_ptr_spec))
+      ("cmp_ptr", fun_to_tgt (to_stb []) (mk_pure cmp_ptr_spec))
       ("cmp_ptr", cfunU cmp_ptrF).
   Proof.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
@@ -2916,7 +2916,7 @@ Section SIMMODSEM.
 
   Lemma sim_non_null :
     sim_fnsem wf top2
-      ("non_null?", fun_to_tgt "Mem" (to_stb []) (mk_pure non_null_spec))
+      ("non_null?", fun_to_tgt (to_stb []) (mk_pure non_null_spec))
       ("non_null?", cfunU non_nullF).
   Proof.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
@@ -2981,7 +2981,7 @@ Section SIMMODSEM.
 
   Lemma sim_memcpy :
     sim_fnsem wf top2
-      ("memcpy", fun_to_tgt "Mem" (to_stb []) (mk_pure memcpy_spec))
+      ("memcpy", fun_to_tgt (to_stb []) (mk_pure memcpy_spec))
       ("memcpy", cfunU memcpyF).
   Proof.
     Local Transparent Mem.loadbytes.
@@ -3436,7 +3436,7 @@ Section SIMMODSEM.
 
   Lemma sim_capture :
     sim_fnsem wf top2
-      ("capture", fun_to_tgt "Mem" (to_stb []) (mk_pure capture_spec))
+      ("capture", fun_to_tgt (to_stb []) (mk_pure capture_spec))
       ("capture", cfunU captureF).
   Proof.
     Local Transparent equiv_prov.
@@ -3587,7 +3587,7 @@ Section SIMMODSEM.
 
   Lemma sim_malloc :
     sim_fnsem wf top2
-      ("malloc", fun_to_tgt "Mem" (to_stb []) (mk_pure malloc_spec))
+      ("malloc", fun_to_tgt (to_stb []) (mk_pure malloc_spec))
       ("malloc", cfunU mallocF).
   Proof.
     Local Opaque encode_val.
@@ -3714,7 +3714,7 @@ Section SIMMODSEM.
 
   Lemma sim_mfree :
     sim_fnsem wf top2
-      ("free", fun_to_tgt "Mem" (to_stb []) (mk_pure mfree_spec))
+      ("free", fun_to_tgt (to_stb []) (mk_pure mfree_spec))
       ("free", cfunU mfreeF).
   Proof.
     Local Transparent Mem.load.

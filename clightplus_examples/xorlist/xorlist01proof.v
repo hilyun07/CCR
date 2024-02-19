@@ -87,7 +87,7 @@ Section PROOF.
 
   Lemma sim_add_tl :
     sim_fnsem wf top2
-      ("add_tl", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
+      ("add_tl", fun_to_tgt (GlobalStb sk) (mk_pure add_tl_spec))
       ("add_tl", cfunU (decomp_func sk ce f_add_tl)).
   Proof.
     Opaque encode_val.
@@ -405,7 +405,7 @@ Section PROOF.
 
   Lemma sim_add_hd :
     sim_fnsem wf top2
-      ("add_hd", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_hd_spec))
+      ("add_hd", fun_to_tgt (GlobalStb sk) (mk_pure add_hd_spec))
       ("add_hd", cfunU (decomp_func sk ce f_add_hd)).
   Proof.
     Opaque encode_val.
@@ -713,7 +713,7 @@ Section PROOF.
 
   Lemma sim_delete_tl :
     sim_fnsem wf top2
-      ("delete_tl", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure delete_tl_spec))
+      ("delete_tl", fun_to_tgt (GlobalStb sk) (mk_pure delete_tl_spec))
       ("delete_tl", cfunU (decomp_func sk ce f_delete_tl)).
   Proof.
     Opaque encode_val.
@@ -1005,7 +1005,7 @@ Section PROOF.
 
   Lemma sim_delete_hd :
     sim_fnsem wf top2
-      ("delete_hd", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure delete_hd_spec))
+      ("delete_hd", fun_to_tgt (GlobalStb sk) (mk_pure delete_hd_spec))
       ("delete_hd", cfunU (decomp_func sk ce f_delete_hd)).
   Proof.
     Opaque encode_val.
@@ -1289,13 +1289,14 @@ Section PROOF.
 
 
 Require Import ClightPlusMem01Proof.
+Require Import SimModSemFacts.
 
   Theorem correct : refines2 [xorlist0.xor; ClightPlusMem0.Mem] [xorlist1.xor GlobalStb; ClightPlusMem1.Mem].
   Proof.
     eapply adequacy_local_strong_l. econs; cycle 1.
     { econs; ss. econs; ss. }
     i. econs; ss; cycle 1.
-    { econs; ss. apply correct_mod; et. inv SKINCL. inv H6. ss. }
+    { econs; ss. hexploit correct_mod. i. inv H3. ss. apply sim_modsem; et. inv SKINCL. inv H6. ss. }
     econstructor 1 with (wf := wf) (le := top2); et; ss; cycle 1.
     { eexists. econs. apply to_semantic. iIntros. et. }
     (* each functions has simulation relation *)
@@ -1313,4 +1314,3 @@ Require Import ClightPlusMem01Proof.
   Qed.
 
 End PROOF.
-
