@@ -90,11 +90,15 @@ Section ADD.
     | _ => es
     end. 
 
+  Definition translate_l := translate emb_l.
+
+  Definition translate_r := translate emb_r.
+
   Definition trans_l '(fn, f): gname * (Any.t -> itree _ Any.t) :=
-    (fn, (fun args => translate emb_l (f args))).
+    (fn, (fun args => translate_l (f args))).
 
   Definition trans_r '(fn, f) : gname * (Any.t -> itree _ Any.t) :=
-    (fn, (fun args => translate emb_r (f args))).
+    (fn, (fun args => translate_r (f args))).
 
   Definition add_fnsems : alist gname (Any.t -> itree _ Any.t) :=
     (List.map trans_l M1.(fnsems)) ++ (List.map trans_r M2.(fnsems)).
@@ -107,6 +111,125 @@ Section ADD.
 
 End ADD.
 
+Lemma transl_embr_bind
+      A B
+      (itr: itree Es A) (ktr: A -> itree Es B)
+  :
+    translate_r (itr >>= ktr) = a <- (translate_r itr);; (translate_r (ktr a))
+.
+Proof. unfold translate_r. rewrite (bisim_is_eq (translate_bind _ _ _)). et. Qed.
+
+Lemma transl_embr_tau
+      A
+      (itr: itree Es A)
+  :
+    translate_r (tau;; itr) = tau;; (translate_r itr)
+.
+Proof. unfold translate_r. rewrite (bisim_is_eq (translate_tau _ _)). et. Qed.
+
+Lemma transl_embr_ret
+      A
+      (a: A)
+  :
+    translate_r (Ret a) = Ret a
+.
+Proof. unfold translate_r. rewrite (bisim_is_eq (translate_ret _ _)). et. Qed.
+
+Lemma transl_embr_callE
+      fn args
+  :
+    translate_r (trigger (Call fn args)) =
+    trigger (Call fn args)
+.
+Proof. unfold translate_r. unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss. do 2 f_equal. extensionalities. apply transl_embr_ret. Qed.
+
+Lemma transl_embr_sE
+      T (run : Any.t -> Any.t * T)
+  :
+    translate_r (trigger (SUpdate run)) = trigger (SUpdate (run_r run))
+.
+Proof. unfold translate_r. unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). do 2 f_equal. extensionalities. apply transl_embr_ret. Qed.
+
+Lemma transl_embr_eventE
+      T (e: eventE T)
+  :
+    translate_r (trigger e) = trigger e
+.
+Proof. unfold translate_r. unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). do 2 f_equal. extensionalities. apply transl_embr_ret. Qed.
+
+Lemma transl_embr_triggerUB
+      T
+  :
+    translate_r (triggerUB: itree _ T) = triggerUB
+.
+Proof. unfold translate_r. unfold triggerUB. rewrite transl_embr_bind. f_equal. { extensionalities. ss. } apply transl_embr_eventE. Qed.
+
+Lemma transl_embr_triggerNB
+      T
+  :
+    translate_r (triggerNB: itree _ T) = triggerNB
+.
+Proof. unfold translate_r. unfold triggerNB. rewrite transl_embr_bind. f_equal. { extensionalities. ss. } apply transl_embr_eventE. Qed.
+
+Lemma transl_embl_bind
+      A B
+      (itr: itree Es A) (ktr: A -> itree Es B)
+  :
+    translate_l (itr >>= ktr) = a <- (translate_l itr);; (translate_l (ktr a))
+.
+Proof. unfold translate_l. rewrite (bisim_is_eq (translate_bind _ _ _)). et. Qed.
+
+Lemma transl_embl_tau
+      A
+      (itr: itree Es A)
+  :
+    translate_l (tau;; itr) = tau;; (translate_l itr)
+.
+Proof. unfold translate_l. rewrite (bisim_is_eq (translate_tau _ _)). et. Qed.
+
+Lemma transl_embl_ret
+      A
+      (a: A)
+  :
+    translate_l (Ret a) = Ret a
+.
+Proof. unfold translate_l. rewrite (bisim_is_eq (translate_ret _ _)). et. Qed.
+
+Lemma transl_embl_callE
+      fn args
+  :
+    translate_l (trigger (Call fn args)) =
+    trigger (Call fn args)
+.
+Proof. unfold translate_l. unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss. do 2 f_equal. extensionalities. apply transl_embl_ret. Qed.
+
+Lemma transl_embl_sE
+      T (run : Any.t -> Any.t * T)
+  :
+    translate_l (trigger (SUpdate run)) = trigger (SUpdate (run_l run))
+.
+Proof. unfold translate_l. unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). do 2 f_equal. extensionalities. apply transl_embl_ret. Qed.
+
+Lemma transl_embl_eventE
+      T (e: eventE T)
+  :
+    translate_l (trigger e) = trigger e
+.
+Proof. unfold translate_l. unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). do 2 f_equal. extensionalities. apply transl_embl_ret. Qed.
+
+Lemma transl_embl_triggerUB
+      T
+  :
+    translate_l (triggerUB: itree _ T) = triggerUB
+.
+Proof. unfold translate_l. unfold triggerUB. rewrite transl_embl_bind. f_equal. { extensionalities. ss. } apply transl_embl_eventE. Qed.
+
+Lemma transl_embl_triggerNB
+      T
+  :
+    translate_l (triggerNB: itree _ T) = triggerNB
+.
+Proof. unfold translate_l. unfold triggerNB. rewrite transl_embl_bind. f_equal. { extensionalities. ss. } apply transl_embl_eventE. Qed.
 
 Section INTERP.
 
@@ -322,6 +445,8 @@ End INTERP.
 End MODSEM.
 End ModSem.
 
+Opaque ModSem.translate_r.
+
 
 Module Mod.
 Section MOD.
@@ -534,5 +659,146 @@ Section AUX.
       (mk_box interp_Es_ext)
   .
 
-End AUX.
+  Lemma transl_embr_unwrapU
+        R (r: option R)
+    :
+      ModSem.translate_r (unwrapU r) = unwrapU r
+  .
+  Proof.
+    unfold unwrapU. des_ifs.
+    - rewrite ModSem.transl_embr_ret; et.
+    - rewrite ModSem.transl_embr_triggerUB; et.
+  Qed.
 
+  Lemma transl_embr_unwrapN
+        R (r: option R)
+    :
+      ModSem.translate_r (unwrapN r) = unwrapN r
+  .
+  Proof.
+    unfold unwrapN. des_ifs.
+    - rewrite ModSem.transl_embr_ret; et.
+    - rewrite ModSem.transl_embr_triggerNB; et.
+  Qed.
+
+  Lemma transl_embr_assume
+        (P: Prop)
+    :
+      ModSem.translate_r (assume P) = assume P
+  .
+  Proof.
+    unfold assume. rewrite ModSem.transl_embr_bind.
+    rewrite ModSem.transl_embr_eventE. f_equal.
+    rewrite ModSem.transl_embr_ret. et.
+  Qed.
+
+  Lemma transl_embr_guarantee
+        (P: Prop)
+    :
+      ModSem.translate_r (guarantee P) = guarantee P
+  .
+  Proof.
+    unfold guarantee. rewrite ModSem.transl_embr_bind.
+    rewrite ModSem.transl_embr_eventE. f_equal.
+    rewrite ModSem.transl_embr_ret. et.
+  Qed.
+
+  Lemma transl_embr_ext
+        R (itr0 itr1: itree _ R)
+        (EQ: itr0 = itr1)
+    :
+      ModSem.translate_r itr0 = ModSem.translate_r itr1
+  .
+  Proof. subst; refl. Qed.
+
+  Global Program Instance transl_embr_rdb: red_database (mk_box (@ModSem.translate_r)) :=
+    mk_rdb
+      0
+      (mk_box ModSem.transl_embr_bind)
+      (mk_box ModSem.transl_embr_tau)
+      (mk_box ModSem.transl_embr_ret)
+      (mk_box ModSem.transl_embr_sE)
+      (mk_box ModSem.transl_embr_sE)
+      (mk_box ModSem.transl_embr_callE)
+      (mk_box ModSem.transl_embr_eventE)
+      (mk_box ModSem.transl_embr_triggerUB)
+      (mk_box ModSem.transl_embr_triggerNB)
+      (mk_box transl_embr_unwrapU)
+      (mk_box transl_embr_unwrapN)
+      (mk_box transl_embr_assume)
+      (mk_box transl_embr_guarantee)
+      (mk_box transl_embr_ext)
+  .
+
+  Lemma transl_embl_unwrapU
+        R (r: option R)
+    :
+      ModSem.translate_l (unwrapU r) = unwrapU r
+  .
+  Proof.
+    unfold unwrapU. des_ifs.
+    - rewrite ModSem.transl_embl_ret; et.
+    - rewrite ModSem.transl_embl_triggerUB; et.
+  Qed.
+
+  Lemma transl_embl_unwrapN
+        R (r: option R)
+    :
+      ModSem.translate_l (unwrapN r) = unwrapN r
+  .
+  Proof.
+    unfold unwrapN. des_ifs.
+    - rewrite ModSem.transl_embl_ret; et.
+    - rewrite ModSem.transl_embl_triggerNB; et.
+  Qed.
+
+  Lemma transl_embl_assume
+        (P: Prop)
+    :
+      ModSem.translate_l (assume P) = assume P
+  .
+  Proof.
+    unfold assume. rewrite ModSem.transl_embl_bind.
+    rewrite ModSem.transl_embl_eventE. f_equal.
+    rewrite ModSem.transl_embl_ret. et.
+  Qed.
+
+  Lemma transl_embl_guarantee
+        (P: Prop)
+    :
+      ModSem.translate_l (guarantee P) = guarantee P
+  .
+  Proof.
+    unfold guarantee. rewrite ModSem.transl_embl_bind.
+    rewrite ModSem.transl_embl_eventE. f_equal.
+    rewrite ModSem.transl_embl_ret. et.
+  Qed.
+
+  Lemma transl_embl_ext
+        R (itr0 itr1: itree _ R)
+        (EQ: itr0 = itr1)
+    :
+      ModSem.translate_l itr0 = ModSem.translate_l itr1
+  .
+  Proof. subst; refl. Qed.
+
+  Global Program Instance transl_embl_rdb: red_database (mk_box (@ModSem.translate_l)) :=
+    mk_rdb
+      0
+      (mk_box ModSem.transl_embl_bind)
+      (mk_box ModSem.transl_embl_tau)
+      (mk_box ModSem.transl_embl_ret)
+      (mk_box ModSem.transl_embl_sE)
+      (mk_box ModSem.transl_embl_sE)
+      (mk_box ModSem.transl_embl_callE)
+      (mk_box ModSem.transl_embl_eventE)
+      (mk_box ModSem.transl_embl_triggerUB)
+      (mk_box ModSem.transl_embl_triggerNB)
+      (mk_box transl_embl_unwrapU)
+      (mk_box transl_embl_unwrapN)
+      (mk_box transl_embl_assume)
+      (mk_box transl_embl_guarantee)
+      (mk_box transl_embl_ext)
+  .
+
+End AUX.
