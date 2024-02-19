@@ -30,20 +30,20 @@ Section MODSEM.
     (* stack allocation of memory *)
     Definition sallocF: Z -> itree Es block :=
       fun varg =>
-        mp0 <- trigger (PGet);;
+        mp0 <- trigger sGet;;
         m0 <- mp0↓?;;
         let (m1, blk) := Mem.alloc m0 0 varg in
-        trigger (PPut m1↑);;;
+        trigger (sPut m1↑);;;
         Ret blk.
 
     Definition sfreeF: option block * Z -> itree Es unit :=
       fun varg =>
-        mp0 <- trigger (PGet);;
+        mp0 <- trigger sGet;;
         m0 <- mp0↓?;;
         let '(ob, sz) := varg in
         match ob with
         | Some b => m1 <- (Mem.free m0 b 0 sz)?;;
-                   trigger (PPut m1↑);;;
+                   trigger (sPut m1↑);;;
                    Ret tt
         | None => triggerUB
         end
@@ -52,7 +52,7 @@ Section MODSEM.
     (* corresponds to Mem.loadv *)
     Definition loadF: memory_chunk * val -> itree Es val :=
       fun varg =>
-        mp0 <- trigger (PGet);;
+        mp0 <- trigger sGet;;
         m0 <- mp0↓?;;
         let '(chunk, addr) := varg in
         v <- (Mem.loadv chunk m0 addr)?;;
@@ -76,11 +76,11 @@ Section MODSEM.
     (* corresponds to Mem.storev *)
     Definition storeF: memory_chunk * val * val -> itree Es unit :=
       fun varg =>
-        mp0 <- trigger (PGet);;
+        mp0 <- trigger sGet;;
         m0 <- mp0↓?;;
         let '(chunk, addr, v) := varg in
         m1 <- (Mem.storev chunk m0 addr v)?;;
-        trigger (PPut m1↑);;;
+        trigger (sPut m1↑);;;
         Ret tt
     .
 
@@ -119,7 +119,7 @@ Section MODSEM.
     (* corresponds to Cop.cmp_ptr_join_common *)
     Definition cmp_ptrF : comparison * val * val -> itree Es bool :=
       fun varg =>
-        mp <- trigger PGet;;
+        mp <- trigger sGet;;
         m <- mp↓?;;
         let '(c, v1, v2) := varg in
         match v1, v2 with
@@ -134,7 +134,7 @@ Section MODSEM.
     Definition sub_ptrF : Z * val * val -> itree Es val :=
       fun varg =>
         let '(sz, v1, v2) := varg in
-        mp <- trigger (PGet);;
+        mp <- trigger sGet;;
         m <- mp↓?;;
         n <- (Cop._sem_ptr_sub_join_common v1 v2 m)?;;
         if Coqlib.proj_sumbool (Coqlib.zlt 0 sz) &&
@@ -144,7 +144,7 @@ Section MODSEM.
 
     Definition non_nullF: val -> itree Es bool :=
       fun varg =>
-        mp <- trigger (PGet);;
+        mp <- trigger sGet;;
         m <- mp↓?;;
         match varg with
         | Vptr b ofs =>
@@ -159,7 +159,7 @@ Section MODSEM.
 
     Definition mallocF: list val -> itree Es val :=
       fun varg =>
-        mp0 <- trigger (PGet);;
+        mp0 <- trigger sGet;;
         m0 <- mp0↓?;;
         '(m1, b) <- (match Archi.ptr64, varg with
                     | true, [Vlong i] =>
@@ -170,13 +170,13 @@ Section MODSEM.
                     end);;
         v <- (hd_error varg)?;;
         m2 <- (Mem.store Mptr m1 b (- size_chunk Mptr) v)?;;
-        trigger (PPut m2↑);;;
+        trigger (sPut m2↑);;;
         Ret (Vptr b Ptrofs.zero)
     .
 
     Definition mfreeF: list val -> itree Es val :=
       fun varg =>
-        mp0 <- trigger (PGet);;
+        mp0 <- trigger sGet;;
         m0 <- mp0↓?;;
         `b: bool <- (match Archi.ptr64, varg with
                     | true, [Vlong i] => if Int64.eq i Int64.zero then Ret true else Ret false
@@ -199,7 +199,7 @@ Section MODSEM.
                         end in
               if Coqlib.zlt 0 sz
               then m1 <- (Mem.free m0 b (Ptrofs.unsigned ofs - size_chunk Mptr) (Ptrofs.unsigned ofs + sz))?;;
-                  trigger (PPut m1↑);;;
+                  trigger (sPut m1↑);;;
                   Ret Vundef
               else triggerUB
             | _ => triggerUB
@@ -215,7 +215,7 @@ Section MODSEM.
         | [vaddr; vaddr'] =>
           if dec sz 0 then Ret Vundef
           else
-            mp <- trigger (PGet);;
+            mp <- trigger sGet;;
             m <- mp↓?;;
             vp <- (Mem.to_ptr vaddr m)?;;
             vp' <- (Mem.to_ptr vaddr' m)?;;
@@ -232,7 +232,7 @@ Section MODSEM.
                 if negb chk4 then triggerUB
                 else bytes <- (Mem.loadbytes m b' osrc sz)?;;
                      m' <- (Mem.storebytes m b odst bytes)?;;
-                     trigger (PPut m'↑);;; Ret Vundef
+                     trigger (sPut m'↑);;; Ret Vundef
             | _, _ => triggerUB
             end
         | _ => triggerUB
@@ -240,14 +240,14 @@ Section MODSEM.
     
     Definition captureF : list val -> itree Es val :=
       fun varg =>
-        mp <- trigger (PGet);;
+        mp <- trigger sGet;;
         m <- mp↓?;;
         match varg with
         | [Vptr b ofs] =>
           if negb (Coqlib.plt b m.(Mem.nextblock)) then triggerUB
           else
             '(exist (i, m') _) <- trigger (Choose { im' : Z * mem | Mem.capture m b (fst im') (snd im')});;
-            trigger (PPut m'↑);;;
+            trigger (sPut m'↑);;;
             Ret (Vptrofs (Ptrofs.repr (i + Ptrofs.unsigned ofs)))
         | [Vint i] => if Archi.ptr64 then triggerUB else Ret (Vint i)
         | [Vlong i] => if Archi.ptr64 then Ret (Vlong i) else triggerUB
@@ -381,8 +381,7 @@ Section MODSEM.
                           ("malloc", cfunU mallocF); ("free", cfunU mfreeF);
                           ("memcpy", cfunU memcpyF);
                           ("capture", cfunU captureF)];
-        ModSem.mn := "Mem";
-        ModSem.initial_st := (match load_mem with Some m => m | None => default_mem end)↑;
+        ModSem.init_st := (match load_mem with Some m => m | None => default_mem end)↑;
       |}
   .
 

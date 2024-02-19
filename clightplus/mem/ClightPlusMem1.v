@@ -1482,7 +1482,6 @@ Section SMOD.
   Definition SMemSem sk : SModSem.t := 
     {|
       SModSem.fnsems := MemSbtb;
-      SModSem.mn := "Mem";
       SModSem.initial_mr := (res_init sk)
                             ⋅ GRA.embed ((fun ob => match ob with
                                                    | Some _ => OneShot.black
