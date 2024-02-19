@@ -381,7 +381,7 @@ Section MODSEM.
                           ("malloc", cfunU mallocF); ("free", cfunU mfreeF);
                           ("memcpy", cfunU memcpyF);
                           ("capture", cfunU captureF)];
-        ModSem.init_st := (match load_mem with Some m => m | None => default_mem end)↑;
+        ModSem.initial_mrs := (match load_mem with Some m => m | None => default_mem end)↑;
       |}
   .
 

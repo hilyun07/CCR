@@ -548,7 +548,7 @@ Section DECOMP_PROG.
 
   Definition modsem (sk: Sk.t) : ModSem.t := {|
     ModSem.fnsems := decomp_fundefs sk defs;
-    ModSem.init_st := tt↑;
+    ModSem.initial_mrs := tt↑;
   |}.
 
   Definition get_mod : Mod.t := {|

@@ -841,7 +841,7 @@ Section SIMMODSEM.
     le: world -> world -> Prop;
     le_PreOrder: PreOrder le;
     sim_fnsems: Forall2 (sim_fnsem wf le) ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems);
-    sim_initial: exists w_init, wf w_init (ms_src.(ModSem.init_st), ms_tgt.(ModSem.init_st));
+    sim_initial: exists w_init, wf w_init (ms_src.(ModSem.initial_mrs), ms_tgt.(ModSem.initial_mrs));
   }.
 
 End SIMMODSEM.
@@ -1075,7 +1075,7 @@ Section SEMPAIR.
 
   Context `{CONF: EMSConfig}.
   Hypothesis INIT:
-    exists w, g_lift_rel w (ModSem.init_st ms_src) (ModSem.init_st ms_tgt).
+    exists w, g_lift_rel w (ModSem.initial_mrs ms_src) (ModSem.initial_mrs ms_tgt).
 
   Lemma adequacy_local_aux (P Q: bool)
         (WF: Q = true -> P = true)

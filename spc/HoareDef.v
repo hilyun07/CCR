@@ -516,7 +516,7 @@ Section SMODSEM.
 
   Definition transl (tr: fspecbody -> (Any.t -> itree Es Any.t)) (mst: t -> Any.t) (ms: t): ModSem.t := {|
     ModSem.fnsems := List.map (fun '(fn, sb) => (fn, tr sb)) ms.(fnsems);
-    ModSem.init_st := mst ms;
+    ModSem.initial_mrs := mst ms;
   |}
   .
 
@@ -568,7 +568,7 @@ Section SMOD.
   Definition get_sk (md: t): Sk.t :=
     Sk.canon (Sk.add Sk.unit (sk md)).
 
-  Definition get_init_st (md: t): Sk.t -> Σ :=
+  Definition get_initial_mrs (md: t): Sk.t -> Σ :=
     fun sk => (SModSem.initial_mr (get_modsem md sk)).
 
 
@@ -724,29 +724,29 @@ Section SMOD.
 
 
 
-  Definition load_init_st {A} (sk: Sk.t) (md: t) (mr0: SModSem.t -> A): A :=
+  Definition load_initial_mrs {A} (sk: Sk.t) (md: t) (mr0: SModSem.t -> A): A :=
     let ms := (get_modsem md sk) in
     mr0 ms
   .
 
-  Let transl_init_st_aux
+  Let transl_initial_mrs_aux
         tr0 mr0 md
         (sk: Sk.t)
     :
-      (ModSem.init_st (Mod.get_modsem (transl tr0 mr0 md) sk)) =
-      (load_init_st sk md mr0)
+      (ModSem.initial_mrs (Mod.get_modsem (transl tr0 mr0 md) sk)) =
+      (load_initial_mrs sk md mr0)
   .
   Proof. ss. Qed.
 
-  Lemma transl_init_st
+  Lemma transl_initial_mrs
         tr0 mr0 md
     :
-      (ModSem.init_st (Mod.enclose ((transl tr0 mr0 md)))) =
-      (load_init_st (Sk.canon (Sk.add Sk.unit (sk md))) md mr0)
+      (ModSem.initial_mrs (Mod.enclose ((transl tr0 mr0 md)))) =
+      (load_initial_mrs (Sk.canon (Sk.add Sk.unit (sk md))) md mr0)
   .
   Proof.
     unfold Mod.enclose.
-    rewrite transl_init_st_aux. ss. f_equal. rewrite Sk.add_unit_l. et.
+    rewrite transl_initial_mrs_aux. ss. f_equal. rewrite Sk.add_unit_l. et.
   Qed.
 
   Definition main (mainpre: Any.t -> iProp) (mainbody: Any.t -> itree hEs Any.t): t := {|

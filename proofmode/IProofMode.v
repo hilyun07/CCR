@@ -5,7 +5,7 @@ Require Import ModSem.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Any.
-Require Import HoareDef OpenDef STB SimModSem.
+Require Import HoareDef STB SimModSem.
 
 Require Import Relation_Definitions.
 Require Import Relation_Operators.
@@ -1637,8 +1637,7 @@ Section TRIVIAL.
 End TRIVIAL.
 #[export] Hint Resolve world_le_trivial_PreOrder: core.
 
-
-Require Import OpenDef.
+(* Require Import OpenDef. *)
 
 Section ADEQUACY.
   Context `{Σ: GRA.t}.

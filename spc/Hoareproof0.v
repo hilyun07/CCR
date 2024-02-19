@@ -153,7 +153,7 @@ Section CANCEL.
   Proof. ss. Qed.
 
   (* Lemma fst_initial_mrs_eq:
-    fst (ModSem.init_st ms_tgt) = fst ModSem.init_st ms_mid.
+    fst (ModSem.initial_mrs ms_tgt) = fst ModSem.initial_mrs ms_mid.
   Proof.
     pose proof sk_eq.
     unfold ms_tgt, ms_mid, mds_tgt, mds_mid, ModL.enclose.
@@ -193,7 +193,7 @@ Section CANCEL.
   Proof.
     unfold ms_mid, ms_tgt, md_tgt, md_mid, SMod.to_mid, md_tgt, SMod.to_tgt.
     rewrite SMod.transl_fnsems. rewrite SMod.transl_fnsems. fold sk. 
-    (* rewrite SMod.transl_init_st.  *)
+    (* rewrite SMod.transl_initial_mrs.  *)
     unfold _stb at 1 2. unfold sbtb, _sbtb, _ms. 
     unfold SMod.load_fnsems. rewrite ! SMod.red_do_ret2.
     rewrite ! alist_find_map. uo.

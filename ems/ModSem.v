@@ -18,7 +18,7 @@ Module ModSem.
 Section MODSEM.
 
   Record t: Type := mk {
-    init_st : Any.t;
+    initial_mrs : Any.t;
     (* fnsems : gname -> option (Any.t -> itree Es Any.t) *)
     fnsems : alist gname (Any.t -> itree Es Any.t);
   }
@@ -37,7 +37,7 @@ Section MODSEM.
   Defined.
 
   Definition empty: t := {|
-    init_st := tt↑;
+    initial_mrs := tt↑;
     fnsems := [];
   |}.
 
@@ -101,7 +101,7 @@ Section ADD.
 
   Definition add : t :=
   {|
-    init_st := Any.pair (init_st M1) (init_st M2);
+    initial_mrs := Any.pair (initial_mrs M1) (initial_mrs M2);
     fnsems := add_fnsems;
   |}.
 
@@ -126,7 +126,7 @@ Section INTERP.
     | None | Some true => Ret tt
     | Some false => triggerUB
     end;;;
-    snd <$> interp_Es prog (prog (Call "main" initial_arg)) (init_st ms).
+    snd <$> interp_Es prog (prog (Call "main" initial_arg)) (initial_mrs ms).
 
   Let state: Type := itree eventE Any.t.
 

@@ -336,7 +336,7 @@ Section CANCEL.
   Proof. ss. Qed.
 
   Lemma initial_mrs_eq:
-    init_st ms_mid = init_st ms_mid2.
+    initial_mrs ms_mid = initial_mrs ms_mid2.
   Proof. ss. Qed.
 
   Lemma fns_eq:
