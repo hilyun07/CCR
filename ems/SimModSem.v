@@ -1504,23 +1504,23 @@ Proof.
     (* revert t0 t1 t2 t3. *)
     (* revert wf1 wf2. *)
     gcofix CIH. i.
-    apply Any.split_pair in SRC. 
+    apply Any.split_pair in SRC.
     apply Any.split_pair in TGT.
-    des. clarify.  
+    des. clarify.
     ides it.
-    + erewrite ! (bisimulation_is_eq _ _ (translate_ret _ _)).
+    + unfold translate_l. erewrite ! (bisimulation_is_eq _ _ (translate_ret _ _)).
       gstep. apply sim_itree_ret.
       unfold lift_rel. 
       esplits; et.
-      s. rewrite ! Any.pair_split. et.     
-    + erewrite ! (bisimulation_is_eq _ _ (translate_tau _ _)).
+      s. rewrite ! Any.pair_split. et.
+    + unfold translate_l. erewrite ! (bisimulation_is_eq _ _ (translate_tau _ _)).
       gstep. 
-      apply sim_itree_tau_src. apply sim_itree_tau_tgt. 
+      apply sim_itree_tau_src. apply sim_itree_tau_tgt.
       eapply sim_itree_progress; et.
       gfinal. left. 
       (* eapply CIH with (t0 := t0); et; des; clarify; rewrite ! Any.pair_split; et. *)
       eapply CIH; et; des; clarify; rewrite ! Any.pair_split; et.
-    + erewrite ! (bisimulation_is_eq _ _ (translate_vis _ _ _ _)).
+    + unfold translate_l. erewrite ! (bisimulation_is_eq _ _ (translate_vis _ _ _ _)).
       rewrite <- ! bind_trigger.
       destruct e as [c|[s'|e']].
       * (* callE *)

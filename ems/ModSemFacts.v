@@ -478,35 +478,42 @@ Proof.
   destruct (alist_find fn (fnsems ms0)) eqn: MS0; destruct (alist_find fn (fnsems ms1)) eqn:MS1; destruct (alist_find fn (fnsems ms2)) eqn: MS2.
   - right. ss. esplits; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et. rewrite H.
+    unfold translate_l.
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - right. ss. esplits; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et. rewrite H.
+    unfold translate_l.
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - right. ss. esplits; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et. rewrite H.
+    unfold translate_l.
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - right. ss. esplits; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et. rewrite H.
+    unfold translate_l.
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - right. esplits; et; s; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et.
     rewrite H. 
+    unfold translate_l, translate_r.
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - right. esplits; et; s; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et.
     rewrite H. 
+    unfold translate_l, translate_r.
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     erewrite <- (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - right. esplits; et; s; et.
     unfold sim_fsem, "==>". i. eapply add_assoc_aux; et.
     rewrite H.
+    unfold translate_l, translate_r.
     erewrite <- ! (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)).
     econs. econs.
   - s. et.
@@ -528,14 +535,14 @@ Proof.
   2: { exists tt. instantiate (1:= top2). instantiate (1:=(fun _ => assoc_rev_st)).  econs; et; clarify.
        unfold assoc_rev_st. ss. exists (initial_mrs ms0), (initial_mrs ms1), (initial_mrs ms2). splits; et. }
   i. s.
-  unfold add_fnsems, trans_l, trans_r. s. unfold add_fnsems, trans_l, trans_r.
+  unfold add_fnsems, translate_l, translate_r, trans_l, trans_r. s. unfold add_fnsems, translate_l, translate_r, trans_l, trans_r.
   rewrite ! alist_find_app_o. rewrite ! alist_find_map.
   rewrite ! alist_find_app_o. rewrite ! alist_find_map.
 
   destruct (alist_find fn (fnsems ms0)) eqn: MS0;
   destruct (alist_find fn (fnsems ms1)) eqn:MS1;
   destruct (alist_find fn (fnsems ms2)) eqn: MS2;
-  ( ss; et; right; esplits; et; s; et; unfold sim_fsem, "==>"; i; eapply add_assoc_rev_aux; et; rewrite H;
+  ( ss; et; right; esplits; et; s; et; unfold sim_fsem, "==>"; i; eapply add_assoc_rev_aux; et; rewrite H; unfold translate_l, translate_r;
     erewrite <- ! (@bisimulation_is_eq _ _ _ _ (@translate_cmpE _ _ _ _ _ _ _)); econs; econs).
 Qed.
 
