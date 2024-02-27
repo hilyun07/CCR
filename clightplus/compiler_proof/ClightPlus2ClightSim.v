@@ -33,7 +33,7 @@ Qed.
 
 Lemma angelic_step :
   forall (X : Prop) (ktr next : itree eventE Any.t),
-    ModSemL.step (trigger (Take X);;; ktr) None next -> (next = ktr /\ X).
+    ModSem.step (trigger (Take X);;; ktr) None next -> (next = ktr /\ X).
 Proof.
   i. dependent destruction H; try (irw in x; clarify; fail).
   rewrite <- bind_trigger in x. apply unbind_trigger in x.
@@ -50,14 +50,14 @@ Qed.
 
 Section PROOF.
 
-  Import ModSemL.
+  Import ModSem.
 
   Context `{Σ: GRA.t}.
   Context `{builtins : builtinsTy}.
 
-  Definition compile_val md := @ModL.compile _ EMSConfigC md. 
+  Definition compile_val md := @Mod.compile _ EMSConfigC md. 
 
-  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (compile_val src) (Clight.semantics2 tgt)).
+  Let _sim_mon := Eval simpl in (fun (src: Mod.t) (tgt: Clight.program) => @sim_mon (compile_val src) (Clight.semantics2 tgt)).
   Hint Resolve _sim_mon: paco.
 
   Ltac sim_red := try red; Red.prw ltac:(_red_gen) 2 0.
@@ -107,42 +107,51 @@ Section PROOF.
 
   Ltac step := repeat (sim_red; try sim_tau).
 
+  Ltac uhu := 
+    match goal with
+    | |- _sim _ _ _ _ _ (_ <- (unwrapU ?x);; _) _ =>
+      let t := fresh in
+      set (unwrapU x) as t; unfold unwrapU in t; unfold t; clear t
+    end.
+
   Ltac eapplyf NEXT := let X := fresh "X" in hexploit NEXT;[..|intro X; punfold X; et].
   Ltac dtm H H0 := eapply angelic_step in H; eapply angelic_step in H0; des; rewrite H; rewrite H0; ss.
 
   Local Opaque Pos.of_nat.
 
   Local Opaque Pos.of_succ_nat.
+  Local Opaque translate_r.
 
-  Lemma step_load pstate f_table modl cprog sk tge le tle e te m tm
-    (PSTATE: pstate "Mem"%string = m↑)
-    (EQ: f_table = (ModL.add Mem modl).(ModL.enclose))
+  Local Arguments ccallU /.
+  Local Arguments run_l /.
+
+  Lemma step_load pstate f_table modl cprog sk tge tle te m tm any
+    (PSTATE: Any.split pstate = Some (m↑, any))
+    (EQ: f_table = (Mod.add Mem modl).(Mod.enclose))
     (MGE: match_ge sk tge)
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
     (MM: match_mem sk tge m tm)
     chunk addr
-    tf tcode tcont ktr b r mn
+    tf tcode tcont ktr b r
     (NEXT: forall v,
             Mem.loadv chunk tm (map_val sk tge addr) = Some (map_val sk tge v) ->
             paco4
-              (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true b
+              (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true b
               (ktr (pstate, v))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true b
+      (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true b
       (`r0: p_state * val <- 
-        (EventsL.interp_Es
+        (interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "load" (chunk, addr))) 
+          (translate_r (ccallU "load" (chunk, addr))) 
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. sim_red. 
-    sim_tau. ss. sim_red. unfold loadF. repeat (sim_red; sim_tau). sim_red.
-    rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase. sim_tau. sim_red. rewrite Any.upcast_downcast.
-    sim_red. eapplyf NEXT. unfold Mem.loadv in *. des_ifs_safe.
+    step. ss. step. unfold loadF. step.
+    rewrite PSTATE. step. uhu. remove_UBcase.
+    erewrite <- Any.split_pair; et. eapplyf NEXT.
+    unfold Mem.loadv in *. des_ifs_safe.
     destruct addr; ss; cycle 1.
     - hexploit match_mem_load; et.
     - destruct Mem.denormalize eqn:? in Heq; clarify.
@@ -150,77 +159,71 @@ Section PROOF.
       i. rewrite H. hexploit match_mem_load; et.
   Qed.
 
-  Lemma step_store pstate f_table modl cprog sk tge le tle e te m tm
-    (PSTATE: pstate "Mem"%string = m↑)
-    (EQ: f_table = (ModL.add Mem modl).(ModL.enclose))
+  Lemma step_store pstate f_table modl cprog sk tge tle te m tm any
+    (PSTATE: Any.split pstate = Some (m↑, any))
+    (EQ: f_table = (Mod.add Mem modl).(Mod.enclose))
     (MGE: match_ge sk tge)
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
     (MM: match_mem sk tge m tm)
     chunk addr v
-    tf tcode tcont ktr b r mn
+    tf tcode tcont ktr b r
     (NEXT: forall tm' m',
             Mem.storev chunk tm (map_val sk tge addr) (map_val sk tge v) = Some tm' ->
             match_mem sk tge m' tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true b
-              (ktr (update pstate "Mem" m'↑, ()))
+              (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true b
+              (ktr (Any.pair m'↑ any, ()))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true b
+      (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true b
       (`r0: p_state * () <- 
-        (EventsL.interp_Es
+        (interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "store" (chunk, addr, v))) 
+          (translate_r (ccallU "store" (chunk, addr, v))) 
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. sim_red. sim_tau. ss. sim_red. unfold storeF. sim_red. repeat (sim_tau; sim_red).
-    rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase. repeat (sim_tau; sim_red). rewrite Any.upcast_downcast.
-    sim_red. unfold Mem.storev in Heq. des_ifs.
+    step. ss. step. unfold storeF. step.
+    rewrite PSTATE. step. uhu. remove_UBcase.
+    rewrite Any.pair_split. step.
+    unfold Mem.storev in Heq. des_ifs.
     - hexploit match_mem_denormalize; et. i. 
       hexploit match_mem_store; et. i. des. eapplyf NEXT; et.
       unfold Mem.storev. ss. des_ifs.
     - hexploit match_mem_store; et. i. des. eapplyf NEXT; et.
   Qed.
 
-  Lemma step_memcpy pstate f_table modl cprog sk tge le tle e te m tm
-    (PSTATE: pstate "Mem"%string = m↑)
-    (EQ: f_table = (ModL.add Mem modl).(ModL.enclose))
+  Lemma step_memcpy pstate f_table modl cprog sk tge tle te m tm any
+    (PSTATE: Any.split pstate = Some (m↑, any))
+    (EQ: f_table = (Mod.add Mem modl).(Mod.enclose))
     (MGE: match_ge sk tge)
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
     (MM: match_mem sk tge m tm)
     al sz vp v
-    tf tcode tcont ktr b r mn
+    tf tcode tcont ktr b r
     (NEXT: forall tm' m',
             extcall_memcpy_sem sz al tge [map_val sk tge vp; map_val sk tge v] tm E0 Vundef tm' ->
             match_mem sk tge m' tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true b
-              (ktr (update pstate "Mem" m'↑, Vundef))
+              (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true b
+              (ktr (Any.pair m'↑ any, Vundef))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true b
+      (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true b
       (`r0: p_state * val <- 
-        (EventsL.interp_Es
+        (interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "memcpy" (al, sz, [vp; v]))) 
+          (translate_r (ccallU "memcpy" (al, sz, [vp; v]))) 
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. sim_red. sim_tau. ss. sim_red. destruct dec.
-    - sim_red. sim_tau. sim_red. hexploit NEXT; et. { econs 2. et. }
-      i. punfold H. assert (update pstate "Mem" m↑ = pstate).
-      { extensionalities. unfold update. destruct dec; et. subst. et. }
-      rewrite H0 in H. et.
-    - repeat (sim_red; sim_tau). sim_red. rewrite PSTATE.
-      rewrite Any.upcast_downcast. sim_red.
-      unfold unwrapU. remove_UBcase. remove_UBcase. remove_UBcase.
-      repeat ((repeat sim_red); sim_tau). sim_red.
-      rewrite Any.upcast_downcast. sim_red.
+    step. ss. step. destruct dec.
+    - step. hexploit NEXT; et. { econs 2; et. }
+      i. punfold H. replace pstate with (Any.pair m↑ any); et.
+      erewrite <- Any.split_pair; et.
+    - step. rewrite PSTATE. step. uhu. remove_UBcase.
+      uhu. remove_UBcase. remove_UBcase. uhu. remove_UBcase.
+      uhu. remove_UBcase. rewrite Any.pair_split. step.
       hexploit match_to_ptr; et. i. move Heq at bottom.
       hexploit match_to_ptr; et. i. ss.
       hexploit match_mem_loadbytes; et. i.
@@ -360,36 +363,33 @@ Section PROOF.
           eapplyf NEXT; et; econs; et; try nia; des_ifs.
   Qed. *)
 
-  Lemma step_sub_ptr pstate f_table modl cprog sk tge le tle e te m tm
-    (PSTATE: pstate "Mem"%string = m↑)
-    (EQ: f_table = (ModL.add Mem modl).(ModL.enclose))
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
+  Lemma step_sub_ptr pstate f_table modl cprog sk tge tle te m tm any
+    (PSTATE: Any.split pstate = Some (m↑, any))
+    (EQ: f_table = (Mod.add Mem modl).(Mod.enclose))
     (MGE: match_ge sk tge)
     (MM: match_mem sk tge m tm)
     sz v1 v2
-    tf tcode tcont ktr bflag r mn
+    tf tcode tcont ktr bflag r
     (NEXT: forall ofs,
           Cop._sem_ptr_sub_join_common (map_val sk tge v1) (map_val sk tge v2) tm = Some ofs ->
           (0 < sz <= Ptrofs.max_signed)%Z ->
             paco4
-              (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true bflag
+              (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true bflag
               (ktr (pstate, Vptrofs (Ptrofs.divs ofs (Ptrofs.repr sz))))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true bflag
+      (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true bflag
       (`r0: (p_state * val) <- 
-        (EventsL.interp_Es
+        (interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "sub_ptr" (sz, v1, v2))) 
+          (translate_r (ccallU "sub_ptr" (sz, v1, v2))) 
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. sim_red. sim_tau. ss. sim_red. unfold sub_ptrF. sim_tau. repeat (sim_tau; sim_red).
-    rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase.
-    repeat (sim_tau; sim_red). rewrite Any.upcast_downcast. sim_red.
+    step. ss. step. rewrite PSTATE. step. uhu. remove_UBcase.
     destruct Coqlib.zlt; destruct Coqlib.zle; ss.
+    replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
     eapplyf NEXT; et; try nia.
     unfold Cop._sem_ptr_sub_join_common in *.
     des_ifs; ss; clarify.
@@ -528,319 +528,208 @@ Section PROOF.
       subst. destruct eq_block; clarify.
   Qed.
 
-  Lemma match_to_ptr_val m tm sk tge v b ofs
-    (MM: match_mem sk tge m tm)
-    (MGE: match_ge sk tge)
-    (SVAL: IntPtrRel.to_ptr_val m v = Vptr b ofs)
-  : 
-    IntPtrRel.to_ptr_val tm (map_val sk tge v) = Vptr (map_blk sk tge b) ofs.
-  Proof.
-    unfold IntPtrRel.to_ptr_val in *. destruct (Mem.to_ptr _ tm) eqn:?; destruct (Mem.to_ptr _ m) eqn:?; ss; clarify.
-    - hexploit match_to_ptr; et. i. clarify.
-    - hexploit match_to_ptr; et. i. clarify.
-  Qed.
-
-  Lemma match_to_int_val m tm sk tge v i
-    (MM: match_mem sk tge m tm)
-    (MGE: match_ge sk tge)
-    (SVAL: IntPtrRel.to_int_val m v = Vlong i)
-  : 
-    IntPtrRel.to_int_val tm (map_val sk tge v) = Vlong i.
-  Proof.
-    unfold IntPtrRel.to_int_val in *. destruct (Mem.to_int _ tm) eqn:?; destruct (Mem.to_int _ m) eqn:?; ss; clarify.
-    - hexploit match_to_int; et. i. rewrite H in Heqo. clarify.
-    - hexploit match_to_int; et. i. rewrite H in Heqo. clarify.
-  Qed.
-
-  (* Lemma ip_comm m c b ofs ofs' i i' :
-    Mem.to_int (Vptr b ofs) m = Some (Vlong i) ->
-    Mem.to_ptr (Vlong i') m = Some (Vptr b ofs') ->
-    Int64.cmpu c i i' = Ptrofs.cmpu c ofs ofs'.
-  Proof.
-    i. unfold Mem.to_int, Mem.to_ptr, Mem.ptr2int_v, Mem.ptr2int in *. des_ifs.
-    unfold Mem.denormalize in Heq1. apply Maps.PTree.gselectf in Heq1.
-    des. unfold Mem.denormalize_aux, Mem.is_valid, Mem.addr_is_in_block in Heq2.
-    des_ifs; bsimpl; clarify. change Ptrofs.modulus with (Ptrofs.max_unsigned + 1)%Z in Heq1.
-    destruct c; ss; unfold Int64.eq, Ptrofs.eq, Int64.ltu, Ptrofs.ltu.
-    all: rewrite Ptrofs.unsigned_repr; try nia.
-    - des_ifs; exfalso; apply n.
-      +  *)
-
-  Lemma step_cmp_ptr pstate f_table modl cprog sk tge le tle e te m tm
-    (PSTATE: pstate "Mem"%string = m↑)
-    (EQ: f_table = (ModL.add Mem modl).(ModL.enclose))
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
+  Lemma step_cmp_ptr pstate f_table modl cprog sk tge tle te m tm any
+    (PSTATE: Any.split pstate = Some (m↑, any))
+    (EQ: f_table = (Mod.add Mem modl).(Mod.enclose))
     (MGE: match_ge sk tge)
     (MM: match_mem sk tge m tm)
     c v1 v2
-    tf tcode tcont ktr bflag r mn
+    tf tcode tcont ktr bflag r
     (NEXT: forall b,
           Cop.cmp_ptr_join_common tm c (map_val sk tge v1) (map_val sk tge v2) = Some (Val.of_bool b) ->
             paco4
-              (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true bflag
+              (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true bflag
               (ktr (pstate, b))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add Mem modl)) (semantics2 cprog)) r true bflag
+      (_sim (Mod.compile (Mod.add Mem modl)) (semantics2 cprog)) r true bflag
       (`r0: (p_state * bool) <- 
-        (EventsL.interp_Es
+        (interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "cmp_ptr" (c, v1, v2))) 
+          (translate_r (ccallU "cmp_ptr" (c, v1, v2))) 
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. step. ss. unfold cmp_ptrF. step. rewrite PSTATE. rewrite Any.upcast_downcast.
-    step. unfold cmp_ptr. remove_UBcase.
+    step. ss. step. unfold cmp_ptrF. step. rewrite PSTATE. step.
+    unfold cmp_ptr. remove_UBcase.
+    (* v1 : Vint, v2 : Vptr *)
     - unfold cmp_ptr_join. unfold cmp_ptr. remove_UBcase. remove_UBcase.
-    - sim_tau. sim_red. eapplyf NEXT. ss.
-    - remove_UBcase. unfold unwrapU. remove_UBcase. sim_tau. step. rewrite Any.upcast_downcast. step.
-      eapplyf NEXT. unfold Cop.cmp_ptr. des_ifs. ss. erewrite match_valid_pointer; et.
-      erewrite match_valid_pointer; et. des_ifs; ss; clarify. rewrite Heq3. ss.
+    (* v1 : Vlong, v2 : Vlong *)
+    - replace (Any.pair _ _) with pstate by now apply Any.split_pair; et. eapplyf NEXT. ss.
+    (* v1 : null, v2 : Vptr *)
+    - remove_UBcase. uhu. remove_UBcase.
+      replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+      eapplyf NEXT. ss. unfold Cop.cmp_ptr. des_ifs. ss.
+      erewrite !match_valid_pointer; et. des_ifs. rewrite Heq3. ss.
+    (* v1 : notnull long, v2 : Vptr *)
     - unfold cmp_ptr_join. unfold cmp_ptr. remove_UBcase.
       unfold Val.cmplu_bool. destruct IntPtrRel.to_ptr_val eqn:?; clarify.
       all: try solve [unfold IntPtrRel.to_ptr_val, Mem.to_ptr in *; des_ifs].
-      + remove_UBcase. sim_tau. step. eapplyf NEXT. hexploit match_to_int_val; et. i.
+      2: ss; destruct IntPtrRel.to_int_val eqn:?; clarify.
+      all: try solve [unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v in *; des_ifs].
+      (* v1 : long -> ptr in m fail *)
+      + remove_UBcase.
+        replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+        eapplyf NEXT. hexploit match_to_int_val; et. i. ss.
         unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-        ss. rewrite Heq0. ss. unfold IntPtrRel.to_ptr_val, Mem.to_ptr. des_ifs.
-        all: try solve [ss; clarify; unfold Val.of_bool in *; des_ifs].
-        all: try solve [unfold Val.cmp_different_blocks in *; des_ifs].
-        all: try solve [ss; clarify; hexploit match_mem_denormalize_rev; et; i; unfold IntPtrRel.to_ptr_val, Mem.to_ptr in Heqv; des_ifs].
-        all: try solve [ss; clarify; rewrite H0; hexploit Int.eq_spec; rewrite Heq4; i; clarify].
-        destruct c; clarify.
+        ss. rewrite Heq0. ss.
+        unfold Val.of_bool, Val.cmp_different_blocks.
+        (* v2 : ptr -> long suc *)
+        des_ifs; ss; clarify; des_ifs.
+        (* v1 : long -> ptr in tm should fail *)
+        all: try solve [erewrite match_to_ptr_val_rev in Heqv; et; clarify].
+        all: try solve [unfold IntPtrRel.to_ptr_val, Mem.to_ptr in *; des_ifs].
+        (* two comparison should same *)
         * hexploit (IntPtrRel.cmplu_no_angelic tm Ceq (Vlong i) (Vptr (map_blk sk tge b) i0) false).
-          { unfold IntPtrRel.to_ptr_val. ss. rewrite Heq8. rewrite Heq. rewrite Heq0.
-            ss. clarify. bsimpl. des. rewrite Heq7. rewrite Heq1. ss. destruct eq_block; clarify. }
-          { rewrite Heq5. ss. }
-          i. red in H. ss. rewrite <- H in *. ss. rewrite Heq1 in Heq3. clarify.
-        * hexploit (IntPtrRel.cmplu_no_angelic tm Cne (Vlong i) (Vptr (map_blk sk tge b) i0) true).
-          { unfold IntPtrRel.to_ptr_val. ss. rewrite Heq8. rewrite Heq. rewrite Heq0.
-            ss. clarify. bsimpl. des. rewrite Heq7. rewrite Heq1. ss. destruct eq_block; clarify. }
-          { rewrite Heq5. ss. }
-          i. red in H. ss. rewrite <- H in *. ss. rewrite Heq1 in Heq3. clarify.
-      + ss. destruct IntPtrRel.to_int_val eqn:?; clarify.
-        all: try solve [unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v in *; des_ifs].
-        * destruct eq_block.
-          { remove_UBcase. sim_tau. step. eapplyf NEXT. unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            destruct eq_block; clarify.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et. rewrite Heq2.
-            ss. destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs].
-            unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int.
-            dup H. unfold IntPtrRel.to_ptr_val, Mem.to_ptr in H0. des_ifs.
-            all: try solve [ss; unfold Val.of_bool in *; des_ifs].
-            inv MM. rewrite <- MEM_CONC in Heq6.
-            unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in Heqv0.
-            des_ifs. }
-          remove_UBcase. sim_tau. step. eapplyf NEXT. unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-          ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-          destruct eq_block. { hexploit map_blk_inj; et. clarify. }
-          erewrite <- (@match_valid_pointer m) in Heq2; et.
-          erewrite <- (@match_valid_pointer m) in Heq2; et.
-          rewrite Heq2. rewrite Heq1. ss. des_ifs; ss.
-          all: try solve [unfold Val.of_bool in *; des_ifs].
-          unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in Heq6. des_ifs.
-          inv MM. rewrite <- MEM_CONC in Heq7.
-          unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in Heqv0.
-          des_ifs.
-        * destruct eq_block.
-          { remove_UBcase; sim_tau; sim_red; eapplyf NEXT.
-            - unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-              ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-              hexploit match_to_int_val; et. i. ss.
-              destruct eq_block; clarify.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              rewrite Heq3. ss.
-              destruct Val.of_bool eqn:?; clarify.
-              all: try solve [unfold Val.of_bool in *; des_ifs].
-              rewrite H0. ss.
-              hexploit (IntPtrRel.cmplu_no_angelic tm c (Vlong i) (Vptr (map_blk sk tge b) i0) (Ptrofs.cmpu c i1 i0)).
-              { rewrite H. ss. des_ifs. }
-              { rewrite H0. ss. }
-              i. red in H1. rewrite <- H1. rewrite Heqv1. rewrite Int.eq_true. et.
-            - unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-              ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-              hexploit match_to_int_val; et. i. ss.
-              destruct eq_block; clarify.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              rewrite Heq2. ss.
-              destruct Val.of_bool eqn:?; clarify.
-              all: try solve [unfold Val.of_bool in *; des_ifs].
-              rewrite H0. ss. rewrite Heqv1. et. }
-          remove_UBcase; sim_tau; sim_red; eapplyf NEXT.
-          { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            hexploit match_to_int_val; et. i. ss.
-            destruct eq_block. { hexploit map_blk_inj; et. i. clarify. }
-            erewrite <- (@match_valid_pointer m) in Heq3; et.
-            erewrite <- (@match_valid_pointer m) in Heq3; et.
-            rewrite Heq3. rewrite Heq1. ss.
-            destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs].
-            rewrite H0. ss. apply Bool.eqb_prop in Heq2. rewrite <- Heq2.
-            rewrite Heqv1. rewrite Int.eq_true. et. }
-          { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            hexploit match_to_int_val; et. i. ss.
-            destruct eq_block. { hexploit map_blk_inj; et. i. clarify. }
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            rewrite Heq2. rewrite Heq1. ss. rewrite H0. ss.
-            destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs]. }
-          { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            hexploit match_to_int_val; et. i. ss.
-            destruct eq_block. { hexploit map_blk_inj; et. i. clarify. }
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            rewrite Heq2. ss. rewrite H0. ss.
-            destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs]. }
+          { rewrite Heq7. ss. des_ifs. }
+          { rewrite Heq6. ss. }
+          i. red in H. clarify.
+        * hexploit (IntPtrRel.cmplu_no_angelic tm Ceq (Vlong i) (Vptr (map_blk sk tge b) i0) false).
+          { rewrite Heq7. ss. des_ifs. }
+          { rewrite Heq6. ss. }
+          i. red in H. destruct Int64.eq eqn:? in H; clarify.
+      (* v1 : long -> ptr in m success, v2 : ptr -> long in m fail *)
+      + hexploit match_to_ptr_val; et. i.
+        remove_UBcase.
+        all: replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+        all: eapplyf NEXT.
+        all: erewrite <- !(@match_valid_pointer m tm sk tge) in *; et.
+        (* two ptrs have same block *)
+        { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool. ss.
+          des_ifs; try solve [ss; unfold Val.of_bool in *; des_ifs].
+          erewrite match_to_int_val_rev in Heqv0; et. clarify. }
+        (* two ptrs have diff block *)
+        unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+        ss. rewrite Heq0. ss. rewrite H.
+        destruct eq_block. { hexploit map_blk_inj; et. clarify. }
+        rewrite Heq2. rewrite Heq1. ss.
+        des_ifs; ss; try solve [unfold Val.of_bool in *; des_ifs].
+        erewrite match_to_int_val_rev in Heqv0; et. clarify.
+      (* v1 : long -> ptr in m success, v2 : ptr -> long in m success *)
+      + hexploit match_to_ptr_val; et; i; ss.
+        hexploit match_to_int_val; et; i.
+        remove_UBcase.
+        all: replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+        all: eapplyf NEXT.
+        all: rewrite <- ! (@match_valid_pointer m tm sk tge) in *; et.
+        (* two ptrs have same block, both pointers are weak valid *)
+        * hexploit (IntPtrRel.cmplu_no_angelic tm c (Vlong i) (Vptr (map_blk sk tge b) i0) (Ptrofs.cmpu c i1 i0)).
+          { rewrite H. ss. des_ifs. }
+          { ss. rewrite H0. ss. }
+          i. red in H1. rewrite H1. unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+          ss. rewrite Heq0. ss. bsimpl. des_ifs; try solve [unfold Val.of_bool in *; des_ifs].
+          rewrite H1 in *. ss. clarify. rewrite H0 in *. clarify. unfold Int.eq in *. des_ifs.
+        (* two ptrs have diff block, pointer comparison is defined *)
+        * apply Bool.eqb_prop in Heq2. subst.
+          unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+          ss. rewrite Heq1.
+          des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+          all: ss; unfold Val.of_bool in *; des_ifs.
+          all: unfold Int.eq in *; des_ifs.
+        (* two ptrs have same block, some pointer is not weak valid *)
+        * unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool. ss. rewrite Heq0. ss.
+          des_ifs; try solve [unfold Val.of_bool in *; des_ifs].
+        (* two ptrs have diff block, both are valid, but pointer comparison is undefined *)
+        * unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+          ss. rewrite Heq1.
+          des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+          all: ss; unfold Val.of_bool in *; des_ifs.
+        (* two ptrs have diff block, some is not valid *)
+        * unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool. ss.
+          des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+          all: ss; unfold Val.of_bool in *; des_ifs.
+    (* v2 : int *)
     - unfold cmp_ptr_join. unfold cmp_ptr. remove_UBcase. remove_UBcase.
-      sim_tau. sim_red. unfold Val.cmplu_bool in *. des_ifs.
-    - rewrite Heq. ss. remove_UBcase. unfold unwrapU. remove_UBcase. sim_tau.
-      step. rewrite Any.upcast_downcast. step. eapplyf NEXT.
-      unfold Cop.cmp_ptr, Val.cmplu_bool. rewrite Heq.
-      erewrite match_valid_pointer; et.
-      erewrite match_valid_pointer; et. rewrite Heq2. ss. des_ifs.
-      rewrite Heq3. ss.
+      unfold Val.cmplu_bool in *. des_ifs.
+    (* v1 : ptr, v2 : null *)
+    - rewrite Heq. ss. remove_UBcase. uhu. remove_UBcase. 
+      replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+      eapplyf NEXT. unfold Cop.cmp_ptr, Val.cmplu_bool. rewrite Heq.
+      erewrite !match_valid_pointer; et. des_ifs. rewrite Heq3. ss.
+    (* v1 : ptr, v2 : notnull *)
     - unfold cmp_ptr_join. unfold cmp_ptr. remove_UBcase.
       unfold Val.cmplu_bool. destruct IntPtrRel.to_ptr_val eqn:?; clarify.
       all: try solve [unfold IntPtrRel.to_ptr_val, Mem.to_ptr in *; des_ifs].
-      + remove_UBcase. sim_tau. step. eapplyf NEXT. hexploit match_to_int_val; et. i.
+      2: ss; destruct IntPtrRel.to_int_val eqn:?; clarify.
+      all: try solve [unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v in *; des_ifs].
+      (* v2 : long -> ptr in m fail *)
+      + remove_UBcase.
+        replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+        eapplyf NEXT. hexploit match_to_int_val; et. i. ss.
         unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-        ss. rewrite Heq0. ss. unfold IntPtrRel.to_ptr_val, Mem.to_ptr. des_ifs.
-        all: try solve [ss; clarify; unfold Val.of_bool in *; des_ifs].
-        all: try solve [unfold Val.cmp_different_blocks in *; des_ifs].
-        all: try solve [ss; clarify; hexploit match_mem_denormalize_rev; et; i; unfold IntPtrRel.to_ptr_val, Mem.to_ptr in Heqv; des_ifs].
-        all: try solve [ss; clarify; rewrite H0; hexploit Int.eq_spec; rewrite Heq4; i; clarify].
-        destruct c; clarify.
+        ss. rewrite Heq0. ss.
+        unfold Val.of_bool, Val.cmp_different_blocks.
+        (* v1 : ptr -> long suc *)
+        des_ifs; ss; clarify; des_ifs.
+        (* v2 : long -> ptr in tm should fail *)
+        all: try solve [erewrite match_to_ptr_val_rev in Heqv; et; clarify].
+        all: try solve [unfold IntPtrRel.to_ptr_val, Mem.to_ptr in *; des_ifs].
+        (* two comparison should same *)
         * hexploit (IntPtrRel.cmplu_no_angelic tm Ceq (Vptr (map_blk sk tge b) i) (Vlong i0) false).
-          { unfold IntPtrRel.to_ptr_val. ss. rewrite Heq8. rewrite Heq. rewrite Heq0.
-            ss. clarify. bsimpl. des. rewrite Heq7. rewrite Heq1. ss. destruct eq_block; clarify. }
-          { rewrite Heq5. ss. }
-          i. red in H. ss. rewrite <- H in *. ss. rewrite Heq1 in Heq3. clarify.
-        * hexploit (IntPtrRel.cmplu_no_angelic tm Cne (Vptr (map_blk sk tge b) i) (Vlong i0) true).
-          { unfold IntPtrRel.to_ptr_val. ss. rewrite Heq8. rewrite Heq. rewrite Heq0.
-            ss. clarify. bsimpl. des. rewrite Heq7. rewrite Heq1. ss. destruct eq_block; clarify. }
-          { rewrite Heq5. ss. }
-          i. red in H. ss. rewrite <- H in *. ss. rewrite Heq1 in Heq3. clarify.
-      + ss. destruct IntPtrRel.to_int_val eqn:?; clarify.
-        all: try solve [unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v in *; des_ifs].
-        * destruct eq_block.
-          { remove_UBcase. sim_tau. step. eapplyf NEXT. unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            destruct eq_block; clarify.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et. rewrite Heq2.
-            ss. destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs].
-            unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int.
-            dup H. unfold IntPtrRel.to_ptr_val, Mem.to_ptr in H0. des_ifs.
-            all: try solve [ss; unfold Val.of_bool in *; des_ifs].
-            inv MM. rewrite <- MEM_CONC in Heq6.
-            unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in Heqv0.
-            des_ifs. }
-          remove_UBcase. sim_tau. step. eapplyf NEXT. unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-          ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-          destruct eq_block. { hexploit map_blk_inj; et. clarify. }
-          erewrite <- (@match_valid_pointer m) in Heq2; et.
-          erewrite <- (@match_valid_pointer m) in Heq2; et.
-          rewrite Heq2. rewrite Heq1. ss. des_ifs; ss.
-          all: try solve [unfold Val.of_bool in *; des_ifs].
-          unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in Heq6. des_ifs.
-          inv MM. rewrite <- MEM_CONC in Heq7.
-          unfold IntPtrRel.to_int_val, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in Heqv0.
-          des_ifs.
-        * destruct eq_block.
-          { remove_UBcase; sim_tau; sim_red; eapplyf NEXT.
-            - unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-              ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-              hexploit match_to_int_val; et. i. ss.
-              destruct eq_block; clarify.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              erewrite <- (@match_valid_pointer m) in Heq3; et.
-              rewrite Heq3. ss.
-              destruct Val.of_bool eqn:?; clarify.
-              all: try solve [unfold Val.of_bool in *; des_ifs].
-              rewrite H0. ss.
-              hexploit (IntPtrRel.cmplu_no_angelic tm c (Vptr (map_blk sk tge b0) i) (Vlong i0) (Ptrofs.cmpu c i i1)).
-              { rewrite H. ss. des_ifs. }
-              { rewrite H0. ss. }
-              i. red in H1. rewrite <- H1. rewrite Heqv1. rewrite Int.eq_true. et.
-            - unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-              ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-              hexploit match_to_int_val; et. i. ss.
-              destruct eq_block; clarify.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              erewrite <- (@match_valid_pointer m) in Heq2; et.
-              rewrite Heq2. ss.
-              destruct Val.of_bool eqn:?; clarify.
-              all: try solve [unfold Val.of_bool in *; des_ifs].
-              rewrite H0. ss. rewrite Heqv1. et. }
-          remove_UBcase; sim_tau; sim_red; eapplyf NEXT.
-          { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            hexploit match_to_int_val; et. i. ss.
-            destruct eq_block. { hexploit map_blk_inj; et. i. clarify. }
-            erewrite <- (@match_valid_pointer m) in Heq3; et.
-            erewrite <- (@match_valid_pointer m) in Heq3; et.
-            rewrite Heq3. rewrite Heq1. ss.
-            destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs].
-            rewrite H0. ss. apply Bool.eqb_prop in Heq2. rewrite <- Heq2.
-            rewrite Heqv1. rewrite Int.eq_true. et. }
-          { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            hexploit match_to_int_val; et. i. ss.
-            destruct eq_block. { hexploit map_blk_inj; et. i. clarify. }
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            rewrite Heq2. rewrite Heq1. ss. rewrite H0. ss.
-            destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs]. }
-          { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
-            ss. rewrite Heq0. ss. hexploit match_to_ptr_val; et. i. ss. rewrite H.
-            hexploit match_to_int_val; et. i. ss.
-            destruct eq_block. { hexploit map_blk_inj; et. i. clarify. }
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            erewrite <- (@match_valid_pointer m) in Heq2; et.
-            rewrite Heq2. ss. rewrite H0. ss.
-            destruct Val.of_bool eqn:?; clarify.
-            all: try solve [unfold Val.of_bool in *; des_ifs]. }
+          { rewrite Heq7. ss. des_ifs. }
+          { rewrite Heq6. ss. }
+          i. red in H. clarify.
+        * hexploit (IntPtrRel.cmplu_no_angelic tm Ceq (Vptr (map_blk sk tge b) i) (Vlong i0) false).
+          { rewrite Heq7. ss. des_ifs. }
+          { rewrite Heq6. ss. }
+          i. red in H. destruct Int64.eq eqn:? in H; clarify.
+      (* v1 : ptr -> long in m fail, v2 : long -> ptr in m success *)
+      + hexploit match_to_ptr_val; et. i.
+        remove_UBcase.
+        all: replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+        all: eapplyf NEXT.
+        all: erewrite <- !(@match_valid_pointer m tm sk tge) in *; et.
+        (* two ptrs have same block *)
+        { unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool. ss.
+          des_ifs; try solve [ss; unfold Val.of_bool in *; des_ifs].
+          erewrite match_to_int_val_rev in Heqv0; et. clarify. }
+        (* two ptrs have diff block *)
+        unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+        ss. rewrite Heq1.
+        des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+        all: try solve [ss; unfold Val.of_bool in *; des_ifs].
+        erewrite match_to_int_val_rev in Heqv0; et. clarify.
+      (* v1 : ptr -> long in m success, v2 : long -> ptr in m success *)
+      + hexploit match_to_ptr_val; et; i; ss.
+        hexploit match_to_int_val; et; i.
+        remove_UBcase.
+        all: replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+        all: eapplyf NEXT.
+        all: rewrite <- ! (@match_valid_pointer m tm sk tge) in *; et.
+        (* two ptrs have same block, both pointers are weak valid *)
+        * hexploit (IntPtrRel.cmplu_no_angelic tm c (Vptr (map_blk sk tge b0) i) (Vlong i0) (Ptrofs.cmpu c i i1)).
+          { rewrite H. ss. des_ifs. }
+          { ss. rewrite H0. ss. }
+          i. red in H1. rewrite H1. unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+          ss. rewrite Heq0. ss. bsimpl. des_ifs; try solve [unfold Val.of_bool in *; des_ifs].
+          rewrite H1 in *. ss. clarify. rewrite H0 in *. clarify. unfold Int.eq in *. des_ifs.
+        (* two ptrs have diff block, pointer comparison is defined *)
+        * apply Bool.eqb_prop in Heq2. subst.
+          unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+          ss. rewrite Heq1.
+          des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+          all: ss; unfold Val.of_bool in *; des_ifs.
+          all: unfold Int.eq in *; des_ifs.
+        (* two ptrs have same block, some pointer is not weak valid *)
+        * unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool. ss. rewrite Heq0. ss.
+          des_ifs; try solve [unfold Val.of_bool in *; des_ifs].
+        (* two ptrs have diff block, both are valid, but pointer comparison is undefined *)
+        * unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool.
+          ss. rewrite Heq1.
+          des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+          all: ss; unfold Val.of_bool in *; des_ifs.
+        (* two ptrs have diff block, some is not valid *)
+        * unfold Cop.cmp_ptr_join, Cop.cmp_ptr, Val.cmplu_bool. ss.
+          des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+          all: ss; unfold Val.of_bool in *; des_ifs.
     - ss. remove_UBcase.
-      + sim_tau. step. eapplyf NEXT. unfold Cop.cmp_ptr. unfold Val.cmplu_bool.
-        erewrite (@match_valid_pointer m); et.
-        erewrite (@match_valid_pointer m); et.
-        erewrite (@match_valid_pointer m); et.
-        erewrite (@match_valid_pointer m); et.
-        rewrite Heq1.
-        destruct eq_block; clarify.
-      + unfold unwrapU. remove_UBcase. sim_tau. step. rewrite Any.upcast_downcast.
-        step. eapplyf NEXT. unfold Cop.cmp_ptr. unfold Val.cmplu_bool.
-        erewrite (@match_valid_pointer m); et.
-        erewrite (@match_valid_pointer m); et.
-        erewrite (@match_valid_pointer m); et.
-        rewrite Heq1. destruct eq_block. { hexploit map_blk_inj; et. clarify. }
-        des_ifs. rewrite Heq2. ss.
+      2: uhu; remove_UBcase.
+      all: replace (Any.pair _ _) with pstate by now apply Any.split_pair; et.
+      all: eapplyf NEXT.
+      all: erewrite <- !(@match_valid_pointer m tm sk tge) in *; et.
+      all: unfold Cop.cmp_ptr; unfold Val.cmplu_bool; des_ifs; try solve [hexploit map_blk_inj; et; clarify].
+      rewrite Heq2. ss.
   Qed.
 
         

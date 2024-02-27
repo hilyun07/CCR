@@ -731,6 +731,32 @@ Section MEM.
     - hexploit match_to_int; et. i. rewrite H in Heqo. clarify.
   Qed.
 
+  Lemma match_to_ptr_val_rev m tm sk tge v b ofs
+    (MM: match_mem sk tge m tm)
+    (MGE: match_ge sk tge)
+    (TVAL: IntPtrRel.to_ptr_val tm (map_val sk tge v) = Vptr (map_blk sk tge b) ofs)
+  : 
+    IntPtrRel.to_ptr_val m v = Vptr b ofs.
+  Proof.
+    unfold IntPtrRel.to_ptr_val in *. destruct (Mem.to_ptr _ tm) eqn:?; destruct (Mem.to_ptr _ m) eqn:?; ss; clarify.
+    - hexploit match_to_ptr; et. i. clarify. destruct v1; ss; clarify. f_equal. eapply map_blk_inj; et.
+    - exfalso. unfold Mem.to_ptr in *. des_ifs.
+      hexploit match_mem_denormalize_rev; et. i. ss. clarify.
+  Qed.
+
+  Lemma match_to_int_val_rev m tm sk tge v i
+    (MM: match_mem sk tge m tm)
+    (MGE: match_ge sk tge)
+    (TVAL: IntPtrRel.to_int_val tm (map_val sk tge v) = Vlong i)
+  : 
+    IntPtrRel.to_int_val m v = Vlong i.
+  Proof.
+    unfold IntPtrRel.to_int_val in *. destruct (Mem.to_int _ tm) eqn:?; destruct (Mem.to_int _ m) eqn:?; ss; clarify.
+    - hexploit match_to_int; et. i. rewrite H in Heqo. clarify.
+    - exfalso. unfold Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in *. des_ifs.
+      ss. clarify. inv MM. rewrite MEM_CONC in Heq0. clarify.
+  Qed.
+
   Lemma match_capture m tm sk tge b addr tm'
     (MM: match_mem sk tge m tm)
     (MGE: match_ge sk tge)
