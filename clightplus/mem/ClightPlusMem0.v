@@ -23,7 +23,8 @@ Section MODSEM.
   Let skenv: SkEnv.t := load_skenv sk.
 
   Section BODY.
-    Context `{has_pE: pE -< Es}.
+    Context `{Es: Type -> Type}.
+    Context `{has_sE: sE -< Es}.
     Context `{has_eventE: eventE -< Es}.
     Context `{has_callE: callE -< Es}.
 
@@ -367,7 +368,7 @@ Section MODSEM.
   Defined.
 
   End STATE.
-  
+
 
   Definition MemSem : ModSem.t :=
       {| 
