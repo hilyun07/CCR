@@ -24,9 +24,6 @@ Require Import ClightPlus2ClightSimStmt.
 Require Import ClightPlus2ClightSim.
 
 Require Import ClightPlus2ClightInit.
-(* Require Import ClightPlus2ClightLink. *)
-
-Require Import Admit.
 
 Definition compile_val mdl := @ModL.compile _ EMSConfigC mdl.
 
@@ -34,9 +31,7 @@ Definition clightp_sem sk_mem mdl := compile_val (ModL.add (Mod.lift (Mem sk_mem
 
 Definition clightp_initial_state sk_mem mdl := (clightp_sem sk_mem mdl).(STS.initial_state).
 
-
-
-Section REF.
+(* Section REF.
 
   Theorem refine_improve_trans mdl1 mdl2 clight_prog sk: refines_closed (ModL.add (Mem sk) mdl1) (ModL.add (Mem sk) mdl2) -> improves2_program (clightp_sem sk mdl1) (Clight.semantics2 clight_prog) -> improves2_program (clightp_sem sk mdl2) (Clight.semantics2 clight_prog).
   Proof.
@@ -45,160 +40,7 @@ Section REF.
     i. esplits. { apply H1. } apply SIM.
   Qed.
 
-End REF.
-
-Section LINKLIST.
-
-  Definition fold_left_option {T} f (t : list T) (opth : option T) :=
-    fold_left (fun opt s2 => match opt with | Some s1 => f s1 s2 | None => None end) t opth.
-
-  Lemma fold_left_option_None {T} :
-    forall f (l : list T), fold_left_option f l None = None.
-  Proof.
-    intros f. induction l; ss; clarify.
-  Qed.
-
-  Definition fold_right_option {T} f (opt : option T) (l : list T) :=
-    fold_right (fun s2 o => match o with | Some s1 => f s2 o | None => None end) opt l.
-
-  Definition fold_right_option_None {T} :
-    forall f (l : list T), fold_right_option f None l = None.
-  Proof.
-    intros f. induction l; ss; clarify. rewrite IHl; ss.
-  Qed.
-
-  Fixpoint nlist2list {A} (nl : Coqlib.nlist A) : list A :=
-    match nl with
-    | Coqlib.nbase a => [a]
-    | Coqlib.ncons a nt => a :: (nlist2list nt)
-    end.
-
-  Fixpoint list2nlist {A} (a : A) (l : list A) : Coqlib.nlist A :=
-    match l with
-    | [] => Coqlib.nbase a
-    | h :: t => Coqlib.ncons a (list2nlist h t)
-    end.
-
-  Lemma n2l_not_nil {A} :
-    forall nl, @nlist2list A nl = [] -> False.
-  Proof.
-    i. induction nl; ss.
-  Qed.
-
-  Lemma n2l_cons_exists {A} :
-    forall nl a b t (CONS: @nlist2list A nl = a :: b :: t),
-      <<EXISTS: exists nt, (nlist2list nt = b :: t) /\ (nl = Coqlib.ncons a nt)>>.
-  Proof.
-    induction nl; i; ss; clarify.
-    destruct t; ss; clarify.
-    { exists nl. rewrite H0. ss. }
-    eapply IHnl in H0. des. exists nl. split; eauto.
-    rewrite H1. ss. rewrite H0. auto.
-  Qed.
-
-  Lemma n2l_l2n {A} :
-    forall nl,
-      (exists (h : A) t, (<<HT: nlist2list nl = h :: t>>) /\ (<<BACK: (list2nlist h t = nl)>>)).
-  Proof.
-    i. induction nl.
-    - exists a, []. ss.
-    - ss. des. exists a, (h :: t). ss. rewrite HT. split; ss. red. rewrite BACK. ss.
-  Qed.
-
-  Lemma l2n_n2l {A} :
-    forall (h : A) t,
-      (nlist2list (list2nlist h t)) = h :: t.
-  Proof.
-    i. depgen h. induction t; i; ss; clarify.
-    f_equal. auto.
-  Qed.
-
-End LINKLIST.
-
-Section SEPCOMP.
-
-  Lemma compile_behavior_improves_compile
-        (progs : nlist Clight.program) (mds : list Mod.t) (progl: Clight.program) (sk_mem: Sk.t)
-        (COMP: Forall2 (fun prog md => exists mn, compile prog mn = Errors.OK md) (nlist2list progs) mds)
-        (WFSRC: ModL.wf (Mod.add_list mds))
-        (LINKTGT: link_list progs = Some progl)
-        (COMPSK: mem_skel progl = Errors.OK sk_mem)
-    :
-      improves2_program (clightp_sem sk_mem (Mod.add_list mds)) (Clight.semantics2 progl).
-  Proof.
-  Admitted.
-
-
-  Lemma wf_canon_rev sk
-      (WF: Sk.wf (Sk.canon sk))
-    :
-      <<WF: Sk.wf sk>>.
-  Proof.
-    ss. unfold Sk.wf in *. ss.
-    pose proof (SkSort.sort_permutation sk).
-    eapply Permutation.Permutation_map in H.
-    eapply Permutation.Permutation_NoDup. 2:et.
-    symmetry. et.
-  Qed.
-
-  Lemma compile_behavior_improves_compile_exists
-        (progs : nlist Clight.program) (mds : list Mod.t)
-        (COMP: Forall2 (fun prog md => exists mn, compile prog mn = Errors.OK md) (nlist2list progs) mds)
-        (WFSRC: ModL.wf (Mod.add_list mds))
-    :
-      exists progl, link_list progs = Some progl.
-  Proof.
-    remember (nlist2list progs) in COMP. ginduction COMP; i; ss. { destruct progs; ss. }
-    des. destruct progs. { ss. clarify. et. }
-    ss. clarify.
-    hexploit IHCOMP; et; cycle 1.
-    - i. des. rewrite H0. unfold link.
-      Local Transparent Linker_program.
-      ss. unfold link_program. ss.
-    - rewrite Mod.add_list_cons in WFSRC.
-      inv WFSRC. ss. apply Sk.wf_comm in H1. apply Sk.wf_canon in H1.
-      apply Sk.wf_mon in H1. apply wf_canon_rev in H1. econs; et.
-      assert 
-      clear -H0. ss. 
-      
-
-      
-
-     unfold Mod.add_list in WFSRC. ss. fold Mod.add_list in WFSRC.
-
-     destruct (n2l_l2n progs). des. rewrite HT in Heql. clear BACK.
-
-  Admitted.
-
-  Lemma compile_behavior_improves_compiled_sk_exists
-        (progs : nlist Clight.program) (mds : list Mod.t) (progl: Clight.program)
-        (COMP: Forall2 (fun prog md => exists mn, compile prog mn = Errors.OK md) (nlist2list progs) mds)
-        (WFSRC: ModL.wf (Mod.add_list mds))
-        (LINKTGT: link_list progs = Some progl)
-    :
-      exists sk_mem, mem_skel progl = Errors.OK sk_mem.
-  Proof.
-    unfold mem_skel. unfold get_sk.
-
-  Admitted.
-
-  (* progl is compile-safe?, yes, also, sk is compositional *)
-  (* mem_sk validation is also compositional, but result is just memory function extraction, union of each *)
-  (* mem_sk is for global execution, so we don't have to think of exact value of mem_sk each *)
-  Theorem compile_behavior_improves
-          (progs : nlist Clight.program) (mds : list Mod.t) (progl: Clight.program)
-          (COMP: Forall2 (fun prog md => exists mn, compile prog mn = Errors.OK md) (nlist2list progs) mds)
-          (WFSRC: ModL.wf (Mod.add_list mds))
-          (asdf: link_list progs = Some progl)
-    :
-      exists sk_mem, mem_skel progl = Errors.OK sk_mem /\ improves2_program (clightp_sem sk_mem (Mod.add_list mds)) (Clight.semantics2 progl).
-  Proof.
-    hexploit compile_behavior_improves_compile_exists; et. i. des.
-    hexploit compile_behavior_improves_compiled_sk_exists; et. i. des.
-    hexploit compile_behavior_improves_compile; et.
-  Qed.
-
-End SEPCOMP.
+End REF. *)
 
 Section PROOFSINGLE.
 
