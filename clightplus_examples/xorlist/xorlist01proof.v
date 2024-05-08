@@ -19,7 +19,6 @@ Require Import PtrofsArith.
 From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
-(* TODO: match with paper code & proof *)
 
 Section LEMMA.
 

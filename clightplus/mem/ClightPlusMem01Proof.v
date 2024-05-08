@@ -387,8 +387,6 @@ Section INV.
   Qed.
 
 
-  (* TODO: rollback memory local state formulation *)
-  (* TODO: add UB condition in main function invocation *)
   Lemma wf_iff sk : alloc_globals sk (ε,ε,ε) xH sk = None <-> load_mem sk = None.
   Proof.
     unfold load_mem.
@@ -989,7 +987,6 @@ Section SIMMODSEM.
         hexploit SIM_CNT. { destruct ofs; ss; nia. }
         i. rewrite wfcnt1 in H11.
         inv H11. clarify. unfold Mem.perm. rewrite PERM. et. }
-      (* TODO: should replace to formal proof *)
       replace (Mem.getN _ _ _) with l in *.
       { rewrite pure_memval_good_decode; et. }
       apply nth_error_ext. i.
