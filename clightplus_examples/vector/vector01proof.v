@@ -149,7 +149,7 @@ Section PROOF.
   Lemma sim_vector_free :
     sim_fnsem wf top2
       ("vector_free", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_free_spec))
-      ("vector_free", cfunU (vector_initvector_freefun_to_tgt sk ce f_vector_free)).
+      ("vector_free", cfunU (decomp_func sk ce f_vector_free)).
   Proof.
   Admitted.
 
