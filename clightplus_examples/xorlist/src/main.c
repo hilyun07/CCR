@@ -1,6 +1,6 @@
 #include "xorlist.h"
 
-int main(int argc, char* argv[]) {
+int main() {
   node *head = NULL, *tail = NULL;
   long item = 1;
   add_hd(&head, &tail, 3);

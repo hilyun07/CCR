@@ -654,6 +654,31 @@ Section RULES.
     iSplitR "A"; iFrame. iExists _. et.
   Qed.
 
+  Lemma equiv_trivial_offset m p tg q ofs b
+      (BLK: blk m = Some b)
+    : 
+      p (⊨_m,tg,q) ofs  ⊢ (Vptr b ofs) (⊨_m,tg,q) ofs ** p (≃_m) (Vptr b ofs).
+  Proof.
+    iIntros "A". unfold has_offset.
+    destruct (blk m) eqn:?; try solve [iDestruct "A" as "%"; clarify]. clarify.
+    iDestruct "A" as "[? A]". iFrame.
+    unfold equiv_prov.
+    iPoseProof (_has_offset_dup with "A") as "[A B]".
+    iPoseProof (_has_offset_dup with "B") as "[B C]".
+    iSplitL "A".
+    - unfold _has_offset. iDestruct "A" as "[A B]".
+      des_ifs; clarify.
+      + iDestruct "B" as (a) "[B %]". des. clarify. iFrame. iPureIntro. splits; et.
+        destruct a; ss; nia.
+      + iFrame. rewrite Heqo. iDestruct "B" as "%". des. et.
+    - iExists _. iFrame.
+      unfold _has_offset. iDestruct "B" as "[A B]".
+      des_ifs; clarify.
+      + iDestruct "B" as (a) "[B %]". des. clarify. iFrame. iPureIntro. splits; et.
+        destruct a; ss; nia.
+      + iFrame. rewrite Heqo. iDestruct "B" as "%". des. et.
+  Qed.
+
   Lemma equiv_refl_equiv m p q
     : p (≃_m) q ⊢ p (≃_m) p.
   Proof.

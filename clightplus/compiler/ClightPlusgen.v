@@ -606,7 +606,7 @@ Section DECOMP_PROG.
         destruct (addr_find_dec sk' (gvar_init v)).
         { left. ii. ss. des; et. clarify. }
         right. ii. red in H. hexploit H; et. { ss. et. } i. des. et.
-  Qed.
+  Defined.
 
   Definition mem_skel : res Sk.t :=
     match get_sk defs with
@@ -620,6 +620,7 @@ Section DECOMP_PROG.
     end.
 
 End DECOMP_PROG.
+Global Opaque mem_init_cond_dec.
 
 (* Section EXECUTION_STRUCTURE. *)
 (*   (*   execution modules consist of modules executes in sites independently  *) *)

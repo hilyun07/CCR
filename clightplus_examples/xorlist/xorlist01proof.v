@@ -76,18 +76,21 @@ Section PROOF.
       (fun _ st_src st_tgt => ⌜True⌝)%I.
 
   Let mfsk : Sk.t := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (Ctypes.External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)); ("free", Gfun (Ctypes.External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))].
-  Let ce := Maps.PTree.elements (prog_comp_env prog).
 
   Section SIMFUNS.
-  Variable xor0 : Mod.t.
-  Hypothesis VALID : xorlist0._xor = Errors.OK xor0.
+  Variable xorlink : Clight.program.
+  (* Variable xormod : Mod.t. *)
+  Hypothesis VALID_link : xorlist0._xor = Some xorlink.
+  (* Hypothesis VALID_comp : compile xorlink "xorlist" = Errors.OK xormod. *)
+  Let ce := Maps.PTree.elements (prog_comp_env xorlink).
 
   Variable sk: Sk.t.
-  Hypothesis SKINCL1 : Sk.le (xor0.(Mod.sk)) sk.
-  Hypothesis SKINCL2 : Sk.le mfsk sk.
+  (* TODO: How to encapsulate fuction info? *)
+  (* Hypothesis SKINCL1 : Sk.le (xormod.(Mod.sk)) sk. *)
+  Hypothesis SKINCL : Sk.le mfsk sk.
   Hypothesis SKWF : Sk.wf sk.
 
-  Ltac unfold_comp optsrc EQ :=
+  (* Ltac unfold_comp optsrc EQ :=
     unfold optsrc, compile, get_sk in EQ;
     destruct Coqlib.list_norepet_dec; clarify; des_ifs; ss;
     repeat match goal with
@@ -95,7 +98,7 @@ Section PROOF.
           | H: forallb _ _ = true |- _ => clear H
           | H: forallb _ _ && _ = true |- _ => clear H
           | H: Ctypes.prog_main _ = _ |- _ => clear H
-          end.
+          end. *)
 
   Lemma sim_add_tl :
     sim_fnsem wf top2
@@ -104,20 +107,24 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     Local Opaque cast_to_ptr.
-    unfold_comp _xor VALID.
+    eassert (_xor = _).
+    { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
+    rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
+    inversion VALID_link. clear VALID_link. subst.
+    clear a. simpl in ce.
     econs; ss. red.
 
     (* current state: 1 *)
-    unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss.
+    (* unfold prog in ce. unfold mkprogram in ce.
+    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    dup SKINCL1. rename SKINCL0 into SKINCLENV1.
+    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
     apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1.
-    dup SKINCL2. rename SKINCL0 into SKINCLENV2.
-    apply incl_incl_env in SKINCLENV2.
-    unfold incl_env in SKINCLENV2.
+    unfold incl_env in SKINCLENV1. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
     pose proof sk_incl_gd as SKINCLGD.
 
     apply isim_fun_to_tgt; auto.
@@ -134,7 +141,7 @@ Section PROOF.
     (* node* entry = (node* ) malloc(sizeof(node)) start *)
     unhide. hred_r. unhide. remove_tau. unhide. remove_tau.
 
-    hexploit SKINCLENV2.
+    hexploit SKINCLENV.
     { instantiate (2:="malloc"). et. }
     i. des. ss. rewrite FIND. rename FIND into malloc_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
@@ -426,20 +433,24 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     Local Opaque cast_to_ptr.
-    unfold_comp _xor VALID.
+    eassert (_xor = _).
+    { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
+    rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
+    inversion VALID_link. clear VALID_link. subst.
+    clear a. simpl in ce.
     econs; ss. red.
 
     (* current state: 1 *)
-    unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss.
+    (* unfold prog in ce. unfold mkprogram in ce.
+    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    dup SKINCL1. rename SKINCL0 into SKINCLENV1.
+    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
     apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1.
-    dup SKINCL2. rename SKINCL0 into SKINCLENV2.
-    apply incl_incl_env in SKINCLENV2.
-    unfold incl_env in SKINCLENV2.
+    unfold incl_env in SKINCLENV1. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
     pose proof sk_incl_gd as SKINCLGD.
 
     apply isim_fun_to_tgt; auto.
@@ -456,7 +467,7 @@ Section PROOF.
     (* node* entry = (node* ) malloc(sizeof(node)) start *)
     unhide. hred_r. unhide. remove_tau. unhide. remove_tau.
 
-    hexploit SKINCLENV2.
+    hexploit SKINCLENV.
     { instantiate (2:="malloc"). et. }
     i. des. ss. rewrite FIND. rename FIND into malloc_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
@@ -737,20 +748,24 @@ Section PROOF.
       ("delete_tl", cfunU (decomp_func sk ce f_delete_tl)).
   Proof.
     Local Opaque encode_val.
-    unfold_comp _xor VALID.
+    eassert (_xor = _).
+    { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
+    rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
+    inversion VALID_link. clear VALID_link. subst.
+    clear a. simpl in ce.
     econs; ss. red.
 
     (* current state: 1 *)
-    unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss.
+    (* unfold prog in ce. unfold mkprogram in ce.
+    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    dup SKINCL1. rename SKINCL0 into SKINCLENV1.
+    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
     apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1.
-    dup SKINCL2. rename SKINCL0 into SKINCLENV2.
-    apply incl_incl_env in SKINCLENV2.
-    unfold incl_env in SKINCLENV2.
+    unfold incl_env in SKINCLENV1. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
     pose proof sk_incl_gd as SKINCLGD.
 
     apply isim_fun_to_tgt; auto.
@@ -901,7 +916,7 @@ Section PROOF.
       hred_r. unhide. remove_tau.
 
       (* free(hd_old) start *)
-      hexploit SKINCLENV2.
+      hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
       i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r.
 
@@ -988,7 +1003,7 @@ Section PROOF.
       hred_r. unhide. remove_tau.
 
       (* free(hd_old) start *)
-      hexploit SKINCLENV2.
+      hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
       i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r. 
       rewrite tl_old_cast. hred_r.
@@ -1033,20 +1048,24 @@ Section PROOF.
       ("delete_hd", cfunU (decomp_func sk ce f_delete_hd)).
   Proof.
     Local Opaque encode_val.
-    unfold_comp _xor VALID.
+    eassert (_xor = _).
+    { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
+    rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
+    inversion VALID_link. clear VALID_link. subst.
+    clear a. simpl in ce.
     econs; ss. red.
 
     (* current state: 1 *)
-    unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss.
+    (* unfold prog in ce. unfold mkprogram in ce.
+    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    dup SKINCL1. rename SKINCL0 into SKINCLENV1.
+    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
     apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1.
-    dup SKINCL2. rename SKINCL0 into SKINCLENV2.
-    apply incl_incl_env in SKINCLENV2.
-    unfold incl_env in SKINCLENV2.
+    unfold incl_env in SKINCLENV1. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
     pose proof sk_incl_gd as SKINCLGD.
 
     apply isim_fun_to_tgt; auto.
@@ -1192,7 +1211,7 @@ Section PROOF.
       hred_r. unhide. remove_tau.
 
       (* free(hd_old) start *)
-      hexploit SKINCLENV2.
+      hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
       i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r.
 
@@ -1278,7 +1297,7 @@ Section PROOF.
       hred_r. unhide. remove_tau.
 
       (* free(hd_old) start *)
-      hexploit SKINCLENV2.
+      hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
       i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r. 
       rewrite hd_old_cast. hred_r.
@@ -1314,37 +1333,6 @@ Section PROOF.
   Qed.
 
   End SIMFUNS.
-
-
-  Require Import ClightPlusMem01Proof.
-
-  Variable xor0 : Mod.t.
-  Hypothesis VALID : xorlist0._xor = Errors.OK xor0.
-
-  Theorem correct : refines2 [xor0; (ClightPlusMem0.Mem mfsk)] [xorlist1.xor xor0 GlobalStb; (ClightPlusMem1.Mem mfsk)].
-  Proof.
-    eapply adequacy_local_strong_l. econs; cycle 1.
-    { econs; [ss|]. econs; ss. }
-    i. econs; cycle 1.
-    { econs; [|ss]. apply correct_mod; et. inv SKINCL. inv H6. ss. }
-    unfold _xor, compile, get_sk in VALID.
-    destruct Pos.eq_dec; [|clarify].
-    destruct Coqlib.list_norepet_dec; ss. des_ifs_safe.
-    econstructor 1 with (wf := wf) (le := top2); et; ss; cycle 1.
-    { eexists. econs. apply to_semantic. iIntros. et. }
-    (* each functions has simulation relation *)
-    econs; cycle 1.
-    econs; cycle 1.
-    econs; cycle 1.
-    econs; cycle 1.
-    econs; et.
-    all: des_ifs; inv SKINCL; inv H6; ss.
-    - eapply sim_delete_tl; et.
-    - eapply sim_delete_hd; et.
-    - eapply sim_add_tl; et.
-    - eapply sim_add_hd; et.
-    Unshelve. exact tt.
-  Qed.
 
 End PROOF.
 

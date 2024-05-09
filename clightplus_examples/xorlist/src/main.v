@@ -78,8 +78,6 @@ Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _add_hd : ident := $"add_hd".
 Definition _add_tl : ident := $"add_tl".
-Definition _argc : ident := $"argc".
-Definition _argv : ident := $"argv".
 Definition _delete_hd : ident := $"delete_hd".
 Definition _delete_tl : ident := $"delete_tl".
 Definition _head : ident := $"head".
@@ -93,7 +91,7 @@ Definition _t'2 : ident := 129%positive.
 Definition f_main := {|
   fn_return := tint;
   fn_callconv := cc_default;
-  fn_params := ((_argc, tint) :: (_argv, (tptr (tptr tschar))) :: nil);
+  fn_params := nil;
   fn_vars := ((_head, (tptr (Tstruct __Node noattr))) ::
               (_tail, (tptr (Tstruct __Node noattr))) :: nil);
   fn_temps := ((_item, tlong) :: (_t'2, tlong) :: (_t'1, tlong) :: nil);
