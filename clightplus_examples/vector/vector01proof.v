@@ -75,7 +75,12 @@ Section PROOF.
       (fun _ st_src st_tgt => ⌜True⌝)%I.
 
   (* TODO: need to be expanded to realloc and memcpy *)
-  Let mfsk : Sk.t := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (Ctypes.External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)); ("free", Gfun (Ctypes.External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))].
+  Definition mfsk : Sk.t := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (Ctypes.External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)); 
+                      ("free", Gfun (Ctypes.External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default));
+                      ("memcpy", Gfun(Ctypes.External (EF_external "memcpy" (mksignature (AST.Tlong :: AST.Tlong :: AST.Tlong :: nil) AST.Tlong cc_default)) 
+                                                    (Tcons (tptr tvoid) (Tcons (tptr tvoid) (Tcons tulong Tnil))) (tptr tvoid) cc_default));
+                      ("realloc", Gfun (Ctypes.External (EF_external "realloc" (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong cc_default)) 
+                                                    (Tcons (tptr tvoid) (Tcons tulong Tnil)) (tptr tvoid) cc_default))].
   Let ce := Maps.PTree.elements (prog_comp_env prog).
 
   Section SIMFUNS.
@@ -102,6 +107,37 @@ Section PROOF.
       ("vector_init", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_init_spec))
       ("vector_init", cfunU (decomp_func sk ce f_vector_init)).
   Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    unfold_comp _vector VALID.
+    econs; ss. red.
+
+    (* current state: 1 *)
+    unfold prog in ce. unfold mkprogram in ce.
+    destruct (build_composite_env'). ss.
+    get_composite ce e.
+
+    dup SKINCL1. rename SKINCL0 into SKINCLENV1.
+    apply incl_incl_env in SKINCLENV1.
+    unfold incl_env in SKINCLENV1.
+    dup SKINCL2. rename SKINCL0 into SKINCLENV2.
+    apply incl_incl_env in SKINCLENV2.
+    unfold incl_env in SKINCLENV2.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto.
+    unfold f_vector_init. i; ss.
+    unfold decomp_func, function_entry_c. ss.
+    let H := fresh "HIDDEN" in
+    set (H := hide 1).
+
+    iIntros "[INV PRE]". des_ifs_safe. ss.
+    iDestruct "PRE" as "[[% PRE] %]".
+    des. clarify. hred_r. 
+
+    unhide. hred_r. unhide. remove_tau. 
+
+    unfold is_vector_handler.
   Admitted.
 
   Lemma sim_vector_total :
