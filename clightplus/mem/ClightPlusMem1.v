@@ -1310,6 +1310,18 @@ Section SPEC.
   Definition capture_spec: fspec :=
     mk_simple (capture_hoare0 @ capture_hoare1).
 
+  Definition realloc_spec: fspec :=
+    (mk_simple (fun n => (
+                    (ord_pure 0%nat),
+                    (fun varg => ∃ m mvs vaddr,
+                                 ⌜varg = [vaddr; Vptrofs n]↑ /\ Z.of_nat (List.length mvs) = m.(sz)⌝
+                                 ** vaddr (↦_m,1) mvs
+                                 ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero),
+                    (fun vret => ∃ m vaddr, ⌜vret = vaddr↑ /\ m.(sz) = Ptrofs.unsigned n⌝
+                                 ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat (Ptrofs.unsigned n))
+                                 ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero)
+    )))%I.
+
   (* sealed *)
   Definition MemStb: list (gname * fspec).
     eapply (Seal.sealing "stb").
@@ -1322,7 +1334,8 @@ Section SPEC.
            ("non_null?", non_null_spec);
            ("malloc", malloc_spec); ("free", mfree_spec);
            ("memcpy", memcpy_spec);
-           ("capture", capture_spec)
+           ("capture", capture_spec);
+           ("realloc", realloc_spec)
            ].
     Defined.
 
@@ -1473,7 +1486,8 @@ Section SMOD.
     ("malloc",   mk_pure malloc_spec);
     ("free",   mk_pure mfree_spec);
     ("memcpy", mk_pure memcpy_spec);
-    ("capture", mk_pure capture_spec)
+    ("capture", mk_pure capture_spec);
+    ("realloc", mk_pure realloc_spec)
     ]
   .
 

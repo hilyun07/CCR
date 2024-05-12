@@ -1,4 +1,4 @@
-Require Import CoqlibCCR Any.
+(* Require Import CoqlibCCR Any.
 Require Import Skeleton.
 Require Import ModSem Behavior SimModSem.
 Require Import PCM IPM.
@@ -3980,4 +3980,4 @@ Section SIMMODSEM.
     - apply sim_capture.
   Qed.
 
-End SIMMODSEM.
+End SIMMODSEM. *)

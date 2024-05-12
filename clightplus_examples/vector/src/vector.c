@@ -26,21 +26,21 @@ void vector_add(vector *v, void *item) {
 }
 
 void vector_set(vector *v, size_t index, void *item) {
-  assert(index < v->total);
+  // assert(index < v->total);
 
   void *ptr = (char *)v->items + index * v->item_size;
   memcpy(ptr, item, v->item_size);
 }
 
 void *vector_get(vector *v, size_t index) {
-  assert(index < v->total);  // assert : if not, make program stop
+  // assert(index < v->total);  // assert : if not, make program stop
 
   void *ptr = (char *)v->items + index * v->item_size;
   return ptr;
 }
 
 void vector_delete(vector *v, size_t index) {
-  assert(index < v->total);
+  // assert(index < v->total);
 
   size_t i;
   for (i = 0; i < v->total - 1; i++) {

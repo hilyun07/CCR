@@ -253,7 +253,8 @@ Section MODSEM.
         | [Vlong i] => if Archi.ptr64 then Ret (Vlong i) else triggerUB
         | _ => triggerUB
         end.
-    
+
+        (* TODO: add realloc to compiler and clight *)
     (* Definition reallocF: list val -> itree Es val :=
       fun varg =>
         match varg with
@@ -282,11 +283,6 @@ Section MODSEM.
                       end in
                 if (sz >=? 0)%Z && (sz' >=? 0)%Z
                 then
-                    (* if (sz >=? sz')%Z then (* Reducing the size of the allocated memory *) *)
-                    (*      `_: () <- ccallU "free" (b, sz', sz);; *)
-                    (*          `_: () <- ccallU "store" (Mptr, b, (- size_chunk Mptr)%Z, Vlong (Int64.repr sz'));; *)
-                    (*          Ret (Vptr b (Ptrofs.repr ofs)) *)
-                    (*    else (* Increasing the size of the allocated memory *) *)
                     `addr': val <- ccallU "malloc" [v_sz'];;
                     `data: list memval <- ccallU "loadbytes" (addr, sz);;
                     `_: () <- ccallU "free" [addr];;

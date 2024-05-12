@@ -75,7 +75,6 @@ Section DECOMP.
     v' <- sem_cast_c v (typeof a2) (typeof a1);;
     assign_loc_c ce (typeof a1) vp v'.
 
-
   Definition _scall_c e le a al
     : itree eff val :=
     match Cop.classify_fun (typeof a) with
@@ -101,7 +100,14 @@ Section DECOMP.
               (* this is for builtin memcpy, uncallable in standard C *)
               (* | EF_memcpy al sz => ccallU "memcpy" (al, sz, vargs) *)
               (* there's no system call currently *)
-              | External _ _ _ _ => triggerUB
+              (* TODO: memcpy, realloc is added should be proven or treated, also it is hard-coded to name and ptr64 now. *)
+              | External (EF_external "memcpy" _) _ _ _ =>
+                match vargs with
+                | [v1;v2;Vlong sz] => ccallU "memcpy" (1%Z, Int64.unsigned sz, [v1;v2])
+                | _ => triggerUB
+                end
+              | External (EF_external "realloc" _) _ _ _ => ccallU "realloc" vargs
+              | _ => triggerUB
               end
             else triggerUB
           else triggerUB
@@ -538,8 +544,11 @@ Section DECOMP_PROG.
     | Gfun (External EF_malloc _ _ _) => Pos.eq_dec ident (ident_of_string "malloc")
     | Gfun (External EF_free _ _ _) => Pos.eq_dec ident (ident_of_string "free")
     | Gfun (External EF_capture _ _ _) => Pos.eq_dec ident (ident_of_string "capture")
-    | Gfun fd => negb (in_dec Pos.eq_dec ident [ident_of_string "malloc"; ident_of_string "free"; ident_of_string "capture"; ident_of_string "salloc"; ident_of_string "sfree";ident_of_string "load";ident_of_string "store";ident_of_string "sub_ptr";ident_of_string "cmp_ptr";ident_of_string "non_null?";ident_of_string "memcpy"]) && main_type ident fd
-    | _ => negb (in_dec Pos.eq_dec ident [ident_of_string "malloc"; ident_of_string "free"; ident_of_string "capture"; ident_of_string "salloc"; ident_of_string "sfree";ident_of_string "load";ident_of_string "store";ident_of_string "sub_ptr";ident_of_string "cmp_ptr";ident_of_string "non_null?";ident_of_string "memcpy"])
+    (* memcpy is only for user-function memcpy *)
+    | Gfun (External (EF_external "memcpy" _) _ _ _) => Pos.eq_dec ident (ident_of_string "memcpy")
+    | Gfun (External (EF_external "realloc" _) _ _ _) => Pos.eq_dec ident (ident_of_string "realloc")
+    | Gfun fd => negb (in_dec Pos.eq_dec ident [ident_of_string "malloc"; ident_of_string "free"; ident_of_string "capture"; ident_of_string "salloc"; ident_of_string "sfree";ident_of_string "load";ident_of_string "store";ident_of_string "sub_ptr";ident_of_string "cmp_ptr";ident_of_string "non_null?";ident_of_string "memcpy";ident_of_string "realloc"]) && main_type ident fd
+    | _ => negb (in_dec Pos.eq_dec ident [ident_of_string "malloc"; ident_of_string "free"; ident_of_string "capture"; ident_of_string "salloc"; ident_of_string "sfree";ident_of_string "load";ident_of_string "store";ident_of_string "sub_ptr";ident_of_string "cmp_ptr";ident_of_string "non_null?";ident_of_string "memcpy";ident_of_string "realloc"])
     end.
 
   Definition get_sk (defs: list (ident * globdef Clight.fundef type)) : res Sk.t :=
@@ -572,7 +581,8 @@ Section DECOMP_PROG.
   (* global compilation condition *)
   Require Import ClightPlusMem0.
 
-  Definition mem_keywords := List.map ident_of_string ["malloc"; "free"; "capture"]%string.
+  (* memcpy is only for user-function memcpy *)
+  Definition mem_keywords := List.map ident_of_string ["malloc"; "free"; "capture"; "memcpy"; "realloc"]%string.
 
   Definition mem_init_cond (sk sk': Sk.t) := forall s v, In (s, Gvar v) sk -> Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk') (string_of_ident symb) = Some idx).
 
