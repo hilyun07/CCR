@@ -42,12 +42,12 @@ void *vector_get(vector *v, size_t index) {
 void vector_delete(vector *v, size_t index) {
   // assert(index < v->total);
 
-  size_t i;
-  for (i = 0; i < v->total - 1; i++) {
+  // for (size_t i = 0; i < v->total - 1; i++) {
+  for (size_t i = index; i < v->total - 1; i++) {
     void *pre_ptr = (char *)v->items + i * v->item_size;
     void *sub_ptr = (char *)v->items + (i + 1) * v->item_size;
     memcpy(pre_ptr, sub_ptr, v->item_size);
-    sub_ptr = NULL;
+    // sub_ptr = NULL;
   }
 
   v->total--;
