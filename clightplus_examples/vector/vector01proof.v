@@ -138,6 +138,29 @@ Section PROOF.
     unhide. hred_r. unhide. remove_tau. 
 
     unfold is_vector_handler.
+    iDestruct "PRE" as (m tag offset) "[[handler_cnt handler_ofs] %]".
+    rename v3 into vect_handler.
+
+    iPoseProof (points_to_is_ptr with "handler_cnt") as "%".
+    rewrite H4. hred_r.
+    rewrite H4. hred_r.
+    unfold vector._vector.
+    unfold ident. des_ifs_safe.
+    rewrite get_co. hred_r.
+    rewrite co_co_members. ss.
+    hred_r.
+    change (Coqlib.align _ _) with 16%Z.
+
+    rewrite List.app_assoc.
+    iPoseProof (points_to_split with "handler_cnt") as "[A B]".
+    iPoseProof (points_to_split with "B") as "[B C]".
+
+    iApply isim_ccallU_store.
+    
+
+
+
+
   Admitted.
 
   Lemma sim_vector_total :

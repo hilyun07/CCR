@@ -49,8 +49,7 @@ Section PROP.
   (* total <= capacity <= size * capacity <= Ptrofs.max_unsigned *)
   Definition is_vector vm qh qb handler (size capacity total : nat) (memlist : list ((list memval) * Qp)) : iProp :=
     (∃ items unused,
-      ⌜size >= 1
-      /\ size * capacity <= Z.to_nat Ptrofs.max_unsigned
+      ⌜capacity <= size * capacity <= Z.to_nat Ptrofs.max_unsigned
       /\ total <= capacity
       /\ Datatypes.length memlist = total
       /\ (total + (Datatypes.length unused))%nat = capacity
@@ -71,9 +70,10 @@ Section SPEC.
 
   Definition vector_init_spec : fspec :=
     mk_simple
-      (fun '(vec_ptr, size, items, usize, capacity, total) => (
+      (fun '(vec_ptr, size) => (
         (ord_pure 1%nat),
         (fun varg =>
+          ∃ items usize capacity total,
           ⌜varg = [vec_ptr; Vlong (Int64.repr (size : nat))]↑
           /\ (0 < size * VECTOR_INIT_CAPACITY <= Z.to_nat Ptrofs.max_unsigned)%Z⌝
           ** is_vector_handler 1 vec_ptr items usize capacity total)%I,
@@ -96,18 +96,21 @@ Section SPEC.
 
   Definition vector_resize_spec : fspec :=
     mk_simple
-      (fun '(vec_ptr, newcap, vec_m, vec_m', size, total, oldcap, memlist) => (
+      (fun '(newcap, size, total, memlist) => (
         (ord_pure 1%nat),
         (fun varg =>
+          ∃ vec_ptr vec_m oldcap,
           ⌜varg = [vec_ptr; (Vlong (Int64.repr (newcap : nat)))]↑
           /\ 0 < newcap * size < (Z.to_nat Ptrofs.max_unsigned)
           /\ total < newcap⌝
           ** is_vector vec_m 1 1 vec_ptr size total oldcap memlist)%I,
         (fun vret =>
+          ∃ vec_m' vec_ptr',
           ⌜vret = Vundef↑⌝
-          ** is_vector vec_m' 1 1 vec_ptr size total newcap memlist))
-      ).
+          ** is_vector vec_m' 1 1 vec_ptr' size total newcap memlist))
+      )%I.
 
+  (* TODO: to be revised *)
   Definition vector_add_spec : fspec :=
     mk_simple
       (fun '(vec_ptr, item_ptr, vec_m, vec_m', item, m, size, total, capacity, memlist, qitem, qbitem, tagitem, ofs) => (
@@ -162,6 +165,7 @@ Section SPEC.
           ** item_ptr (⊨_vec_m,Dynamic,qb/2) (Ptrofs.add Ptrofs.zero (Ptrofs.repr (idx * size))))
       )).
 
+  (* TODO: to be revised *)
   Definition vector_delete_spec : fspec :=
     (mk_simple
       (fun '(vec_ptr, idx, vec_m, vec_m', size, total, capacity, l1, item, l2) => (
