@@ -107,10 +107,10 @@ Section PROP.
        | Vptr b ofs' => ⌜Some b = m.(blk) /\ ofs = ofs' /\ m.(sz) ≤ Ptrofs.max_unsigned⌝
        | Vint i =>
           if Archi.ptr64 then ⌜False⌝
-          else ∃ a, OwnM (_has_base m.(blk) a) ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int i) a /\ Ptrofs.unsigned a <> 0 /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
+          else ∃ a, OwnM (_has_base m.(blk) a) ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int i) a /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None) /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
        | Vlong i =>
           if negb Archi.ptr64 then ⌜False⌝
-          else ∃ a, OwnM (_has_base m.(blk) a) ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int64 i) a /\ Ptrofs.unsigned a <> 0 /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
+          else ∃ a, OwnM (_has_base m.(blk) a) ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int64 i) a /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None) /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
        | _ => ⌜False⌝
        end.
 
@@ -927,12 +927,12 @@ Section RULES.
     iPureIntro. des. clarify.
     assert (X: i <> Int64.zero); try solve [red; intro X'; apply X; inv X'; ss].
     red. i. subst. change (Int64.unsigned Int64.zero) with 0 in *.
-    rewrite Z.add_0_l in H5. apply H7. clear H7.
+    rewrite Z.add_0_l in H5. rewrite Heq in H7. hexploit H7; clarify. clear H7.
     i. unfold Ptrofs.sub, Ptrofs.of_int64 in *.
     change (Int64.unsigned Int64.zero) with 0 in *.
     change (Ptrofs.unsigned (Ptrofs.repr 0)) with 0 in *.
     rewrite Ptrofs.unsigned_repr_eq in *.
-    destruct (Coqlib.zeq 0 (Ptrofs.unsigned a)); et. exfalso.
+    destruct (Coqlib.zeq 0 (Ptrofs.unsigned a)); et.
     rewrite Z_mod_nz_opp_full in H3.
     2: rewrite Z.mod_small; et; apply Ptrofs.unsigned_range.
     rewrite Z_mod_nz_opp_full in H4.

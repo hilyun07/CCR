@@ -1455,7 +1455,8 @@ Section SIMMODSEM.
         iSplit; ss. iFrame. destruct (Int64.eq i0 i1) eqn: ?.
         { apply Int64.same_if_eq in Heqb0. subst. 
           unfold Vnullptr in Heqv0. des_ifs. exfalso.
-          eapply weak_valid_nil_paddr_base; et. }
+          eapply weak_valid_nil_paddr_base; et. ii.
+          hexploit H6; clarify. }
         iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
       + iDestruct "P" as "%". des. clarify.
         unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
@@ -1513,7 +1514,8 @@ Section SIMMODSEM.
         { apply Int64.same_if_eq in Heqb0. subst. 
           unfold Vnullptr in Heqv0. des_ifs.
           unfold Ptrofs.sub in H5. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H5.
-          exfalso. eapply weak_valid_nil_paddr_base; et. }
+          exfalso. eapply weak_valid_nil_paddr_base; et. ii.
+          hexploit H6; clarify. }
         iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
       + iDestruct "P" as "%". des. clarify.
         unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
@@ -1571,7 +1573,8 @@ Section SIMMODSEM.
         { apply Int64.same_if_eq in Heqb0. subst. 
           unfold Vnullptr in Heqv0. des_ifs.
           unfold Ptrofs.sub in H5. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H5.
-          exfalso. eapply weak_valid_nil_paddr_base; et. }
+          exfalso. eapply weak_valid_nil_paddr_base; et. ii.
+          hexploit H6; clarify. }
         iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
       + iDestruct "P" as "%". des. clarify.
         unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
@@ -1629,7 +1632,8 @@ Section SIMMODSEM.
         { apply Int64.same_if_eq in Heqb0. subst. 
           unfold Vnullptr in Heqv0. des_ifs.
           unfold Ptrofs.sub in H5. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H5.
-          exfalso. eapply weak_valid_nil_paddr_base; et. }
+          exfalso. eapply weak_valid_nil_paddr_base; et. ii.
+          hexploit H6; clarify. }
         iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
       + iDestruct "P" as "%". des. clarify.
         unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
@@ -1747,7 +1751,8 @@ Section SIMMODSEM.
         hexploit SZPOS; et. i.
         pose proof (Int64.eq_spec i1 Int64.zero).
         destruct (Int64.eq i1 Int64.zero) eqn: ?.
-        { subst. exfalso. eapply weak_valid_nil_paddr_base; et. }
+        { subst. exfalso. eapply weak_valid_nil_paddr_base; et. ii.
+          hexploit H7; clarify. }
         unfold cmp_ptr_join. ss.
         iCombine "CONC CONC_PRE" as "CONC".
         iOwnWf "CONC" as wfconc.
@@ -1868,12 +1873,12 @@ Section SIMMODSEM.
         hexploit SZPOS; et. i.
         pose proof (Int64.eq_spec i1 Int64.zero).
         destruct (Int64.eq i1 Int64.zero) eqn: ?.
-        { subst. exfalso. apply H7.
+        { subst. exfalso. hexploit H7; clarify.
           unfold weak_valid, Ptrofs.sub, Ptrofs.of_int64 in *.
           change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned _))) with 0 in *.
           rewrite Ptrofs.unsigned_repr_eq in *.
           rewrite Z_mod_nz_opp_full in *; [>rewrite Z.mod_small in *|rewrite Z.mod_small..]; et.
-          all: try apply Ptrofs.unsigned_range.
+          all: try apply Ptrofs.unsigned_range. 2:{ ii. hexploit H7; clarify. }
           change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in *. nia. }
         unfold cmp_ptr_join. ss.
         iCombine "CONC CONC_PRE" as "CONC".
@@ -2169,7 +2174,7 @@ Section SIMMODSEM.
           unfold weak_valid, Ptrofs.sub, Ptrofs.of_int64 in *.
           change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned _))) with 0 in *.
           change (0 - Ptrofs.unsigned a) with (- Ptrofs.unsigned a) in *.
-          eapply weak_valid_nil_paddr_base; et. nia. }
+          eapply weak_valid_nil_paddr_base; et. 2:{ ii. hexploit H8; clarify. } nia. }
         unfold cmp_ptr_join. ss.
         iCombine "CONC CONC_PRE" as "CONC".
         iOwnWf "CONC" as wfconc.
@@ -2311,7 +2316,7 @@ Section SIMMODSEM.
           unfold weak_valid, Ptrofs.sub, Ptrofs.of_int64 in *.
           change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned _))) with 0 in *.
           change (0 - Ptrofs.unsigned a) with (- Ptrofs.unsigned a) in *.
-          eapply weak_valid_nil_paddr_base; et. nia. }
+          eapply weak_valid_nil_paddr_base; et. 2:{ ii. hexploit H8; clarify. } nia. }
         unfold cmp_ptr_join. ss.
         iCombine "CONC CONC_PRE" as "CONC".
         iOwnWf "CONC" as wfconc.
@@ -2604,7 +2609,7 @@ Section SIMMODSEM.
           unfold weak_valid, Ptrofs.sub, Ptrofs.of_int64 in *.
           change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned _))) with 0 in *.
           change (0 - Ptrofs.unsigned a) with (- Ptrofs.unsigned a) in *.
-          eapply weak_valid_nil_paddr_base; et. nia. }
+          eapply weak_valid_nil_paddr_base; et. 2:{ ii. hexploit H8; clarify. } nia. }
         unfold cmp_ptr_join. ss.
         iCombine "CONC CONC_PRE" as "CONC".
         iOwnWf "CONC" as wfconc.
@@ -2747,7 +2752,7 @@ Section SIMMODSEM.
           unfold weak_valid, Ptrofs.sub, Ptrofs.of_int64 in *.
           change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned _))) with 0 in *.
           change (0 - Ptrofs.unsigned a) with (- Ptrofs.unsigned a) in *.
-          eapply weak_valid_nil_paddr_base; et. nia. }
+          eapply weak_valid_nil_paddr_base; et. 2:{ ii. hexploit H8; clarify. } nia. }
         unfold cmp_ptr_join. ss.
         iCombine "CONC CONC_PRE" as "CONC".
         iOwnWf "CONC" as wfconc.
@@ -2940,7 +2945,7 @@ Section SIMMODSEM.
       unfold weak_valid, Ptrofs.sub, Ptrofs.of_int64 in H5.
       rewrite <- e in *. 
       change (Ptrofs.unsigned (Ptrofs.repr 0)) with 0 in *. exfalso.
-      eapply weak_valid_nil_paddr_base; et. }
+      eapply weak_valid_nil_paddr_base; et. ii. hexploit H6; clarify. }
     iDestruct "A" as "%". des. clarify.
     iAssert ⌜Mem.weak_valid_pointer mem_tgt b (Ptrofs.unsigned i0) = true⌝%I as "%"; cycle 1.
     { rewrite H4. hred_r.
@@ -3134,7 +3139,7 @@ Section SIMMODSEM.
           des; rewrite wfconc in *; inv H16; clarify.
           pose proof (Int64.eq_spec i Int64.zero).
           destruct (Int64.eq i Int64.zero).
-          { subst. exfalso. eapply (weak_valid_nil_paddr_base base); et. unfold Ptrofs.sub, Ptrofs.of_int64 in *. change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned Int64.zero))) with 0 in H6. rewrite Z.sub_0_l in H6. nia. }
+          { subst. exfalso. eapply (weak_valid_nil_paddr_base base); et. 2:{ ii. hexploit H19; clarify. } unfold Ptrofs.sub, Ptrofs.of_int64 in *. change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned Int64.zero))) with 0 in H6. rewrite Z.sub_0_l in H6. nia. }
           unfold Mem.denormalize.
           hexploit (paddr_no_overflow_cond i); et; try nia. i.
           unfold Ptrofs.sub, Ptrofs.of_int64 in *.
@@ -3184,7 +3189,7 @@ Section SIMMODSEM.
           des; rewrite wfconc in *; inv H17; clarify.
           pose proof (Int64.eq_spec i Int64.zero).
           destruct (Int64.eq i Int64.zero).
-          { subst. exfalso. eapply (weak_valid_nil_paddr_base base); et. unfold Ptrofs.sub, Ptrofs.of_int64 in *. change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned Int64.zero))) with 0 in H4. rewrite Z.sub_0_l in H4. nia. }
+          { subst. exfalso. eapply (weak_valid_nil_paddr_base base); et. 2:{ ii. hexploit H18; clarify. } unfold Ptrofs.sub, Ptrofs.of_int64 in *. change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned Int64.zero))) with 0 in H4. rewrite Z.sub_0_l in H4. nia. }
           unfold Mem.denormalize.
           hexploit (paddr_no_overflow_cond i); et; try nia. i.
           unfold Ptrofs.sub, Ptrofs.of_int64 in *.
@@ -3358,7 +3363,7 @@ Section SIMMODSEM.
         des; rewrite wfconc in *; inv H13; clarify.
         pose proof (Int64.eq_spec i Int64.zero).
         destruct (Int64.eq i Int64.zero).
-        { subst. exfalso. eapply (weak_valid_nil_paddr_base base); et. unfold Ptrofs.sub, Ptrofs.of_int64 in *. change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned Int64.zero))) with 0 in H4. rewrite Z.sub_0_l in H4. nia. }
+        { subst. exfalso. eapply (weak_valid_nil_paddr_base base); et. 2:{ ii. hexploit H14; clarify. } unfold Ptrofs.sub, Ptrofs.of_int64 in *. change (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned Int64.zero))) with 0 in H4. rewrite Z.sub_0_l in H4. nia. }
         unfold Mem.denormalize.
         hexploit (paddr_no_overflow_cond i); et; try nia. i.
         unfold Ptrofs.sub, Ptrofs.of_int64 in *.
