@@ -44,18 +44,19 @@ Section PROOF.
   (* Variable xor0 : Mod.t.
   Hypothesis VALID : xorlist0._xor = Errors.OK xor0. *)
 
-  Theorem correct : refines2 [xormod; ClightPlusMem0.Mem mfsk] [xorlistall1.xorAllWrapped GlobalStb; ClightPlusMem1.Mem mfsk].
+  Theorem correct : refines2 [ClightPlusMem0.Mem mfsk; xormod] [ClightPlusMem1.Mem mfsk; xorlistall1.xorAllWrapped GlobalStb].
   Proof.
     eapply adequacy_local_strong_l. econs; cycle 1.
-    { simpl map. econs; [|econs; refl].
+    { simpl map. econs; [econs; refl|].
       unfold xor_sk, xor. rewrite VALID_link. rewrite VALID_comp. et. }
-    i. econs; cycle 1.
-    { econs; [|ss]. apply correct_mod; et. inv SKINCL. inv H6. ss. }
+    i. econs.
+    { apply correct_mod; et. inv SKINCL. inv H6. ss. }
+    econs; [|ss].
     hexploit sim_delete_tl; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_delete_tl.
     hexploit sim_delete_hd; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_delete_hd.
     hexploit sim_add_hd; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_add_hd.
     hexploit sim_add_tl; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_add_tl.
-    hexploit sim_main; et. { inv SKINCL. et. } { inv SKINCL. inv H6. et. } i. rename H3 into sim_main.
+    hexploit sim_main; et. { inv SKINCL. inv H6. et. } { inv SKINCL. et. }  i. rename H3 into sim_main.
     eassert (_xor = _).
     { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
     rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
