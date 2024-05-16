@@ -407,6 +407,17 @@ Section RULES.
     iApply _has_offset_unique; et.
   Qed.
 
+  Lemma offset_trivial
+      b m tg q ofs0 ofs1
+    :
+      Vptr b ofs0 (⊨_ m, tg, q) ofs1 ⊢ ⌜m.(blk) = Some b /\ ofs0 = ofs1⌝.
+  Proof.
+    destruct m. destruct blk0; cycle 1.
+    { unfold has_offset. ss. iIntros "%". des; clarify. }
+    iIntros "[A B]".
+    iDestruct "B" as "[_ %]". des. et. 
+  Qed.
+
   Lemma _points_to_ownership
       b ofs mvs q0 q1
     :

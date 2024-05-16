@@ -43,18 +43,4 @@ Section SMOD.
   Definition mainSbtb: list (gname * fspecbody) :=
     [("main", mk_specbody main_spec (cfunU main_body))].
   
-  Definition SmainSem : SModSem.t := {|
-    SModSem.fnsems := mainSbtb;
-    SModSem.mn := "main";
-    SModSem.initial_mr := ε;
-    SModSem.initial_st := tt↑;
-  |}.
-
-  Definition Smain : SMod.t := {|
-    SMod.get_modsem := fun _ => SmainSem;
-    SMod.sk := Sk.unit;
-  |}.
-
-  Definition main stb : Mod.t := (SMod.to_tgt stb) Smain.
-
 End SMOD.

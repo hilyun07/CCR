@@ -13,7 +13,7 @@ Require Import ClightPlusSkel ClightPlusExprgen ClightPlusgen.
 Require Import ClightPlusMem0 ClightPlusMem1 ClightPlusMemAux.
 Require Import CProofMode CIProofMode.
 Require Import xorlist.
-Require Import xorlist0.
+Require Import xorlistall0.
 Require Import xorlist1.
 Require Import PtrofsArith.
 From Coq Require Import Program.
@@ -80,7 +80,7 @@ Section PROOF.
   Section SIMFUNS.
   Variable xorlink : Clight.program.
   (* Variable xormod : Mod.t. *)
-  Hypothesis VALID_link : xorlist0._xor = Some xorlink.
+  Hypothesis VALID_link : xorlistall0._xor = Some xorlink.
   (* Hypothesis VALID_comp : compile xorlink "xorlist" = Errors.OK xormod. *)
   Let ce := Maps.PTree.elements (prog_comp_env xorlink).
 
@@ -170,10 +170,13 @@ Section PROOF.
     hred_r. unhide. remove_tau. unhide. remove_tau.
 
     unfold full_xorlist.
-    iDestruct "PRE" as (m_hd_hdl m_tl_hdl hd tl ofs_hd_hdl ofs_tl_hdl tg_hd_hdl tg_tl_hdl)
+    iDestruct "PRE" as (m_hd_hdl m_tl_hdl hd tl ofs_hd_hdl ofs_tl_hdl)
       "[[[[[[hd_hdl_point hd_hdl_ofs] %] tl_hdl_point] tl_hdl_ofs] %] LIST]".
-    rename H3 into hd_hdl_align.
-    rename H4 into tl_hdl_align.
+    des. clarify.
+    rename H3 into hd_hdl_sz.
+    rename H4 into tl_hdl_sz.
+    rename H5 into tl_hdl_align.
+    rename H6 into hd_hdl_align.
     iPoseProof (rev_xorlist with "LIST") as "LIST".
     set (rev lfull) as l'. replace lfull with (rev l') by now unfold l'; rewrite rev_involutive; et. 
     clearbody l'. clear lfull.
@@ -283,7 +286,7 @@ Section PROOF.
       iCombine "new_point_item new_point_key" as "new_point".
       iPoseProof (points_to_collect with "new_point") as "new_point".
 
-      iExists _,_,_,_,_,_,_,_. iFrame.
+      iExists _,_,_,_,_,_. iFrame.
       iSplit; ss.
       iPoseProof (offset_slide_rev with "new_ofs") as "new_ofs".
       change Vnullptr with (Vptrofs Ptrofs.zero) at 3 4.
@@ -400,7 +403,7 @@ Section PROOF.
       apply (f_equal Ptrofs.of_int64) in H3. rewrite Ptrofs.of_int64_to_int64 in H3; et. }
     clear H3. clarify.
 
-    iExists _,_,_,_,_,_,_,_. iFrame. iSplit; ss.
+    iExists _,_,_,_,_,_. iFrame. iSplit; ss.
     rewrite <- (rev_involutive ((rev lfull ++ _) ++ _)).
     iApply rev_xorlist. rewrite rev_app_distr.
     change (rev [Vlong item]) with [Vlong item].
@@ -496,10 +499,13 @@ Section PROOF.
     hred_r. unhide. remove_tau. unhide. remove_tau.
 
     unfold full_xorlist.
-    iDestruct "PRE" as (m_hd_hdl m_tl_hdl hd tl ofs_hd_hdl ofs_tl_hdl tg_hd_hdl tg_tl_hdl)
+    iDestruct "PRE" as (m_hd_hdl m_tl_hdl hd tl ofs_hd_hdl ofs_tl_hdl)
       "[[[[[[hd_hdl_point hd_hdl_ofs] %] tl_hdl_point] tl_hdl_ofs] %] LIST]".
-    rename H3 into hd_hdl_align.
-    rename H4 into tl_hdl_align.
+    des. clarify.
+    rename H3 into hd_hdl_sz.
+    rename H4 into tl_hdl_sz.
+    rename H5 into tl_hdl_align.
+    rename H6 into hd_hdl_align.
 
     (* node* hd = *hd_handler start *)
     iPoseProof (points_to_is_ptr with "hd_hdl_point") as "%".
@@ -605,7 +611,7 @@ Section PROOF.
       iCombine "new_point_item new_point_key" as "new_point".
       iPoseProof (points_to_collect with "new_point") as "new_point".
 
-      iExists _,_,_,_,_,_,_,_. iFrame.
+      iExists _,_,_,_,_,_. iFrame.
       iSplit; ss.
       iPoseProof (offset_slide_rev with "new_ofs") as "new_ofs".
       change Vnullptr with (Vptrofs Ptrofs.zero) at 3 4.
@@ -722,7 +728,7 @@ Section PROOF.
       apply (f_equal Ptrofs.of_int64) in H3. rewrite Ptrofs.of_int64_to_int64 in H3; et. }
     clear H3. clarify.
 
-    iExists _,_,_,_,_,_,_,_. iFrame. iSplit; ss.
+    iExists _,_,_,_,_,_. iFrame. iSplit; ss.
     iExists _,_,_. iFrame. rewrite Ptrofs.xor_zero_l. iFrame. iSplit; ss.
     rewrite <- Heq0.
 
@@ -777,15 +783,18 @@ Section PROOF.
     iIntros "[INV PRE]". des_ifs_safe. ss.
     iDestruct "PRE" as "[[% PRE] %]". unfold full_xorlist.
     iDestruct "PRE"
-      as (m_hd_hdl m_tl_hdl hd_old tl_old ofs_hd_hdl ofs_tl_hdl tg_hd_hdl tg_tl_hdl)
+      as (m_hd_hdl m_tl_hdl hd_old tl_old ofs_hd_hdl ofs_tl_hdl)
       "[[[[[[hd_hdl_point hd_hdl_ofs] %] tl_hdl_point] tl_hdl_ofs] %] LIST]".
     iPoseProof (rev_xorlist with "LIST") as "LIST".
     clarify. hred_r. unhide. hred_r. unhide. remove_tau.
     rename v into hd_handler.  rename v0 into tl_handler.
     set (rev l) as l'. replace l with (rev l') by now unfold l'; rewrite rev_involutive; et. 
     clearbody l'. clear l.
-    rename l' into linput. rename H5 into hd_hdl_align.
-    rename H6 into tl_hdl_align.
+    rename l' into linput. des. clarify.
+    rename H3 into tl_hdl_align.
+    rename H4 into hd_hdl_align.
+    rename H5 into hd_hdl_sz.
+    rename H6 into tl_hdl_sz.
 
 
     (* current state: 2 *)
@@ -830,7 +839,7 @@ Section PROOF.
       hred_l. iApply isim_choose_src.
       iExists _. iApply isim_ret.
       iFrame. iSplit; ss. iSplit; ss.
-      iExists _,_,_,_,_,_,_,_. iFrame. iSplit; ss.
+      iExists _,_,_,_,_,_. iFrame. iSplit; ss.
     }
     (* case: not nil list *)
     ss. destruct v; try solve [iDestruct "LIST" as "[]"]. rename i into tl_item.
@@ -944,7 +953,7 @@ Section PROOF.
 
       (* prove post condition *)
       hred_l. iApply isim_choose_src. iExists _.
-      iApply isim_ret. iFrame. iSplit; ss. iSplit; ss. iExists _,_,_,_,_,_,_,_. iFrame; ss.
+      iApply isim_ret. iFrame. iSplit; ss. iSplit; ss. iExists _,_,_,_,_,_. iFrame; ss.
 
     (* case: list length is more than 1 *)
     - ss. destruct v; clarify.
@@ -1028,7 +1037,7 @@ Section PROOF.
       iApply isim_ret. iFrame. iSplit; ss. rewrite last_last. iSplit; ss.
       change 8%Z with (Z.of_nat (strings.length (encode_val Mint64 (Vlong tl_prev_item)))).
       iCombine "tl_prev_point_item tl_prev_point_key" as "tl_prev_point".  iPoseProof (points_to_collect with "tl_prev_point") as "tl_prev_point". iPoseProof (offset_slide_rev with "tl_prev_ofs") as "tl_prev_ofs".
-      iExists _,_,_,_,_,_,_,_. iFrame. iSplit; ss.
+      iExists _,_,_,_,_,_. iFrame. iSplit; ss.
       rewrite removelast_last. rewrite <- (rev_involutive (rev lnext ++ _)).
       iApply rev_xorlist. rewrite rev_app_distr. rewrite rev_involutive.
       change (rev [Vlong tl_prev_item]) with [Vlong tl_prev_item]. ss.
@@ -1077,12 +1086,16 @@ Section PROOF.
     iIntros "[INV PRE]". des_ifs_safe. ss.
     iDestruct "PRE" as "[[% PRE] %]". unfold full_xorlist.
     iDestruct "PRE"
-      as (m_hd_hdl m_tl_hdl hd_old tl_old ofs_hd_hdl ofs_tl_hdl tg_hd_hdl tg_tl_hdl)
+      as (m_hd_hdl m_tl_hdl hd_old tl_old ofs_hd_hdl ofs_tl_hdl)
       "[[[[[[hd_hdl_point hd_hdl_ofs] %] tl_hdl_point] tl_hdl_ofs] %] LIST]".
     clarify. hred_r. unhide. hred_r. unhide. remove_tau.
     rename v into hd_handler.  rename v0 into tl_handler.
-    rename l into linput. rename H5 into hd_hdl_align.
-    rename H6 into tl_hdl_align.
+    rename l into linput.
+    des. clarify.
+    rename H3 into tl_hdl_align.
+    rename H4 into hd_hdl_align.
+    rename H5 into hd_hdl_sz.
+    rename H6 into tl_hdl_sz.
 
     (* current state: 2 *)
     unhide. hred_r. unhide. remove_tau.
@@ -1125,7 +1138,7 @@ Section PROOF.
       hred_l. iApply isim_choose_src.
       iExists _. iApply isim_ret.
       iFrame. iSplit; ss. iSplit; ss.
-      iExists _,_,_,_,_,_,_,_. iFrame. iSplit; ss.
+      iExists _,_,_,_,_,_. iFrame. iSplit; ss.
     }
     (* case: not nil list *)
     ss. destruct v; try solve [iDestruct "LIST" as "[]"]. rename i into hd_item.
@@ -1238,7 +1251,7 @@ Section PROOF.
 
       (* prove post condition *)
       hred_l. iApply isim_choose_src. iExists _.
-      iApply isim_ret. iFrame. iSplit; ss. iSplit; ss. iExists _,_,_,_,_,_,_,_. iFrame; ss. 
+      iApply isim_ret. iFrame. iSplit; ss. iSplit; ss. iExists _,_,_,_,_,_. iFrame; ss. 
 
     (* case: list length is more than 1 *)
     - ss. destruct v; clarify.
@@ -1321,7 +1334,7 @@ Section PROOF.
       iApply isim_ret. iFrame. iSplit; ss. iSplit; ss.
       change 8%Z with (Z.of_nat (strings.length (encode_val Mint64 (Vlong hd_next_item)))).
       iCombine "hd_next_point_item hd_next_point_key" as "hd_next_point".  iPoseProof (points_to_collect with "hd_next_point") as "hd_next_point". iPoseProof (offset_slide_rev with "hd_next_ofs") as "hd_next_ofs".
-      iExists _,_,_,_,_,_,_,_. iFrame. iSplit; ss.
+      iExists _,_,_,_,_,_. iFrame. iSplit; ss.
       iExists _,_,_. iFrame. rewrite Ptrofs.xor_zero_l.
       iSplit; ss. replace (Vlong (Int64.xor i i0)) with (Vptrofs i_hd_nn); et.
       clear - Heq Heq0. unfold Vptrofs in *. des_ifs. f_equal.

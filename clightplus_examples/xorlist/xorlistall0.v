@@ -13,6 +13,12 @@ Definition xor : Errors.res Mod.t :=
     | None => Errors.Error [Errors.MSG "no link"]
     end.
 
+Definition xor_sk : Sk.t :=
+  match xor with
+  | Errors.OK md => md.(Mod.sk)
+  | Errors.Error _ => Sk.unit
+  end.
+
 Definition _msk : Errors.res Sk.t :=
     match _xor with
     | Some xor => mem_skel xor

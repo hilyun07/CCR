@@ -12,8 +12,8 @@ Require Import HSim IProofMode.
 Require Import ClightPlusSkel ClightPlusExprgen ClightPlusgen.
 Require Import CProofMode CIProofMode.
 Require Import main.
-Require Import main0.
-Require Import xorlist0.
+Require Import main1.
+Require Import xorlistall0.
 Require Import xorlist1.
 Require Import PtrofsArith.
 From Coq Require Import Program.
@@ -43,7 +43,7 @@ Section PROOF.
   Section SIMFUNS.
   Variable xorlink : Clight.program.
   Variable xormod : Mod.t.
-  Hypothesis VALID_link : xorlist0._xor = Some xorlink.
+  Hypothesis VALID_link : xorlistall0._xor = Some xorlink.
   Hypothesis VALID_comp : compile xorlink "xorlist" = Errors.OK xormod.
   Let ce := Maps.PTree.elements (prog_comp_env xorlink).
 
@@ -148,11 +148,11 @@ Section PROOF.
     { instantiate (1:=5). oauto. }
     iSplitL.
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Int64.repr (Int.signed (Int.repr 3)), [])). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Local, Local, Int64.repr (Int.signed (Int.repr 3)), [])). ss.
       iSplit; et. iSplit; et. unfold full_xorlist.
-      iExists _, _, _, _, _, _, _, _.
+      iExists _, _, _, _, _, _.
       iPoseProof (equiv_dup with "NULL") as "[? ?]".
-      iFrame. iPureIntro. split; exists 0; ss. }
+      iFrame. iPureIntro. splits; try exists 0; ss. }
     iIntros (st_src4 st_tgt4 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
     clarify. iExists _. iSplit; et.
@@ -175,7 +175,7 @@ Section PROOF.
     { instantiate (1:=4). oauto. }
     iSplitL.
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Int64.repr (Int.signed (Int.repr 7)), _)). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Local, Local, Int64.repr (Int.signed (Int.repr 7)), _)). ss.
       iSplit; et. }
     iIntros (st_src5 st_tgt5 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -200,7 +200,7 @@ Section PROOF.
     { instantiate (1:=3). oauto. }
     iSplitL.
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _)). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _, _, _)). ss.
       iSplit; et. }
     iIntros (st_src6 st_tgt6 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -234,7 +234,7 @@ Section PROOF.
     { instantiate (1:=2). oauto. }
     iSplitL.
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _)). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _, _, _)). ss.
       iSplit; et. }
     iIntros (st_src7 st_tgt7 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -246,23 +246,28 @@ Section PROOF.
     unhide. remove_tau.
 
     unfold full_xorlist.
-    iDestruct "X" as (md m1 hd tl ofs ofs1 tg tg1) "[[[[[[D C] %] B] A] %] ?]".
+    iDestruct "X" as (md m1 hd tl ofs ofs1) "[[[[[[D C] %] B] A] %] ?]".
 
     iApply isim_ccallU_sfree; ss; oauto.
+    iPoseProof (offset_trivial with "A") as "%".
+    iPoseProof (offset_trivial with "C") as "%".
+    des. clarify.
     iSplitL "INV B A"; iFrame.
-    (* TODO: xorlist should know its source *)
-    { iExists _,_,_. iFrame. admit. }
+    { iExists _,_,_. iFrame. iPureIntro.
+      des. rewrite encode_val_length. unfold size_chunk_nat.
+      change (size_chunk Mptr) with 8%Z in *. splits; et. }
     iIntros (st_src8 st_tgt8) "INV".
     hred_r.
 
     iApply isim_ccallU_sfree; ss; oauto.
     iSplitL "INV D C"; iFrame.
-    (* TODO: xorlist should know its source *)
-    { iExists _,_,_. iFrame. admit. }
+    { iExists _,_,_. iFrame. iPureIntro.
+      des. rewrite encode_val_length. unfold size_chunk_nat.
+      change (size_chunk Mptr) with 8%Z in *. splits; et. }
     iIntros (st_src9 st_tgt9) "INV".
     hred_r. hred_l.
     iApply isim_ret. iFrame. iSplit; ss. 
-  Admitted.
+  Qed.
 
   End SIMFUNS.
 

@@ -10,7 +10,7 @@
   Variable xor0 : Mod.t.
   Hypothesis VALID : xorlist0._xor = Errors.OK xor0.
 
-  Theorem correct : refines2 [xormod; ClightPlusMem0.Mem mfsk] [xorlist1.xor xormod GlobalStb; main GlobalStb; ClightPlusMem1.Mem mfsk].
+  Theorem correct : refines2 [xormod; ClightPlusMem0.Mem mfsk] [xorlistall1.xor xormod GlobalStb; ClightPlusMem1.Mem mfsk].
   Proof.
     eapply adequacy_local_strong_l. econs; cycle 1.
     { econs; [ss|]. econs; ss. }
