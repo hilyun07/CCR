@@ -85,7 +85,7 @@ Section PROOF.
       assert (l = map (SMod.to_tgt GlobalStb) mds).
       { unfold l, mds. clear LINK H H0. ss. }
       rewrite H1. eapply adequacy_type.
-      { instantiate (1:= (GRA.embed ((_has_size None 0%Z) : blocksizeRA)) ⋅ (GRA.embed ((_has_base None Ptrofs.zero) : blockaddressRA))).
+      + instantiate (1:= GRA.embed (_has_size None 0%Z : blocksizeRA) ⋅ GRA.embed (_has_base None Ptrofs.zero : blockaddressRA)).
         (* instantiate (1:= GRA.embed ((fun ob => match ob with
                                                    | Some _ => OneShot.unit
                                                    | None => OneShot.white Ptrofs.zero
@@ -94,7 +94,7 @@ Section PROOF.
                                                    | Some b => OneShot.unit
                                                    | None => OneShot.white 0%Z
                                                    end) : blocksizeRA)). *)
-        admit. }
+        admit.
         (* clear. ss. unfold SMod.get_initial_mrs. ss. rewrite URA.unit_idl.
         rewrite URA.unit_id. rewrite URA.add_comm.
         rewrite <- URA.add_assoc.
@@ -105,17 +105,16 @@ Section PROOF.
         rewrite URA.add_assoc.
         ur. ur. unfold URA._add. unfold GRA.to_URA.
         set (GRA.embed _ ⋅ GRA.embed _). *)
-      i. simpl in MAIN. inv MAIN. exists tt.
-      clear. splits; et.
-      2:{ i. ss. iIntros "%"; des; clarify. }
-      iIntros "[A B]". ss. iSplit; et. iSplit; et.
-      iExists Ptrofs.zero. unfold _has_offset.
-      des_ifs. ss.
-      iPoseProof (_has_size_dup with "A") as "[$ $]".
-      iPoseProof (_has_base_dup with "B") as "[B ?]".
-      unfold Vnullptr in Heq. des_ifs.
-      iSplitL "B"; iExists _; iFrame; iPureIntro; splits; et.
-      all: vm_compute (Ptrofs.max_unsigned); ss; nia.
+      + i. simpl in MAIN. inv MAIN. exists tt.
+        clear. splits; et.
+        2:{ i. ss. iIntros "%"; des; clarify. }
+        iIntros "[A B]". ss. iSplit; et. iSplit; et.
+        iExists Ptrofs.zero. unfold _has_offset.
+        des_ifs. ss.
+        iPoseProof (_has_size_dup with "A") as "[$ $]".
+        iPoseProof (_has_base_dup with "B") as "[B ?]".
+        unfold Vnullptr in Heq. des_ifs.
+        iSplitL "B"; iExists _; iFrame; iPureIntro; splits; et; ss.
   Admitted.
 
 End PROOF.
