@@ -33,7 +33,7 @@ Section SMOD.
     SMod.sk := xor_sk;
   |}.
 
-  Definition xorAllWraped stb : Mod.t := (SMod.to_tgt stb) SxorAll.
+  Definition xorAllWrapped stb : Mod.t := (SMod.to_tgt stb) SxorAll.
 
   Definition xorAll : Mod.t := SMod.to_src SxorAll.
 
