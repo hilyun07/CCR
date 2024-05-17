@@ -132,14 +132,15 @@ Section PROOF.
     set (H := hide 1).
 
     iIntros "[INV PRE]". des_ifs_safe. ss.
-    iDestruct "PRE" as "[[% PRE] %]".
+    iDestruct "PRE" as "[PRE %]".
+    iDestruct "PRE" as (items usize capacity total) "[% PRE]".
     des. clarify. hred_r. 
 
     unhide. hred_r. unhide. remove_tau. 
 
     unfold is_vector_handler.
     iDestruct "PRE" as (m tag offset) "[[handler_cnt handler_ofs] %]".
-    rename v3 into vect_handler.
+    rename v into vect_handler.
 
     iPoseProof (points_to_is_ptr with "handler_cnt") as "%".
     rewrite H4. hred_r.
@@ -155,6 +156,8 @@ Section PROOF.
     iPoseProof (points_to_split with "handler_cnt") as "[A B]".
     iPoseProof (points_to_split with "B") as "[B C]".
 
+    hred_r.
+    iApply isim_apc. iExists (Some (20%nat : Ord.t)).
     iApply isim_ccallU_store.
     
 
