@@ -1,4 +1,4 @@
-Require Import CoqlibCCR.
+(* Require Import CoqlibCCR.
 Require Import Any.
 Require Import STS.
 Require Import Behavior.
@@ -1348,4 +1348,4 @@ Section PROOF.
   Qed.
 
 End PROOF.
-
+ *)
