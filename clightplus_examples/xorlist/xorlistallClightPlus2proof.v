@@ -42,12 +42,64 @@ Section Lemma.
   Lemma valid_point sk' sk p a s
     (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
     : URA.wf p.
-  Proof. admit. Admitted.
+  Proof.
+    set ε as p0 in SUCC.
+    set ε as a0 in SUCC.
+    set ε as s0 in SUCC.
+    set xH as b0 in SUCC.
+    assert (forall b, (b0 ≤ b)%positive -> p0 b = ε).
+    { i. unfold p0. ss. }
+    assert (URA.wf p0).
+    { ur. i. unfold p0. ur. i. ur. ss. }
+    clearbody p0 a0 s0 b0.
+    revert p a s sk' p0 a0 s0 b0 SUCC H3 H4.
+    induction sk; i; ss; clarify. des_ifs.
+    - hexploit IHsk; et. i. apply H3. nia.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+  Admitted.
 
   Lemma valid_alloc sk' sk p a s
     (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
     : URA.wf a.
-  Proof. admit. Admitted.
+  Proof.
+    set ε as p0 in SUCC.
+    set ε as a0 in SUCC.
+    set ε as s0 in SUCC.
+    set xH as b0 in SUCC.
+    assert (forall b, (b0 ≤ b)%positive -> a0 b = ε).
+    { i. unfold a0. ss. }
+    assert (URA.wf a0).
+    { ur. i. unfold a0. ur. ss. }
+    clearbody p0 a0 s0 b0.
+    revert p a s sk' p0 a0 s0 b0 SUCC H3 H4.
+    induction sk; i; ss; clarify. des_ifs.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+    - hexploit IHsk; et.
+      + admit.
+      + admit.
+  Admitted.
 
   Lemma valid_size sk' sk p a (s : blocksizeRA)
     (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
@@ -55,7 +107,32 @@ Section Lemma.
                             | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
                             | None => OneShot.white 0%Z
                             end)).
-  Proof. admit. Admitted.
+  Proof. 
+    set ε as p0 in SUCC.
+    set ε as a0 in SUCC.
+    set ε as s0 in SUCC.
+    set xH as b0 in SUCC.
+    assert (s0 None = ε).
+    { ss. }
+    replace (Pos.of_succ_nat (strings.length sk)) with (Pos.of_nat (Pos.to_nat b0 + (strings.length sk))) by nia.
+    assert (forall b, (b0 ≤ b)%positive -> s0 (Some b) = ε).
+    { i. unfold s0. ss. }
+    assert (forall b, (b < b0)%positive -> URA.wf (s0 (Some b))).
+    { i. unfold s0. ur. ss. }
+    clearbody p0 a0 s0 b0.
+    revert p a s sk' p0 a0 s0 b0 SUCC H3 H4 H5.
+    induction sk; i; ss; clarify.
+    - ur. i. des_ifs.
+      { unfold Coqlib.Plt in p0. hexploit (H5 b); try nia. i. ur. des_ifs. ur in H6. clarify. }
+      { unfold Coqlib.Plt in n. hexploit (H4 b); try nia. i. ur. unfold Values.block. rewrite H6. ss. }
+      { unfold Values.block in *. rewrite H3. ur. ss. }
+    - des_ifs.
+      + hexploit IHsk; et; admit.
+      + hexploit IHsk; et; admit.
+      + hexploit IHsk; et; admit.
+      + hexploit IHsk; et; admit.
+      + hexploit IHsk; et; admit.
+  Admitted.
 
 End Lemma.
 
