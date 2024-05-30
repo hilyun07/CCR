@@ -20,6 +20,8 @@ From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
 Require Import Hoare.
+Require Import ClightPlusMem01Proof.
+Require Import ClightPlus2ClightInit.
 Require Import ClightPlus2ClightSepComp.
 Require Import xorlistall01proof.
 
@@ -29,6 +31,34 @@ Proof.
   i. des. unfold Beh.of_program in H. hexploit H. { apply BEH0. }
   i. esplits. { apply H1. } apply SIM.
 Qed.
+
+Section Lemma.
+
+  Context `{@GRA.inG pointstoRA Σ}.
+  Context `{@GRA.inG allocatedRA Σ}.
+  Context `{@GRA.inG blocksizeRA Σ}.
+  Context `{@GRA.inG blockaddressRA Σ}.
+
+  Lemma valid_point sk' sk p a s
+    (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
+    : URA.wf p.
+  Proof. admit. Admitted.
+
+  Lemma valid_alloc sk' sk p a s
+    (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
+    : URA.wf a.
+  Proof. admit. Admitted.
+
+  Lemma valid_size sk' sk p a (s : blocksizeRA)
+    (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
+    : URA.wf (s ⋅ (fun k => match k with
+                            | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
+                            | None => OneShot.white 0%Z
+                            end)).
+  Proof. admit. Admitted.
+
+End Lemma.
+
 
 Section PROOF.
   Let Σ := GRA.of_list [pointstoRA; allocatedRA; blocksizeRA; blockaddressRA].
@@ -56,6 +86,29 @@ Section PROOF.
 
   Let GlobalStb : Sk.t -> string -> option fspec := fun sk => to_stb (SMod.get_stb mds sk).
   Hint Unfold GlobalStb: stb.
+
+  Lemma wf_sk : match mem_init_cond_dec (sort (Sk.add mfsk (Sk.add xor_sk Sk.unit))) (sort (Sk.add mfsk (Sk.add xor_sk Sk.unit))) with in_left => True | in_right => False end.
+  Proof.
+    unfold mfsk. clear. unfold xor_sk, xor, _xor.
+    eassert (Linking.link main.prog prog = _).
+    { vm_compute (Linking.link _ _). eauto. }
+    rewrite H. clear H. destruct Ctypes.link_build_composite_env. destruct a.
+    clear.
+    set (compile _ _).
+    eassert (r = Errors.OK _).
+    { unfold r. clear. eauto. }
+    rewrite H. clear r H. simpl (Mod.sk _).
+    clear. apply Logic.I.
+  Qed.
+
+  Lemma _wf_sk : load_mem (sort (Sk.add mfsk (Sk.add xor_sk Sk.unit))) <> None.
+  Proof.
+    pose proof wf_sk.
+    destruct mem_init_cond_dec. 2:{ inversion H. }
+    unfold mem_init_cond in m.
+    hexploit load_mem_exists. { apply m. }
+    i. des. rewrite H0. et.
+  Qed.
 
   Theorem final_thm prog (LINK: xorlistall0._xor = Some prog) :
     improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (Clight.semantics2 prog).
@@ -86,25 +139,37 @@ Section PROOF.
       { unfold l, mds. clear LINK H H0. ss. }
       rewrite H1. eapply adequacy_type.
       + instantiate (1:= GRA.embed (_has_size None 0%Z : blocksizeRA) ⋅ GRA.embed (_has_base None Ptrofs.zero : blockaddressRA)).
-        (* instantiate (1:= GRA.embed ((fun ob => match ob with
-                                                   | Some _ => OneShot.unit
-                                                   | None => OneShot.white Ptrofs.zero
-                                                   end) : blockaddressRA)
-                          ⋅ GRA.embed ((fun ob => match  ob with
-                                                   | Some b => OneShot.unit
-                                                   | None => OneShot.white 0%Z
-                                                   end) : blocksizeRA)). *)
-        admit.
-        (* clear. ss. unfold SMod.get_initial_mrs. ss. rewrite URA.unit_idl.
-        rewrite URA.unit_id. rewrite URA.add_comm.
-        rewrite <- URA.add_assoc.
-        unfold c. rewrite (URA.add_comm (@GRA.embed blockaddressRA _ _ _) (@GRA.embed blocksizeRA _ _ _)).
-        rewrite (URA.add_assoc _ (@GRA.embed blocksizeRA _ _ _) (@GRA.embed blockaddressRA _ _ _)).
-        rewrite GRA.embed_add. ur.
-        rewrite (URA.add_comm (@GRA.embed blockaddressRA _ _ _) (@GRA.embed blocksizeRA _ _ _)).
-        rewrite URA.add_assoc.
-        ur. ur. unfold URA._add. unfold GRA.to_URA.
-        set (GRA.embed _ ⋅ GRA.embed _). *)
+        clear. ss. unfold SMod.get_initial_mrs. ss. rewrite URA.unit_idl.
+        rewrite URA.unit_id.
+        unfold res_init. 
+        destruct alloc_globals eqn:?.
+        2:{ rewrite wf_iff in Heqo. pose proof _wf_sk. rewrite Heqo in H. exfalso. apply H. et. }
+        destruct p as [[p a] s].
+        apply GRA.point_wise_wf_lift.
+        simpl. splits.
+        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
+          clear. r_solve.
+          Local Transparent _has_base.
+          unfold _has_base. ur. i. des_ifs; r_solve; ur; et.
+          des_ifs. }
+        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
+          hexploit valid_size. et. i.
+          clear - H. r_solve. rewrite (URA.add_comm _ s). rewrite <- URA.add_assoc.
+          set (_ ⋅ _) at 2.
+          eassert (c = _).
+          { Local Transparent _has_size.
+            unfold c. unfold _has_size. ur.
+            instantiate (1:= fun k => match k with Some b => if Coqlib.plt b (Pos.of_succ_nat (length (sort (Sk.add mfsk (Sk.add xor_sk Sk.unit))))) then OneShot.unit else OneShot.black | None => OneShot.white 0%Z end).
+            extensionalities. destruct H0.
+            { ur. des_ifs. } ur. des_ifs. }
+          rewrite H0. clear c H0. apply H. }
+        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
+          apply valid_alloc in Heqo.
+          clear -Heqo. r_solve. ur. split; [|eapply Heqo]. exists a. r_solve. }
+        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
+          apply valid_point in Heqo.
+          clear -Heqo. r_solve. ur. split; [|eapply Heqo]. exists p. r_solve. }
+        et.
       + i. simpl in MAIN. inv MAIN. exists tt.
         clear. splits; et.
         2:{ i. ss. iIntros "%"; des; clarify. }
@@ -115,6 +180,6 @@ Section PROOF.
         iPoseProof (_has_base_dup with "B") as "[B ?]".
         unfold Vnullptr in Heq. des_ifs.
         iSplitL "B"; iExists _; iFrame; iPureIntro; splits; et; ss.
-  Admitted.
+  Qed.
 
 End PROOF.
