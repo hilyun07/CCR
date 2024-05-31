@@ -394,9 +394,9 @@ Section RULES.
   Qed.
 
   Lemma offset_unique
-      vaddr m tg q0 q1 ofs0 ofs1
+      vaddr m tg0 tg1 q0 q1 ofs0 ofs1
     :
-      vaddr (⊨_ m, tg, q0) ofs0 ** vaddr (⊨_ m, tg, q1) ofs1 ⊢ ⌜ofs0 = ofs1⌝.
+      vaddr (⊨_ m, tg0, q0) ofs0 ** vaddr (⊨_ m, tg1, q1) ofs1 ⊢ ⌜ofs0 = ofs1⌝.
   Proof.
     destruct m. destruct blk0; cycle 1.
     { unfold has_offset. ss. iIntros "%". des; clarify. }
