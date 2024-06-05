@@ -15,7 +15,7 @@ Section EVENTSCOMMON.
   Variant eventE: Type -> Type :=
   | Choose (X: Type): eventE X
   | Take X: eventE X
-  | Syscall (fn: gname) (args: Any.t) (rvs: Any.t -> Prop): eventE Any.t
+  | Syscall (fn: gname) (args: list Any.t) (rvs: Any.t -> Prop): eventE Any.t
   .
 
   (* Notation "'Choose' X" := (trigger (Choose X)) (at level 50, only parsing). *)

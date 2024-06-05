@@ -1,5 +1,4 @@
-
-From compcert Require Import Smallstep Clight Integers Events Behaviors.
+From compcert Require Import Smallstep Clight Integers Values Events Behaviors.
 Require Import CoqlibCCR.
 Require Import Any.
 Require Import STS.
@@ -12,9 +11,14 @@ Set Implicit Arguments.
 
 Section Beh.
 
-  Inductive match_val : eventval -> Z -> Prop :=
-  | match_val_intro :
-      forall v, match_val (EVlong v) (Int64.signed v).
+  Variable gvmap : AST.ident -> option Z.
+
+  Inductive match_val : eventval -> Any.t -> Prop :=
+  | match_val_long : forall l, match_val (EVlong l) (Int64.signed l)↑
+  | match_val_int : forall i, match_val (EVint i) (Int.signed i)↑
+  | match_val_ptr id ofs : match_val (EVptr_global id ofs) (id, ofs)↑
+  | match_val_ptr_long id ofs l (ARCH: Archi.ptr64 = true) (CAST: to_int_ev id ofs gvmap = Some (Vlong l)) : match_val (EVlong l) (id, ofs)↑
+  | match_val_ptr_int id ofs i (ARCH: Archi.ptr64 = false) (CAST: to_int_ev id ofs gvmap = Some (Vint i)) : match_val (EVint i) (id, ofs)↑.
 
   Inductive match_event : Events.event -> STS.event -> Prop :=
   | match_event_intro
@@ -22,7 +26,7 @@ Section Beh.
       (MV: Forall2 match_val eargs uargs)
       (MV: match_val er ur)
     :
-      match_event (Event_syscall name eargs er) (event_sys name uargs↑ ur↑)
+      match_event (Event_syscall name eargs er) (event_sys name uargs ur)
   .
 
   Variant _match_beh (match_beh: _ -> _ -> Prop) (tgtb : program_behavior) (srcb : Tr.t) : Prop :=

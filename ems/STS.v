@@ -9,7 +9,7 @@ Set Implicit Arguments.
 Inductive event: Type :=
 | event_sys
     (fn: string)
-    (args: Any.t)
+    (args: list Any.t)
     (rv: Any.t)
 .
 Parameter syscall_sem: event -> Prop.
