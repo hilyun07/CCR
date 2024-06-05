@@ -89,17 +89,23 @@ Hint Resolve match_beh_mon: paco.
 
 
 
-
-Definition improves2 {L0 L1} (st_src0: L0.(STS.state)) (st_tgt0: L1.(Smallstep.state)): Prop :=
+(* behavior improve statement for state *)
+Definition improves2 {L0 L1} (gvmap : AST.ident -> option Z) (st_src0: L0.(STS.state)) (st_tgt0: L1.(Smallstep.state)): Prop :=
   forall tr_tgt (BEH: state_behaves L1 st_tgt0 tr_tgt),
   exists tr_src, (<<BEH: (Beh.of_state L0 st_src0) tr_src>>) /\
-                 (<<SIM: match_beh tr_tgt tr_src>>)
+                 (<<SIM: match_beh gvmap tr_tgt tr_src>>)
 .
 
+(* behavior improve statement for program *)
+(** Program in STS has no meta-map currently, 
+interpreted as empty map so that STS is always greater than Smallstep **)
 Definition improves2_program (L0: STS.semantics) (L1: Smallstep.semantics) : Prop :=
-  forall tr_tgt (BEH: program_behaves L1 tr_tgt),
-  exists tr_src, (<<BEH: (Beh.of_state L0 L0.(initial_state)) tr_src>>) /\
-                 (<<SIM: match_beh tr_tgt tr_src>>)
+  forall gvmap tr_tgt (BEH: program_observes L1 (gvmap, tr_tgt)),
+  match gvmap with 
+  | Some gvmap => exists tr_src, (<<BEH: (Beh.of_state L0 L0.(initial_state)) tr_src>>) 
+                  /\ (<<SIM: match_beh gvmap tr_tgt tr_src>>)
+  | None => True
+  end
 .
 
 Definition improves (L0 L1: STS.semantics): Prop :=
@@ -109,7 +115,8 @@ Definition improves (L0 L1: STS.semantics): Prop :=
 Lemma improves_combine: forall (S I: STS.semantics) (A: Smallstep.semantics),
     improves S I -> improves2_program I A -> improves2_program S A.
 Proof.
-  i. ii. exploit H0; et. i; des. exists tr_src. esplits; et. eapply H; et.
+  i. ii. exploit H0; et. i. destruct gvmap; et.
+  des. exists tr_src. esplits; et. eapply H; et.
 Qed.
 
 
