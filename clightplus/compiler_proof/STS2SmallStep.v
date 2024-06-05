@@ -16,7 +16,7 @@ Section Beh.
   Inductive match_val : eventval -> Any.t -> Prop :=
   | match_val_long : forall l, match_val (EVlong l) (Int64.signed l)↑
   | match_val_int : forall i, match_val (EVint i) (Int.signed i)↑
-  | match_val_ptr id ofs : match_val (EVptr_global id ofs) (id, ofs)↑
+  | match_val_ptr id ofs : match_val (EVptr_global id ofs) (id, Ptrofs.unsigned ofs)↑
   | match_val_ptr_long id ofs l (ARCH: Archi.ptr64 = true) (CAST: to_int_ev id ofs gvmap = Some (Vlong l)) : match_val (EVlong l) (id, ofs)↑
   | match_val_ptr_int id ofs i (ARCH: Archi.ptr64 = false) (CAST: to_int_ev id ofs gvmap = Some (Vint i)) : match_val (EVint i) (id, ofs)↑.
 
@@ -79,11 +79,61 @@ Section Beh.
     - econs 5; eauto.
   Qed.
 
+
 End Beh.
 Hint Constructors _match_beh.
 Hint Unfold match_beh.
 Hint Resolve match_beh_mon: paco.
 
+Lemma match_val_map_mon gm0 gm1 ev a
+  (LE: Simulation.gm_improves gm0 gm1)
+  (M0: match_val gm0 ev a)
+:
+  match_val gm1 ev a. 
+Proof.
+  inv M0; econs; et.
+  - unfold to_int_ev in *. des_ifs.
+    all: unfold Simulation.gm_improves in LE; hexploit LE; et; i; clarify.
+  - unfold to_int_ev in *. des_ifs.
+    all: unfold Simulation.gm_improves in LE; hexploit LE; et; i; clarify.
+Qed.
+
+Lemma match_event_map_mon gm0 gm1 ev a
+  (LE: Simulation.gm_improves gm0 gm1)
+  (M0: match_event gm0 ev a)
+:
+  match_event gm1 ev a. 
+Proof.
+  inv M0; econs; et; cycle 1.
+  { eapply match_val_map_mon; et. }
+  clear -MV LE. induction MV; et. econs; et.
+  eapply match_val_map_mon; et.
+Qed.
+
+Lemma match_beh_map_mon gm0 gm1 tr_src tr_tgt
+  (LE: Simulation.gm_improves gm0 gm1)
+  (M0: match_beh gm0 tr_src tr_tgt)
+:
+  match_beh gm1 tr_src tr_tgt.
+Proof.
+  revert tr_src tr_tgt M0. pcofix CIH. i.
+  punfold M0. inv M0.
+  - pfold. econs. 2,3: et.
+    clear -MT LE. induction MT; et. econs; et.
+    eapply match_event_map_mon; et.
+  - pfold. econs 2. 2,3: et.
+    clear -MT LE. induction MT; et. econs; et.
+    eapply match_event_map_mon; et.
+  - pfold. econs 3. 3,4: et.
+    { eapply match_event_map_mon; et. }
+    pclearbot. right. apply CIH. apply MB.
+  - pfold. econs 4. 1,3: et.
+    clear -MT LE. induction MT; et. econs; et.
+    eapply match_event_map_mon; et.
+  - pfold. econs 5. 1,3: et.
+    clear -MT LE. induction MT; et. econs; et.
+    eapply match_event_map_mon; et.
+Qed.
 
 
 
@@ -119,6 +169,12 @@ Proof.
   des. exists tr_src. esplits; et. eapply H; et.
 Qed.
 
+Lemma improves2_map_mon L0 L1 gm0 gm1 st_src st_tgt
+  (LE: Simulation.gm_improves gm0 gm1)
+  (M0: @improves2 L0 L1 gm0 st_src st_tgt)
+:
+  improves2 gm1 st_src st_tgt.
+Proof.  unfold improves2 in *. i. hexploit M0; et. i. des. hexploit match_beh_map_mon; et. Qed.
 
 
 
@@ -450,9 +506,11 @@ End BEH.
 (************************ Decompile ****************************)
 (************************ Decompile ****************************)
 
-Definition decompile_eval (ev: eventval): option Z :=
+Definition decompile_eval (ev: eventval): option Any.t :=
   match ev with
-  | EVlong i => Some (Int64.signed i)
+  | EVlong l => Some (Int64.signed l)↑
+  | EVint i => Some (Int.signed i)↑
+  | EVptr_global id ofs => Some (id, Ptrofs.unsigned ofs)↑
   | _ => None
   end
 .
@@ -462,7 +520,7 @@ Definition decompile_event (ev: Events.event): option event :=
   | Event_syscall fn evs ev =>
     do vs <- sequence (List.map decompile_eval evs);
     do v <- decompile_eval ev;
-    Some (event_sys fn vs↑ v↑)
+    Some (event_sys fn vs v)
   | _ => None
   end.
 
@@ -560,18 +618,18 @@ Definition transl_beh (p: program_behavior): Tr.t :=
   end
 .
 
-Lemma decompile_match_val v0 v1
+Lemma decompile_match_val gvmap v0 v1
       (SEQ: decompile_eval v0 = Some v1)
   :
-    match_val v0 v1.
+    match_val gvmap v0 v1.
 Proof.
-  unfold decompile_eval in *. des_ifs.
+  unfold decompile_eval in *. des_ifs; econs. 
 Qed.
 
-Lemma decompile_match_vals l0 l1
+Lemma decompile_match_vals gvmap l0 l1
       (SEQ: sequence (List.map decompile_eval l0) = Some l1)
   :
-    Forall2 match_val l0 l1.
+    Forall2 (match_val gvmap) l0 l1.
 Proof.
   revert l1 SEQ. induction l0; ss.
   { i. clarify. }
@@ -579,11 +637,11 @@ Proof.
     eapply decompile_match_val; et. }
 Qed.
 
-Lemma decompile_match_event
+Lemma decompile_match_event gvmap
       e0 e1
       (D: decompile_event e0 = Some e1)
   :
-    <<M: match_event e0 e1>>
+    <<M: match_event gvmap e0 e1>>
 .
 Proof.
   destruct e0; ss. uo. des_ifs. econs.
@@ -591,20 +649,21 @@ Proof.
   { eapply decompile_match_val; et. }
 Qed.
 
+Definition null_map : AST.ident -> option Z := fun _ => None.
+
 Lemma match_val_iff v0 v1
   :
-    decompile_eval v0 = Some v1 <->
-    match_val v0 v1.
+    decompile_eval v0 = Some v1 <-> match_val null_map v0 v1.
 Proof.
   split.
   { eapply decompile_match_val. }
-  i. inv H. ss.
+  i. inv H; ss.
 Qed.
 
 Lemma match_vals_iff l0 l1
   :
     sequence (List.map decompile_eval l0) = Some l1 <->
-    Forall2 match_val l0 l1.
+    Forall2 (match_val null_map) l0 l1.
 Proof.
   split.
   { eapply decompile_match_vals. }
@@ -619,7 +678,7 @@ Lemma match_event_iff
       e_src e_tgt
   :
     decompile_event e_tgt = Some e_src <->
-    match_event e_tgt e_src
+    match_event null_map e_tgt e_src
 .
 Proof.
   split.
@@ -633,7 +692,7 @@ Lemma match_event_squeeze
       e_src e_tgt
   :
     squeeze [decompile_event e_tgt] = ([e_src], true) <->
-    match_event e_tgt e_src
+    match_event null_map e_tgt e_src
 .
 Proof.
   split; i.
@@ -645,7 +704,7 @@ Lemma match_events_squeeze
       es_src es_tgt
   :
     squeeze (List.map decompile_event es_tgt) = (es_src, true) <->
-    Forall2 match_event es_tgt es_src
+    Forall2 (match_event null_map) es_tgt es_src
 .
 Proof.
   revert es_tgt. induction es_src; ss.
@@ -666,22 +725,21 @@ Proof.
   }
 Qed.
 
-Theorem decompile_trinf_spec
+Theorem decompile_trinf_spec gvmap
         tr
   :
-    match_beh (Reacts tr) (decompile_trinf tr)
+    match_beh gvmap (Reacts tr) (decompile_trinf tr)
 .
 Proof.
   revert tr.
   pcofix CIH.
   i. destruct tr; ss.
   rewrite unfold_decompile_trinf. des_ifs.
-  - eapply match_event_iff in Heq. dup Heq. inv Heq.
+  - eapply decompile_match_event in Heq. dup Heq. inv Heq.
     pfold. eapply match_beh_Reacts; et.
   - pfold. econs 4; ss; et.
     r. esplits; ss; et. rewrite behavior_app_E0. ss.
 Qed.
-
 
 
 
@@ -714,7 +772,7 @@ Section SIM.
           (NPTERM: ev_tgt <> Some Event_pterm)
         ,
           exists st_src1 ev_src (STEP: _.(step) st_src0 (Some ev_src) st_src1),
-            (<<MATCH: Forall2 match_event ev_tgt [ev_src]>>) /\
+            (<<MATCH: Forall2 (match_event null_map) ev_tgt [ev_src]>>) /\
             (<<SIM: sim true true st_src1 st_tgt1>>))
     :
       _sim sim f_src f_tgt st_src0 st_tgt0
@@ -791,7 +849,7 @@ Section SIM.
             (SIM: forall ev_tgt st_tgt1 (STEP: Step L1 st_tgt0 ev_tgt st_tgt1)
                     (NPTERM: ev_tgt <> Some Event_pterm),
                     exists st_src1 ev_src (STEP: _.(step) st_src0 (Some ev_src) st_src1),
-                      (<<MATCH: Forall2 match_event ev_tgt [ev_src]>>) /\
+                      (<<MATCH: Forall2 (match_event null_map) ev_tgt [ev_src]>>) /\
                       (<<SIM: r true true st_src1 st_tgt1>>)),
             P f_src f_tgt st_src0 st_tgt0)
     (DSRC_STL: forall f_src f_tgt st_src0 st_tgt0
@@ -886,7 +944,7 @@ Section SIM.
           (NPTERM: ev_tgt <> Some Event_pterm)
         ,
           exists st_src1 ev_src (STEP: _.(step) st_src0 (Some ev_src) st_src1),
-            (<<MATCH: Forall2 match_event ev_tgt [ev_src]>>) /\
+            (<<MATCH: Forall2 (match_event null_map) ev_tgt [ev_src]>>) /\
             (<<SIM: sim true true st_src1 st_tgt1>>))
     :
       sim_indC sim f_src f_tgt st_src0 st_tgt0
@@ -981,7 +1039,7 @@ Section SIM.
             (SIM: forall ev_tgt st_tgt1 (STEP: Step L1 st_tgt0 ev_tgt st_tgt1)
                     (NPTERM: ev_tgt <> Some Event_pterm),
                     exists st_src1 ev_src (STEP: _.(step) st_src0 (Some ev_src) st_src1),
-                      (<<MATCH: Forall2 match_event ev_tgt [ev_src]>>) /\
+                      (<<MATCH: Forall2 (match_event null_map) ev_tgt [ev_src]>>) /\
                       (<<SIM: sim true true st_src1 st_tgt1>>)),
             P f_src f_tgt st_src0 st_tgt0)
     (DSRC_STL: forall f_src f_tgt st_src0 st_tgt0
@@ -1136,16 +1194,16 @@ Section SIM.
       safe_along_events st_src0 thd
   .
 
-  Lemma match_beh_cons
+  Lemma match_beh_cons gvmap
         b0 b1
         e0 e1
         b0_ b1_
         (B0_: b0_ = (behavior_app [e0] b0))
         (B1_: b1_ = (Tr.app [e1] b1))
-        (M0: match_beh b0 b1)
-        (M1: match_event e0 e1)
+        (M0: match_beh gvmap b0 b1)
+        (M1: match_event gvmap e0 e1)
     :
-      <<M: match_beh b0_ b1_>>
+      <<M: match_beh gvmap b0_ b1_>>
   .
   Proof.
     subst.
@@ -1166,10 +1224,10 @@ Section SIM.
       unfold Tr.prefix in *. des. exists tl. ss. rr. f_equal. et.
   Qed.
 
-  Lemma match_val_inj
+  (* Lemma match_val_inj gvmap
         v_tgt0 v_src0 v_src1
-        (M0: match_val v_tgt0 v_src0)
-        (M1: match_val v_tgt0 v_src1)
+        (M0: match_val gvmap v_tgt0 v_src0)
+        (M1: match_val gvmap v_tgt0 v_src1)
     :
       v_src0 = v_src1
   .
@@ -1191,7 +1249,7 @@ Section SIM.
       eapply match_val_inj; et.
     }
     f_equal. eapply match_val_inj; et.
-  Qed.
+  Qed. *)
 
   Lemma safe_along_events_step_some
         st_src0 st_src1 e_src e0 es0
@@ -1275,7 +1333,8 @@ Section SIM.
       { exfalso. subst. apply NOPTERM. ss. et. }
       rename H0 into D.
       exploit SIM; et. i; des. pclearbot.
-      inv MATCH; ss. inv H4; ss. rename H3 into MB. eapply match_event_iff in MB. des_ifs.
+      inv MATCH; ss. inv H4; ss. rename H3 into MB. 
+      eapply match_event_iff in MB. des_ifs.
       exploit IHSTEP; et.
       { eapply safe_along_events_step_some; et. unfold wf. i. rewrite ANG in SRT. ss. }
       { red. red. i. apply NOPTERM. ss. et. }
@@ -1593,7 +1652,6 @@ Section SIM.
       Beh.of_state L0 st_src Tr.ub.
   Proof.
     ginit.
-    { eapply cpn2_wcompat. eapply Beh.of_state_mon. }
     i. punfold SIM. induction SIM using _sim_ind2; ss.
     { exfalso. eapply NOFINAL; et. }
     { des. exfalso. eapply NOSTEP; et. }
@@ -1631,11 +1689,11 @@ Section SIM.
     clarify. }
   Qed.
 
-  Lemma adequacy
+  Lemma adequacy_aux
         st_src0 st_tgt0
         (SIM: sim false false st_src0 st_tgt0)
     :
-      <<IMPR: improves2 st_src0 st_tgt0>>
+      <<IMPR: improves2 null_map st_src0 st_tgt0>>
   .
   Proof.
     ii.
@@ -1736,7 +1794,7 @@ Section SIM.
         (rename t into tr).
         esplits; et.
         + rename H0 into BEH. ss.
-          ginit. { eapply cpn2_wcompat; eauto with paco. } revert_until WFSEM. gcofix CIH. i.
+          ginit.  revert_until WFSEM. gcofix CIH. i.
           inv BEH.
           rename s2 into st_tgt1. rename tr into tr_tgt. rename H into STAR.
           hexploit simulation_star; try apply STAR; et.
@@ -1762,7 +1820,7 @@ Section SIM.
         (rename T into tr).
         esplits; et.
         + rename H into BEH. ss.
-          ginit. { eapply cpn2_wcompat; eauto with paco. } 
+          ginit. 
           set false as b1 in SIM at 1. set false as b2 in SIM.
           clearbody b1 b2.
           revert_until WFSEM. gcofix CIH. i.
@@ -1803,7 +1861,7 @@ Section SIM.
         (rename t into tr).
         esplits; et.
         + rename H0 into BEH. ss.
-          ginit. { eapply cpn2_wcompat; eauto with paco. } revert_until WFSEM. gcofix CIH. i.
+          ginit. revert_until WFSEM. gcofix CIH. i.
           hexploit simulation_star; try apply STAR; et.
           { eapply SAFE. exists (Goes_wrong []). ss. rewrite E0_right. auto. }
           i; des.
@@ -1857,6 +1915,14 @@ Section SIM.
         eapply match_beh_cons; ss; et. rewrite <- behavior_app_assoc. ss.
     }
   Qed.
+
+  Lemma adequacy gvmap
+        st_src0 st_tgt0
+        (SIM: sim false false st_src0 st_tgt0)
+    :
+      <<IMPR: improves2 gvmap st_src0 st_tgt0>>
+  .
+  Proof. eapply improves2_map_mon; cycle 1. apply adequacy_aux; et. ii. ss. Qed.
 
 End SIM.
 Hint Constructors _sim.
