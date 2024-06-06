@@ -17,7 +17,7 @@ Require Import xorlistall0.
 Require Import xorlist1.
 Require Import PtrofsArith.
 From Coq Require Import Program.
-From compcert Require Import Clightdefs.
+From compcert Require Import Memory Clightdefs.
 
 
 Section LEMMA.
@@ -143,7 +143,7 @@ Section PROOF.
 
     hexploit SKINCLENV.
     { instantiate (2:="malloc"). et. }
-    i. des. ss. rewrite FIND. rename FIND into malloc_loc.
+    i. des. ss. rewrite H3. rename H3 into malloc_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
     rewrite cast_ptrofs.
     rename Heq1 into ptr64. rename Heq0 into get_co.
@@ -190,7 +190,7 @@ Section PROOF.
     iPoseProof (xorlist_tl_not_Vundef with "LIST") as "%". rename H3 into hd_notundef.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply decode_encode_id_is_pure; et. }
+    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
     iIntros (st_src1 st_tgt1) "[INV [hd_hdl_point hd_hdl_ofs]]".
     rewrite hd_deen.
     (* node* hd = *hd_handler end *)
@@ -205,7 +205,7 @@ Section PROOF.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H3 into tl_notundef.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply decode_encode_id_is_pure; et. }
+    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
     iIntros (st_src2 st_tgt2) "[INV [tl_hdl_point tl_hdl_ofs]]".
     rewrite tl_deen.
     (* node* tl = *tl_handler end *)
@@ -472,7 +472,7 @@ Section PROOF.
 
     hexploit SKINCLENV.
     { instantiate (2:="malloc"). et. }
-    i. des. ss. rewrite FIND. rename FIND into malloc_loc.
+    i. des. ss. rewrite H3. rename H3 into malloc_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
     rewrite cast_ptrofs.
     rename Heq1 into ptr64. rename Heq0 into get_co.
@@ -515,7 +515,7 @@ Section PROOF.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H3 into hd_notundef.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply decode_encode_id_is_pure; et. }
+    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
     iIntros (st_src1 st_tgt1) "[INV [hd_hdl_point hd_hdl_ofs]]".
     rewrite hd_deen.
     (* node* hd = *hd_handler end *)
@@ -530,7 +530,7 @@ Section PROOF.
     iPoseProof (xorlist_tl_not_Vundef with "LIST") as "%". rename H3 into tl_notundef.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply decode_encode_id_is_pure; et. }
+    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
     iIntros (st_src2 st_tgt2) "[INV [tl_hdl_point tl_hdl_ofs]]".
     rewrite tl_deen.
     (* node* tl = *tl_handler end *)
@@ -808,7 +808,7 @@ Section PROOF.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H3 into tl_notundef.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply decode_encode_id_is_pure; et. }
+    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
     iIntros (st_src0 st_tgt0) "[INV [tl_hdl_point tl_hdl_ofs]]".
     rewrite tl_deen.
     (* node hd_old = *hdH end *)
@@ -927,7 +927,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r.
+      i. des. ss. rewrite H3. rename H3 into free_loc. hred_r.
 
       iPoseProof ((@point_cast_ptr _ _ _ _ Es) with "tl_point_item") as "%".
       rewrite H3. rename H3 into tl_old_cast. hred_r. des_ifs_safe. clear e.
@@ -1014,7 +1014,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r. 
+      i. des. ss. rewrite H3. rename H3 into free_loc. hred_r. 
       rewrite tl_old_cast. hred_r.
       destruct (Ptrofs.eq_dec) eqn:?; clarify. clear e Heqs.
       replace (pred _) with blk by nia.
@@ -1107,7 +1107,7 @@ Section PROOF.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H3 into hd_notundef.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply decode_encode_id_is_pure; et. }
+    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
     iIntros (st_src0 st_tgt0) "[INV [hd_hdl_point hd_hdl_ofs]]".
     rewrite hd_deen.
     (* node hd_old = *hdH end *)
@@ -1226,7 +1226,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r.
+      i. des. ss. rewrite H3. rename H3 into free_loc. hred_r.
 
       iPoseProof ((@point_cast_ptr _ _ _ _ Es) with "hd_point_item") as "%".
       rewrite H3. rename H3 into hd_old_cast. hred_r. des_ifs_safe. clear e.
@@ -1312,7 +1312,7 @@ Section PROOF.
       (* free(hd_old) start *)
       hexploit SKINCLENV.
       { instantiate (2:="free"). et. }
-      i. des. ss. rewrite FIND. rename FIND into free_loc. hred_r. 
+      i. des. ss. rewrite H3. rename H3 into free_loc. hred_r. 
       rewrite hd_old_cast. hred_r.
       destruct (Ptrofs.eq_dec) eqn:?; clarify. clear e Heqs.
       replace (pred _) with blk by nia.

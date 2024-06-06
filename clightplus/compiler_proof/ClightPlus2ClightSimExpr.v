@@ -73,9 +73,11 @@ Section PROOF.
     rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase. sim_tau. sim_red. rewrite Any.upcast_downcast.
     sim_red. eapplyf NEXT. unfold Mem.loadv in *. des_ifs_safe.
     destruct addr; ss; cycle 1.
-    - hexploit match_mem_load; et.
-    - destruct Mem.denormalize eqn:? in Heq; clarify.
-      destruct p. hexploit match_mem_denormalize; et.
+    - clarify. hexploit match_mem_load; et.
+    - destruct Archi.ptr64 eqn:?; clarify.
+      destruct Int64.eq eqn:?; clarify.
+      destruct Mem.denormalize eqn:? in Heq0; clarify.
+      destruct p. clarify. hexploit match_mem_denormalize; et.
       i. rewrite H. hexploit match_mem_load; et.
   Qed.
 

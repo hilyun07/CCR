@@ -147,33 +147,396 @@ Proof.
   destruct l; clarify.
 Qed.
 
-Lemma pure_memval_good_decode l chunk mem :
-    bytes_not_pure l = false -> chunk <> Many64 ->
-    decode_val chunk (Mem.normalize_to_fragment chunk (Mem.decode_normalize chunk mem l)) = decode_val chunk l.
+Lemma decode_val_undef mvl chunk : In Undef mvl -> decode_val chunk mvl = Vundef.
 Proof.
-  destruct chunk; clarify.
-  i. rewrite Mem.decode_normalize_pure; et.
-  unfold Mem.normalize_to_fragment.
+  i. unfold decode_val. hexploit Mem.proj_bytes_undef; et. i. rewrite H0.
   des_ifs.
-  - unfold bytes_not_pure, proj_fragment_byte_mixed, proj_fragment_mixed in *.
-    bsimpl. destruct l; ss. destruct m; clarify.
-  - unfold decode_val. rewrite Heq0. des_ifs.
-    unfold Val.load_result. rewrite proj_inj_value. et.
-  - exfalso. clear - H Heq0 Heq1 Heq2. revert l0 H Heq0 Heq1 Heq2. induction l; ss.
-    i. hexploit Mem.pure_tl_pure; et. unfold bytes_not_pure, proj_fragment_byte_mixed, proj_fragment_mixed in H.
-    destruct a; ss.
-    + destruct proj_bytes eqn:? in Heq0; clarify. des_ifs. bsimpl. destruct H.
-      i. eapply IHl; et. destruct l; ss. clear -H. revert H. induction l; ss; clarify.
-      { i. destruct m; ss. }
-      i. destruct m; ss.
-    + destruct proj_fragment eqn:? in Heq1; clarify. des_ifs. bsimpl. destruct H.
-      i. eapply IHl; et. destruct l; ss. clear - H. revert H. induction l; ss; clarify.
-      { i. destruct m; ss. }
-      i. destruct m; ss.
+  - hexploit proj_value_undef; et. i. rewrite H1. ss.
+  - hexploit proj_value_undef; et. i. rewrite H1. ss.
+  - hexploit proj_value_undef; et.
 Qed.
 
-Lemma decode_encode_id_is_pure : forall chunk v, decode_val chunk (encode_val chunk v) = v -> bytes_not_pure (encode_val chunk v) = false.
-Proof. i. unfold decode_val, encode_val in H. des_ifs. Qed.
+Lemma pure_memval_good_decode l chunk mem :
+    Mem.change_check chunk l = false -> chunk <> Many64 ->
+    decode_val chunk (Mem.normalize_mvs chunk mem l) = decode_val chunk l.
+Proof.
+  destruct chunk; clarify. i.
+  (* normalize check *)
+  unfold Mem.change_check in H. bsimpl. des.
+  - unfold Mem.normalize_mvs. rewrite H. et.
+  - f_equal. unfold Mem.normalize_mvs. des_ifs.
+    revert H. clear Heq. induction l; ss. i. bsimpl. des. destruct a; ss.
+    f_equal. et.
+  - des_ifs.
+    + unfold Mem.normalize_mvs. des_ifs; clear Heq.
+      bsimpl. assert (In Undef l). { clear -H. induction l; ss. bsimpl. des; et. destruct a; ss; et. }
+      hexploit decode_val_undef; et. i. rewrite H2.
+      apply in_map with (f:=Mem._decode_normalize_mv mem) in H1.
+      hexploit decode_val_undef; et. 
+    + unfold Mem.normalize_mvs. des_ifs; clear Heq0.
+      unfold Mem.qarchi in Heq. des_ifs.
+      unfold proj_value in Heq.
+      des_ifs. ss.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      unfold rev_if_be_mv. destruct Archi.big_endian eqn:?; clarify.
+      unfold inj_bytes. ss. unfold encode_int. ss. unfold rev_if_be. rewrite Heqb. ss.
+      unfold decode_val. ss. des_ifs.
+    + unfold Mem.normalize_mvs. des_ifs; clear Heq0.
+      unfold Mem.qarchi in Heq. des_ifs.
+      unfold proj_value in Heq.
+      des_ifs. ss.
+      Local Opaque nth_error encode_val. ss.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      unfold rev_if_be_mv. destruct Archi.big_endian eqn:?; clarify.
+      set (_ :: _). replace l with (encode_val Mint64 (Vlong i)) by ss.
+      pose proof (decode_encode_val_general (Vlong i) Mint64 Mint64).
+      rewrite H1. unfold decode_val. ss.
+      destruct Val.eq; clarify.
+    + unfold Mem.normalize_mvs. des_ifs; clear Heq0.
+      unfold Mem.qarchi in Heq. des_ifs.
+      unfold proj_value in Heq.
+      des_ifs. ss.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+    + unfold Mem.normalize_mvs. des_ifs; clear Heq0.
+      unfold Mem.qarchi in Heq. des_ifs.
+      unfold proj_value in Heq.
+      des_ifs. ss.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+    + unfold Mem.qarchi in Heq. des_ifs.
+      unfold proj_value in Heq.
+      des_ifs. ss.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+      destruct m; clarify.
+      destruct Val.eq; clarify. ss.
+      destruct quantity_eq; clarify. ss.
+      destruct n; clarify. bsimpl.
+      destruct l0; clarify.
+  Qed.
 
 Lemma concrete_store_zeros m1 b p n m2
         (STORE: store_zeros m1 b p n = Some m2):

@@ -5,7 +5,7 @@ Require Import PCM IPM.
 Require Import HoareDef STB.
 Require Export HSim IProofMode.
 Require Import ClightPlusMem1.
-From compcert Require Import AST Values Integers Memdata.
+From compcert Require Import AST Values Integers Memdata Memory.
 
 Section MEM.
 
@@ -115,7 +115,7 @@ Section MEM.
         ** (vaddr (↦_m,q1) mvs
             ** vaddr (⊨_m,tg,q0) ofs 
             ** ⌜List.length mvs = size_chunk_nat chunk
-               /\ bytes_not_pure mvs = false
+               /\ Mem.change_check chunk mvs = false
                /\ chunk <> Many64
                /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)%Z⌝)
                   

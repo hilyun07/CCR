@@ -1082,7 +1082,7 @@ Section SPEC.
                     (ord_pure 0%nat),
                     (fun varg => ⌜varg = (chunk, vaddr)↑
                                  /\ List.length mvs = size_chunk_nat chunk
-                                 /\ bytes_not_pure mvs = false
+                                 /\ Mem.change_check chunk mvs = false
                                  /\ chunk <> Many64
                                  /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)⌝
                                  ** vaddr (⊨_m,tg,q0) ofs

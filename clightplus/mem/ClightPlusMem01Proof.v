@@ -1005,7 +1005,8 @@ Section SIMMODSEM.
       hexploit SIM_CNT. { destruct ofs; ss; nia. }
       i. rewrite wfcnt1 in H9. inv H9. clarify. rewrite <- Heqo. f_equal. nia.
     (* prove safety of loadv *)
-    - unfold Mem.loadv. destruct v; clarify; iDestruct "LEN" as "%"; des; cycle 1.
+    - unfold Mem.loadv.
+      destruct v; clarify; iDestruct "LEN" as "%"; des; cycle 1.
       (* case: ptr *)
       { iDestruct "A" as "%". iDestruct "A0" as "%". des. clarify. }
       (* case: long *)
@@ -1020,7 +1021,8 @@ Section SIMMODSEM.
       iOwnWf "CONC" as wfconc.
 
       (* physical address is larger than base address *)
-      ur in wfconc. specialize (wfconc (Some b)). ss. destruct dec; clarify.
+      ur in wfconc. specialize (wfconc (Some b)). ss. destruct Archi.ptr64 eqn:?; clarify.
+      destruct dec; clarify.
       apply OneShot.oneshot_initialized in wfconc. des.
       all: specialize (SIM_CONC (Some b)); ss; rewrite wfconc in SIM_CONC; inv SIM_CONC; clarify.
       replace (Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) base)) with (Ptrofs.unsigned (Ptrofs.repr (Int64.unsigned i - Ptrofs.unsigned base))) in *; cycle 1.
@@ -1047,12 +1049,16 @@ Section SIMMODSEM.
       destruct Maps.PTree.select eqn: X; first [apply Maps.PTree.gselectf in X|apply Maps.PTree.gselectnf in X]; des; cycle 1.
       { exfalso. apply X. esplits; et. unfold Mem.denormalize_aux, Mem.addr_is_in_block, Mem.is_valid.
         rewrite <- H19. des_ifs; bsimpl; ss; cycle 1.
-        { hexploit mem_tgt.(Mem.access_max). rewrite PERM. rewrite Heq2. i. clarify. }
+        { hexploit mem_tgt.(Mem.access_max). rewrite PERM. rewrite Heq1. i. clarify. }
         change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in *.
-        des; try nia. rewrite Pos.ltb_ge in Heq1.
-        rewrite Mem.nextblock_noaccess in Heq2; unfold Coqlib.Plt; try nia; clarify. }
+        des; try nia. rewrite Pos.ltb_ge in Heq0.
+        rewrite Mem.nextblock_noaccess in Heq1; unfold Coqlib.Plt; try nia; clarify. }
       destruct p0. unfold Mem.denormalize_aux, Mem.is_valid, Mem.addr_is_in_block in *.
+      destruct Int64.eq eqn:?. 
+      { clear -H14 H12 Heqb1. exfalso. unfold Int64.eq in Heqb1. destruct Coqlib.zeq; clarify.
+        rewrite e in H12. change (Int64.unsigned Int64.zero) with 0%Z in H12. hexploit H14; clarify. destruct base. ss. nia. }
       des_ifs; bsimpl; clarify. des.
+      rewrite Ptrofs.unsigned_repr. 2:{ change Ptrofs.max_unsigned with (Ptrofs.modulus - 1). nia. }
       hexploit (Mem.no_concrete_overlap mem_tgt (Int64.unsigned i) p0 b).
       { econs; et. nia. }
       { econs; et.
