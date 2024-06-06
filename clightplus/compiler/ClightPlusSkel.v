@@ -1,7 +1,7 @@
 From compcert Require Import
      AST Maps Globalenvs Memory Values Linking Integers.
 From compcert Require Import
-     Ctypes Clight Clightdefs.
+     Ctypes Clight.
 
 Require Import CoqlibCCR.
 Require Export ZArith.
