@@ -11,15 +11,16 @@ Set Implicit Arguments.
 
 Section LENV.
 
-  Lemma match_update_le sk ge le tle o v
+  Lemma match_update_le sk ge le tle o sv tv
         (MLE: match_le sk ge le tle)
+        (MV: match_val sk ge sv tv)
     :
-      match_le sk ge (set_opttemp_alist o v le) (set_opttemp o (map_val sk ge v) tle).
+      match_le sk ge (set_opttemp_alist o sv le) (set_opttemp o tv tle).
   Proof.
     destruct o; ss. econs. i. inv MLE. destruct (Pos.eq_dec i id).
     - subst. rewrite alist_add_find_eq in H. clarify.
       rewrite PTree.gss. et.
-    - rewrite alist_add_find_neq in H; et. rewrite PTree.gso; et. 
+    - rewrite alist_add_find_neq in H; et. rewrite PTree.gso; et.
   Qed.
 
 
@@ -101,16 +102,17 @@ Section LENV.
   Qed.
 
   Lemma bind_parameter_temps_exists
-        sk defs base params sle rvs (tle0: temp_env)
-        (BIND_SRC: bind_parameter_temps params rvs base = Some sle)
+        sk defs base params sle srvs trvs (tle0: temp_env)
+        (BIND_SRC: bind_parameter_temps params srvs base = Some sle)
+        (MVS: Forall2 (match_val sk defs) srvs trvs)
     :
-      exists tle, (<<BIND_TGT: bind_parameter_temps params (List.map (map_val sk defs) rvs) tle0
+      exists tle, (<<BIND_TGT: bind_parameter_temps params trvs tle0
                       = Some tle>>).
   Proof.
     eapply bind_parameter_temps_exists_if_same_length; eauto.
-    rewrite ! map_length. clear -BIND_SRC. depgen base. revert sle.  depgen rvs. depgen params.
-    induction params; i; ss; des_ifs.
-    ss. f_equal. eapply IHparams; eauto.
+    clear -BIND_SRC MVS. depgen base. revert sle. depgen params.
+    induction MVS; i; ss; destruct params; ss. f_equal.
+    eapply IHMVS; eauto.
   Qed.
 
   Lemma bind_parameter_temps_exists_if_same_length'
@@ -125,25 +127,25 @@ Section LENV.
   Qed.
 
   Lemma match_bind_parameter_temps
-        sk tge params sle rvs sbase tbase
-        (BIND_SRC: bind_parameter_temps params rvs sbase = Some sle)
+        sk tge params sle srvs trvs sbase tbase
+        (BIND_SRC: bind_parameter_temps params srvs sbase = Some sle)
         (MLE: match_le sk tge sbase tbase)
+        (MVS: Forall2 (match_val sk tge) srvs trvs)
     :
-      exists tle, (<<BIND_TGT: Clight.bind_parameter_temps params (List.map (map_val sk tge) rvs) tbase
+      exists tle, (<<BIND_TGT: Clight.bind_parameter_temps params trvs tbase
                       = Some tle>>)
                   /\ (<<MLE: match_le sk tge sle tle>>).
   Proof.
-    hexploit (bind_parameter_temps_exists_if_same_length' params (List.map (map_val sk tge) rvs) tbase).
-    - rewrite ! map_length. clear -BIND_SRC. depgen sbase.
-      revert sle. depgen rvs. depgen params.
-      induction params; i; ss; des_ifs.
-      ss. f_equal. eapply IHparams; eauto.
-    - i. des. eexists; split; et. red. depgen sbase. depgen sle. depgen rvs. revert tbase tle. depgen params.
-      induction params; i; ss; des_ifs. simpl in Heq. clarify.
-      eapply IHparams. 2:et. 1:et.
+    hexploit (bind_parameter_temps_exists_if_same_length' params trvs tbase).
+    - clear -BIND_SRC MVS. depgen sbase. revert sle. depgen params.
+      induction MVS; i; ss; destruct params; ss. f_equal.
+      eapply IHMVS; eauto.
+    - i. des. eexists; split; et. red. depgen sbase. depgen tbase. depgen sle. depgen tle. depgen params.
+      induction MVS; i; ss; destruct params; ss; clarify. destruct p.
+      eapply IHMVS. et. et.
       inv MLE. econs.
-      i. destruct (dec id i). { subst. rewrite alist_add_find_eq in H. clarify. rewrite Maps.PTree.gss. et. }
-      rewrite Maps.PTree.gso; et. rewrite alist_add_find_neq in H; et.
+      i. destruct (dec id i). { subst. rewrite alist_add_find_eq in H0. clarify. rewrite Maps.PTree.gss. et. }
+      rewrite Maps.PTree.gso; et. rewrite alist_add_find_neq in H0; et.
   Qed.
 
 End LENV.

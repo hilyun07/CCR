@@ -103,7 +103,7 @@ Section MEM.
         nia.
   Qed.
 
-  Lemma map_val_inj :
+  (* Lemma map_val_inj :
     forall sk tge v1 v2 (MGE: match_ge sk tge),
     <<INJ: map_val sk tge v1 = map_val sk tge v2 -> v1 = v2>>.
   Proof. i. red. unfold map_val. i. des_ifs. f_equal. eapply map_blk_inj; et. Qed.
@@ -111,7 +111,7 @@ Section MEM.
   Lemma map_memval_inj :
     forall sk tge mv1 mv2 (MGE: match_ge sk tge),
     <<INJ: map_memval sk tge mv1 = map_memval sk tge mv2 -> mv1 = mv2>>.
-  Proof. i. red. unfold map_memval. i. des_ifs. f_equal. eapply map_val_inj; et. Qed.
+  Proof. i. red. unfold map_memval. i. des_ifs. f_equal. eapply map_val_inj; et. Qed. *)
 
   Local Transparent Mem.alloc.
   Local Transparent Mem.free.
@@ -293,17 +293,16 @@ Section MEM.
     { hexploit (PTree.elements_keys_norepet te). i. rewrite <- CoqlibC.NoDup_norepet in H0. apply NoDup_map_inv in H0. et. }
   Qed.
 
-  Lemma match_mem_getN f (c d: ZMap.t memval) n p
-    (MM: forall i mv, c !! i = mv -> d !! i = f mv)
+  Lemma match_mem_getN sk tge (c d: ZMap.t memval) n p
+    (MM: forall i, match_memval sk tge (c !! i) (d !! i))
   :
-    Mem.getN n p d = map f (Mem.getN n p c).
+    Forall2 (match_memval sk tge) (Mem.getN n p c) (Mem.getN n p d).
   Proof.
-    revert p. induction n; i; ss.
-    rewrite IHn. f_equal. erewrite <- MM; try reflexivity.  
+    revert p. induction n; i; ss. econs; et.
   Qed.
 
 
-  Lemma match_proj_bytes sk tge l : proj_bytes (map (map_memval sk tge) l) = proj_bytes l. 
+  (* Lemma match_proj_bytes sk tge l : proj_bytes (map (map_memval sk tge) l) = proj_bytes l. 
   Proof. induction l; ss. rewrite IHl. destruct a; ss. Qed.
 
   Lemma match_proj_frag_none sk tge l : proj_fragment (map (map_memval sk tge) l) = None <-> proj_fragment l = None.
@@ -322,9 +321,9 @@ Section MEM.
       + split; i; ss; clarify. destruct mvl; ss; clarify. specialize (IHl mvl).
         destruct IHl. hexploit H; et. clarify. 
       + split; i; ss; clarify. specialize (IHl l0). destruct IHl. hexploit H0; clarify.
-  Qed.
+  Qed. *)
 
-  Lemma match_check_value n q v sk tge l 
+  (* Lemma match_check_value n q v sk tge l 
         (MGE: match_ge sk tge)
     : check_value n (map_val sk tge v) q (map (map_memval sk tge) l) = check_value n v q l.
   Proof.
@@ -354,7 +353,7 @@ Section MEM.
           des_ifs; ss; clarify. destruct v; et.
         * unfold proj_value. rewrite <- match_check_value with (sk := sk) at 1; et.
           des_ifs; ss; clarify. 
-  Qed.
+  Qed. *)
 
   Require Import ClightPlusMemAux.
 
@@ -390,7 +389,7 @@ Section MEM.
           rewrite match_proj_bytes. des_ifs.
   Qed. *)
 
-  Lemma match_is_frag_mv sk ge mvl : existsb is_frag_mv (map (map_memval sk ge) mvl) = existsb is_frag_mv mvl.
+  (* Lemma match_is_frag_mv sk ge mvl : existsb is_frag_mv (map (map_memval sk ge) mvl) = existsb is_frag_mv mvl.
   Proof. induction mvl; ss. rewrite IHmvl. destruct a; ss. Qed.
 
   Lemma match_is_byte_mv sk ge mvl : existsb is_byte_mv (map (map_memval sk ge) mvl) = existsb is_byte_mv mvl.
@@ -406,13 +405,13 @@ Section MEM.
   Proof.
     unfold bytes_not_pure in *. unfold proj_fragment_byte_mixed, proj_fragment_mixed in *.
     rewrite match_is_frag_mv. rewrite match_is_byte_mv. rewrite match_is_long_mv. rewrite match_is_ptr_mv. et.
-  Qed.
+  Qed. *)
 
-  Lemma match_ptr2int m tm sk tge b z
+  (* Lemma match_ptr2int m tm sk tge b z
     (MM: match_mem sk tge m tm)
   : 
     Mem.ptr2int (map_blk sk tge b) z tm = Mem.ptr2int b z m.
-  Proof. unfold Mem.ptr2int. inv MM. rewrite <- MEM_CONC. et. Qed.
+  Proof. unfold Mem.ptr2int. inv MM. rewrite <- MEM_CONC. et. Qed. *)
 
   (* Lemma _match_decode_normalize_aux_frag m tm sk tge mv
     (MM: match_mem sk tge m tm)
@@ -487,8 +486,8 @@ Section MEM.
     - exists 0%Z. et.
   Qed.
 
-  Lemma encode_match_comm chunk sk tge v : encode_val chunk (map_val sk tge v) = map (map_memval sk tge) (encode_val chunk v).
-  Proof. destruct v; ss; des_ifs. Qed.
+  (* Lemma encode_match_comm chunk sk tge v : encode_val chunk (map_val sk tge v) = map (map_memval sk tge) (encode_val chunk v).
+  Proof. destruct v; ss; des_ifs. Qed. *)
 
   Lemma setN_inside x l i c
       (IN_RANGE: (i <= x)%Z /\ (x < i + Z.of_nat (length l))%Z)
@@ -515,46 +514,62 @@ Section MEM.
         (<<TMEM: Mem.alloc tm lo hi = (tm', map_blk sk tge b)>>) /\
         (<<MM_POST: match_mem sk tge m' tm'>>).
   Proof.
-    inv MM_PRE. unfold Mem.alloc in *. clarify. eexists. split. 
+    inv MM_PRE. unfold Mem.alloc in *. clarify. eexists. split.
     - rewrite <- NBLK. red. f_equal.
     - red. econs.
       + ss. nia.
       + ss. rewrite NBLK. unfold map_blk. des_ifs; try nia.
       + i. ss. destruct (Pos.eq_dec (Mem.nextblock m) b).
-        * rewrite <- e in *. rewrite NBLK. rewrite PMap.gss in *. 
+        * rewrite <- e in *. rewrite NBLK. rewrite PMap.gss in *.
           destruct (zindex_surj ofs). rewrite H0 in *. rewrite H.
           change (_ !! _) with (ZMap.get x (ZMap.init Undef)) in H.
-          rewrite ZMap.gi in H. subst. et.
+          rewrite ZMap.gi in H. subst. exists Undef. split; et. econs.
         * rewrite PMap.gso in *; et. rewrite NBLK. red. red in n. revert n. i.
           apply n. eapply map_blk_inj; et. 
       + i. ss. destruct (Pos.eq_dec (Mem.nextblock m) b).
-        * rewrite <- e in *. rewrite NBLK in *. do 2 rewrite PMap.gss. et. 
+        * rewrite <- e in *. rewrite NBLK in *. do 2 rewrite PMap.gss. et.
         * do 2 try rewrite PMap.gso; et. rewrite NBLK. red. red in n. revert n. i.
           apply n. eapply map_blk_inj; et. 
       + ss. 
   Qed.
 
-  Lemma match_mem_store m tm m' chunk b ofs v sk tge
+  Lemma match_val_encode_match sk tge v mv tv tmv chunk n
+    (MV: match_val sk tge v tv)
+    (SV: nth_error (encode_val chunk v) n = Some mv)
+    (TV: nth_error (encode_val chunk tv) n = Some tmv)
+  :
+    match_memval sk tge mv tmv.
+  Proof.
+    inv MV; ss; des_ifs.
+    all: try solve [apply nth_error_In in TV; unfold inj_bytes in *; apply in_map_iff in TV; des; clarify; econs].
+    all: try solve [rewrite repeat_nth in TV; des_ifs; econs]. 
+    all: try solve [unfold inj_value in *; ss; repeat (destruct n; ss; clarify; try econs; try econs)].
+    all: try solve [destruct tv; unfold inj_value in *; ss; repeat (destruct n; ss; clarify; try econs; try econs)].
+  Qed.
+
+  Lemma match_mem_store m tm m' chunk b ofs v tv sk tge
         (SMEM: Mem.store chunk m b ofs v = Some m')
         (MGE: match_ge sk tge)
         (MM_PRE: match_mem sk tge m tm)
+        (MV: match_val sk tge v tv)
     :
       exists tm',
-        <<TMEM: Mem.store chunk tm (map_blk sk tge b) ofs (map_val sk tge v) = Some tm'>> /\
+        <<TMEM: Mem.store chunk tm (map_blk sk tge b) ofs tv = Some tm'>> /\
         <<MM_POST: match_mem sk tge m' tm'>>.
   Proof.
     inv MM_PRE. unfold Mem.store in *.
     des_ifs.
-    - eexists; split; et. econs; ss. i. destruct (zindex_surj ofs0). rewrite encode_match_comm.
+    - eexists; split; et. econs; ss. i. destruct (zindex_surj ofs0).
       destruct (Pos.eq_dec b b0); 
         destruct ((x <? ofs) || (x >=? ofs + Z.of_nat (length (encode_val chunk v))))%Z eqn: e1.
-      + rewrite e in *. rewrite PMap.gss in *.  
-        rewrite H0 in *. pose proof Mem.setN_outside. unfold ZMap.get in *. 
-        rewrite H1 in H; try nia. rewrite H1; et. rewrite map_length. nia.
+      + rewrite e in *. rewrite PMap.gss in *.
+        rewrite H0 in *. pose proof Mem.setN_outside. unfold ZMap.get in *.
+        rewrite H1 in H; try nia. rewrite H1; et. rewrite encode_val_length in *. nia.
       + rewrite e in *. rewrite PMap.gss in *. rewrite H0 in *. 
-        edestruct setN_inside;[|des; unfold ZMap.get in *; rewrite H2 in H]; try nia. rewrite H in *. 
-        edestruct setN_inside;[|des; unfold ZMap.get in *; rewrite H4]; try (rewrite map_length; nia).
-        clear -H1 H3. rewrite nth_error_map in H3. rewrite H1 in H3. ss. clarify.
+        edestruct setN_inside;[|des; unfold ZMap.get in *; rewrite H2 in H]; try nia. rewrite H in *.
+        edestruct setN_inside; [|des; unfold ZMap.get in *; rewrite H4].
+        rewrite encode_val_length in *; nia. esplits; et.
+        clear -H1 H3 MV. eapply match_val_encode_match; et.
       + assert (map_blk sk tge b <> map_blk sk tge b0).
         { red. i. apply n. erewrite map_blk_inj; et. }
         rewrite PMap.gso; et. rewrite PMap.gso in H; et.
@@ -569,22 +584,22 @@ Section MEM.
         (SMEM: Mem.loadbytes m blk ofs n = Some l)
         (MM: match_mem sk tge m tm)
     :
-        Mem.loadbytes tm (map_blk sk tge blk) ofs n = Some (map (map_memval sk tge) l).
+        exists tl, Forall2 (match_memval sk tge) l tl /\ Mem.loadbytes tm (map_blk sk tge blk) ofs n = Some tl.
   Proof.
-    inv MM. unfold Mem.loadbytes in *. des_ifs_safe. ss. clarify. 
+    inv MM. unfold Mem.loadbytes in *. des_ifs_safe. ss. clarify.
     des_ifs.
-    - f_equal. erewrite match_mem_getN; et.
-    - exfalso. apply n0. unfold Mem.range_perm in *. i. unfold Mem.perm in *.
-      rewrite <- MEM_PERM. et.
+    - esplits; et. eapply match_mem_getN. i. hexploit MEM_CNT; et. i. des. rewrite <- H0 in H. et.
+    - exfalso. apply n0. unfold Mem.range_perm in *. i. unfold Mem.perm in *. rewrite <- MEM_PERM. et.
   Qed.
 
-  Lemma match_mem_storebytes m tm m' blk ofs l sk tge
+  Lemma match_mem_storebytes m tm m' blk ofs l tl sk tge
         (SMEM: Mem.storebytes m blk ofs l = Some m')
         (MGE: match_ge sk tge)
         (MM_PRE: match_mem sk tge m tm)
+        (MMV: Forall2 (match_memval sk tge) l tl)
     :
       exists tm',
-        <<TMEM: Mem.storebytes tm (map_blk sk tge blk) ofs (map (map_memval sk tge) l) = Some tm'>> /\
+        <<TMEM: Mem.storebytes tm (map_blk sk tge blk) ofs tl = Some tm'>> /\
         <<MM_POST: match_mem sk tge m' tm'>>.
   Proof.
     inv MM_PRE. unfold Mem.storebytes in *. des_ifs.
@@ -593,11 +608,14 @@ Section MEM.
         destruct ((x <? ofs) || (x >=? ofs + Z.of_nat (length l)))%Z eqn: e1.
       + rewrite e in *. rewrite PMap.gss in *.  
         pose proof Mem.setN_outside. unfold ZMap.get in *. 
-        rewrite H1 in H; try nia. rewrite H1; et. rewrite map_length. nia.
+        rewrite H1 in H; try nia. rewrite H1; et.
+        hexploit Forall2_length; et. i. rewrite H2 in *. nia.
       + rewrite e in *. rewrite PMap.gss in *.
         edestruct setN_inside;[|des; unfold ZMap.get in *; rewrite H2 in H]; try nia. rewrite H in *. 
-        edestruct setN_inside;[|des; unfold ZMap.get in *; rewrite H4]; try (rewrite map_length; nia).
-        clear -H1 H3. rewrite nth_error_map in H3. rewrite H1 in H3. ss. clarify.
+        edestruct setN_inside;[|des; unfold ZMap.get in *; rewrite H4].
+        { hexploit Forall2_length; et. i. rewrite H3 in *. nia. }
+        esplits; et. clear -H1 H3 MMV. revert smv x1 H1 H3. generalize (Z.to_nat (x - ofs)).
+        induction MMV; i; ss; destruct n; ss; clarify. et.
       + assert (map_blk sk tge blk <> map_blk sk tge b).
         { red. i. apply n. erewrite map_blk_inj; et. }
         rewrite PMap.gso; et. rewrite PMap.gso in H; et.
@@ -605,7 +623,7 @@ Section MEM.
         { red. i. apply n. erewrite map_blk_inj; et. }
         rewrite PMap.gso; et. rewrite PMap.gso in H; et.
     - exfalso. apply n. unfold Mem.range_perm in *. i. unfold Mem.perm in *.
-      rewrite <- MEM_PERM. eapply r. rewrite map_length in H. nia.
+      rewrite <- MEM_PERM. eapply r. hexploit Forall2_length; et. i. rewrite H0. nia.
   Qed.
 
   Lemma match_mem_denormalize sk tge m tm z b ofs

@@ -50,17 +50,18 @@ Section MATCH.
         end
   .
 
-  Definition map_val (v : val) : val :=
-    match v with
-    | Vptr blk ofs => Vptr (map_blk blk) ofs
-    | _ => v
-    end.
+  Variant match_val : val -> val -> Prop :=
+  | match_val_int : forall i, match_val (Vint i) (Vint i)
+  | match_val_long : forall l, match_val (Vlong l) (Vlong l)
+  | match_val_single : forall f, match_val (Vsingle f) (Vsingle f)
+  | match_val_float : forall d, match_val (Vfloat d) (Vfloat d)
+  | match_val_ptr : forall blk ofs, match_val (Vptr blk ofs) (Vptr (map_blk blk) ofs)
+  | match_val_undef : forall v, match_val Vundef v.
 
-  Definition map_memval (mv : memval) : memval :=
-    match mv with
-    | Fragment v q n => Fragment (map_val v) q n
-    | _ => mv
-    end.
+  Variant match_memval : memval -> memval -> Prop :=
+  | match_memval_byte : forall b, match_memval (Byte b) (Byte b)
+  | match_memval_frag v v' q n (MV: match_val v v') : match_memval (Fragment v q n) (Fragment v' q n)
+  | match_memval_Undef : forall mv, match_memval Undef mv.
 
   Variant match_ge : Prop :=
   | match_ge_intro
@@ -78,7 +79,7 @@ Section MATCH.
   Variant match_le : ClightPlusExprgen.temp_env -> temp_env -> Prop :=
   | match_le_intro
       sle tle 
-      (ML: forall id sv, alist_find id sle = Some sv -> Maps.PTree.get id tle = Some (map_val sv))
+      (ML: forall id sv, alist_find id sle = Some sv -> exists tv, match_val sv tv /\ Maps.PTree.get id tle = Some tv)
     :
       match_le sle tle.
 
@@ -143,9 +144,9 @@ Section MATCH.
       m tm
       (INITIALIZED: (Pos.of_succ_nat (length sk) <= m.(Mem.nextblock))%positive)
       (NBLK: tm.(Mem.nextblock) = map_blk (m.(Mem.nextblock)))
-      (MEM_CNT: forall b ofs mv, PMap.get ofs (PMap.get b m.(Mem.mem_contents)) = mv -> PMap.get ofs (PMap.get (map_blk b) tm.(Mem.mem_contents)) = map_memval mv)
+      (MEM_CNT: forall b ofs smv, PMap.get ofs (PMap.get b m.(Mem.mem_contents)) = smv -> exists tmv, match_memval smv tmv /\ PMap.get ofs (PMap.get (map_blk b) tm.(Mem.mem_contents)) = tmv)
       (MEM_PERM: forall b, PMap.get b m.(Mem.mem_access) = Maps.PMap.get (map_blk b) tm.(Mem.mem_access) )
-      (MEM_CONC: forall b, PTree.get b m.(Mem.mem_concrete) = Maps.PTree.get (map_blk b) tm.(Mem.mem_concrete) )
+      (MEM_CONC: forall b a, PTree.get b m.(Mem.mem_concrete) = Some a -> Maps.PTree.get (map_blk b) tm.(Mem.mem_concrete) = Some a)
     :
       match_mem m tm.
 
