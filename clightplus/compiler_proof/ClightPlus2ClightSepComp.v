@@ -81,15 +81,16 @@ Section PROOFSINGLE.
   Arguments sloop_iter_body_two /.
   Arguments ktree_of_cont_itree /.
 
+  (* TODO: does semantics2 refine semantics2? *)
   (* The thm is targeting closed program *)
   Theorem single_compile_behavior_improves
-          clight_prog md sk_mem mn left_st right_st
+          gvmap clight_prog md sk_mem mn left_st right_st
           (COMP: compile clight_prog mn = Errors.OK md)
           (MEMSKEL: mem_skel clight_prog = Errors.OK sk_mem)
           (SINIT: left_st = clightp_initial_state sk_mem md)
           (TINIT: Clight.initial_state clight_prog right_st)
         :
-          <<IMPROVES: @improves2 _ (Clight.semantics2 clight_prog) left_st right_st>>.
+          <<IMPROVES: @improves2 _ (semantics3 clight_prog) gvmap left_st right_st>>.
   Proof.
     eapply adequacy; eauto.
     { apply Clight_wf_semantics. }
@@ -190,6 +191,20 @@ Section PROOFSINGLE.
       repeat (des_ifs; progress (sim_redE; grind)). }
   Qed.
 
+  Theorem backward_simulation_observation_improves:
+  forall L, forall obs gvmap, program_observes L obs -> fst obs = Some gvmap ->
+    exists tr_src, program_observes L (Some null_map, tr_src) /\ observation_improves (Some null_map, tr_src) obs.
+  Proof.
+    i. inv H; clarify.
+    - ss. clarify. exists beh. split.
+      + econs. et. {  }
+       { econs; et. }
+    2:{ exists (Goes_wrong []). split. { econs 2. et. }
+        unfold observation_improves. ss. split. { unfold behavior_improves. left. ss. econs. }
+        ss. }
+    Semantics_gen
+       exists (Partial_terminates []). split. { econs 2. } }
+
   Theorem single_compile_program_improves
           clight_prog md sk_mem mn
           (COMP: compile clight_prog mn = Errors.OK md)
@@ -197,11 +212,13 @@ Section PROOFSINGLE.
     :
       <<IMPROVES: improves2_program (clightp_sem sk_mem md) (Clight.semantics2 clight_prog)>>.
   Proof.
-    red. unfold improves2_program. i. inv BEH.
+    red. unfold improves2_program. i. inv BEH; et.
     { hexploit single_compile_behavior_improves.
       { et. } { et. } { reflexivity. } { et. }
+      instantiate (1:=null_map).
       unfold improves2, clightp_initial_state. i.
-      eapply H1; et. }
+      Search state_behaves.
+      eapply H; et. }
     (* initiall wrong case, for us only when main is not found *)
     exists (Tr.ub). split; red; eauto.
     2:{ pfold. econs 4; eauto.
@@ -220,16 +237,16 @@ Section PROOFSINGLE.
     exfalso.
     rewrite alist_find_map_snd in Heq10. uo; des_ifs; ss.
     hexploit in_tgt_prog_defs_decomp; et. i. des. clarify.
-    hexploit in_tgt_prog_main; et. i. rewrite <- H0 in *.
+    hexploit in_tgt_prog_main; et. i. rewrite <- H in *.
     hexploit compile_init_mem_success; et. i. des.
     change (prog_defs clight_prog) with (AST.prog_defs (program_of_program clight_prog)) in H1.
     dup H1. apply alist_find_some in H1. hexploit Genv.find_symbol_exists; et.
     i. des. hexploit tgt_genv_match_symb_def_by_blk; et.
-    i. apply (H (Callstate (Internal f) [] Kstop tm)).
+    i. apply (H0 (Callstate (Internal f) [] Kstop tm)).
     econs; et. { unfold Genv.find_funct_ptr. des_ifs. }
     clear - COMP H1 H0. unfold compile, get_sk in COMP. des_ifs.
     bsimpl. des. rewrite forallb_forall in Heq3. apply Heq3 in H1.
-    ss. bsimpl. des. unfold main_type in H2.
+    unfold call_ban in H1. bsimpl. des. clear H1. unfold main_type in H2.
     des_ifs. destruct type_eq; clarify.
   Qed.
 
