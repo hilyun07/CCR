@@ -131,7 +131,7 @@ Section PROOF.
 
   Lemma Clight_wf_semantics prog
     :
-      wf_semantics (Clight.semantics2 prog).
+      wf_semantics (semantics3 prog).
   Proof.
     econs.
     { i. inv FINAL. inv STEP. }
@@ -142,7 +142,7 @@ Section PROOF.
 
   Import ModSemL.
 
-  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (ModL.compile src) (Clight.semantics2 tgt)).
+  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (ModL.compile src) (semantics3 tgt)).
   Hint Resolve _sim_mon: paco.
 
   Ltac sim_red := try red; Red.prw ltac:(_red_gen) 2 0.
@@ -267,12 +267,12 @@ Section PROOF.
               (`r0: (p_state * val) <- itr_cont' (pstate, (e, le, None, Some v));;
                 let (_, retv) := r0 in Ret retv↑) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               itr_cont''
               tstate)
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- itr_cont (pstate, (e, le, None, Some v));;
         let (_, retv) := r0 in Ret retv↑)
       tstate.
@@ -299,7 +299,7 @@ Section PROOF.
           (SK: sk = Sk.canon modl.(ModL.sk))
           (MS: match_states sk (Genv.globalenv clight_prog) ce (Ctypes.prog_comp_env clight_prog) ms ist cst)
   :
-      <<SIM: sim (ModL.compile modl) (Clight.semantics2 clight_prog) false false ist cst>>.
+      <<SIM: sim (ModL.compile modl) (semantics3 clight_prog) false false ist cst>>.
   Proof.
     red. red.
     depgen ist. depgen cst. pcofix CIH. i.

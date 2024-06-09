@@ -22,7 +22,7 @@ Section PROOF.
 
   Import ModSemL.
 
-  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (ModL.compile src) (Clight.semantics2 tgt)).
+  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (ModL.compile src) (semantics3 tgt)).
   Hint Resolve _sim_mon: paco.
 
   Ltac sim_red := try red; Red.prw ltac:(_red_gen) 2 0.
@@ -55,12 +55,12 @@ Section PROOF.
     (NEXT: forall v,
             Mem.loadv chunk tm (map_val sk tge addr) = Some (map_val sk tge v) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: p_state * val <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -94,12 +94,12 @@ Section PROOF.
             Mem.storev chunk tm (map_val sk tge addr) (map_val sk tge v) = Some tm' ->
             match_mem sk tge m' tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, ()))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: p_state * () <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -129,12 +129,12 @@ Section PROOF.
             extcall_memcpy_sem sz al tge [map_val sk tge vp; map_val sk tge v] tm E0 Vundef tm' ->
             match_mem sk tge m' tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, Vundef))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: p_state * val <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -180,12 +180,12 @@ Section PROOF.
     (NEXT: forall l,
             Mem.loadbytes tm (map_blk sk tge blk) (Ptrofs.unsigned ofs) n = Some (List.map (map_memval sk tge) l) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, l))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: p_state * list memval <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -211,12 +211,12 @@ Section PROOF.
             Mem.storebytes tm (map_blk sk tge blk) (Ptrofs.unsigned ofs) (List.map (map_memval sk tge) l) = Some tm' ->
             match_mem sk tge m' tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, ()))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: p_state * () <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -241,12 +241,12 @@ Section PROOF.
     (NEXT: forall v,
             Cop.load_bitfield ty sz sg pos width tm (map_val sk tge addr) (map_val sk tge v)->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -272,12 +272,12 @@ Section PROOF.
             match_mem sk tge m' tm' ->
             Cop.store_bitfield ty sz sg pos width tm (map_val sk tge addr) (map_val sk tge v) tm' (map_val sk tge v')->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, v'))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -304,12 +304,12 @@ Section PROOF.
           Cop._sem_ptr_sub_join_common (map_val sk tge v1) (map_val sk tge v2) tm = Some ofs ->
           (0 < sz <= Ptrofs.max_signed)%Z ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
               (ktr (pstate, Vptrofs (Ptrofs.divs ofs (Ptrofs.repr sz))))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -509,12 +509,12 @@ Section PROOF.
     (NEXT: forall b,
           Cop.cmp_ptr_join_common tm c (map_val sk tge v1) (map_val sk tge v2) = Some (Val.of_bool b) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
               (ktr (pstate, b))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
       (`r0: (p_state * bool) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -785,12 +785,12 @@ Section PROOF.
     tf tcode tcont ktr bflag r mn
     (NEXT: Mem.weak_valid_pointer tm (map_blk sk tge blk) (Ptrofs.unsigned ofs) = true ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
               (ktr (pstate, true))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
       (`r0: (p_state * bool) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -821,12 +821,12 @@ Section PROOF.
     (NEXT: forall b, 
             Cop.bool_val (map_val sk tge v) ty tm = Some b ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
               (ktr (pstate, b))
               (State tf tcode tcont te tle tm))
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true bflag
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
       (`r0: (p_state * bool) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -851,12 +851,12 @@ Section PROOF.
     (NEXT: forall v',
             Cop.sem_cast (map_val sk tge v) ty1 ty2 tm = Some (map_val sk tge v') ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v'))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -886,12 +886,12 @@ Section PROOF.
             match_mem sk tge m' tm' ->
             assign_loc tce ty tm (map_val sk tge vp) (map_val sk tge v) tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, ()))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * ())<- 
         (EventsL.interp_Es
           (prog f_table)
@@ -920,12 +920,12 @@ Section PROOF.
     (NEXT: forall v,
             deref_loc ty tm (map_val sk tge vp) (map_val sk tge v) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -950,12 +950,12 @@ Section PROOF.
     (NEXT: forall v',
             Cop.sem_unary_operation uop (map_val sk tge v) ty tm = Some (map_val sk tge v') ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v'))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -994,12 +994,12 @@ Section PROOF.
     (NEXT: forall v',
             Cop.sem_binary_operation tce biop (map_val sk tge v1) ty1 (map_val sk tge v2) ty2 tm = Some (map_val sk tge v') ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v'))
               (State tf tcode tcont te tle tm))
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -1217,12 +1217,12 @@ Section PROOF.
     (forall vp, 
       eval_lvalue ge te tle tm a (map_val sk tge vp) ->
       paco4
-        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
         (ktr1 (pstate, vp))
         (State tf tcode tcont te tle tm)) 
     ->
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -1234,12 +1234,12 @@ Section PROOF.
     (forall v, 
       eval_expr ge te tle tm a (map_val sk tge v) ->
       paco4
-        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
         (ktr2 (pstate, v))
         (State tf tcode tcont te tle tm)) 
     ->
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * Values.val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -1324,12 +1324,12 @@ Section PROOF.
     (NEXT: forall vp, 
             eval_lvalue ge te tle tm a (map_val sk tge vp) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, vp))
               (State tf tcode tcont te tle tm))
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -1353,12 +1353,12 @@ Section PROOF.
             eval_expr ge te tle tm a v ->
             v = map_val sk tge v' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, v'))
               (State tf tcode tcont te tle tm))
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * Values.val) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -1383,12 +1383,12 @@ Section PROOF.
     (NEXT: forall vl, 
             eval_exprlist ge te tle tm al tyl (List.map (map_val sk tge) vl) ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (pstate, vl))
               (State tf tcode tcont te tle tm))
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * list Values.val) <- 
         (EventsL.interp_Es
           (prog f_table)

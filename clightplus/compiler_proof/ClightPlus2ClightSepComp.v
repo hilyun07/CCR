@@ -33,7 +33,7 @@ Definition clightp_initial_state sk_mem mdl := (clightp_sem sk_mem mdl).(STS.ini
 
 (* Section REF.
 
-  Theorem refine_improve_trans mdl1 mdl2 clight_prog sk: refines_closed (ModL.add (Mem sk) mdl1) (ModL.add (Mem sk) mdl2) -> improves2_program (clightp_sem sk mdl1) (Clight.semantics2 clight_prog) -> improves2_program (clightp_sem sk mdl2) (Clight.semantics2 clight_prog).
+  Theorem refine_improve_trans mdl1 mdl2 clight_prog sk: refines_closed (ModL.add (Mem sk) mdl1) (ModL.add (Mem sk) mdl2) -> improves2_program (clightp_sem sk mdl1) (semantics3 clight_prog) -> improves2_program (clightp_sem sk mdl2) (semantics3 clight_prog).
   Proof.
     i. unfold refines_closed, improves2_program in *. i. hexploit H0. { apply BEH. }
     i. des. unfold Beh.of_program in H. unfold clightp_sem, compile_val in BEH0. hexploit H. { apply BEH0. }
@@ -81,7 +81,7 @@ Section PROOFSINGLE.
   Arguments sloop_iter_body_two /.
   Arguments ktree_of_cont_itree /.
 
-  (* TODO: does semantics2 refine semantics2? *)
+  (* TODO: does semantics3 refine semantics3? *)
   (* The thm is targeting closed program *)
   Theorem single_compile_behavior_improves
           gvmap clight_prog md sk_mem mn left_st right_st
@@ -111,7 +111,7 @@ Section PROOFSINGLE.
     i. clarify. rename f into tmainf.
 
     unfold cfunU. sim_red. unfold decomp_func. sim_red.
-    change (paco4 (_sim _ _) bot4) with (sim (clightp_sem sk_mem md) (semantics2 clight_prog)).
+    change (paco4 (_sim _ _) bot4) with (sim (clightp_sem sk_mem md) (semantics3 clight_prog)).
     eapply sim_bot_flag_up with (b0 := true) (b1 := false).
 
     set (sort _) as sk_init in *.
@@ -191,34 +191,20 @@ Section PROOFSINGLE.
       repeat (des_ifs; progress (sim_redE; grind)). }
   Qed.
 
-  Theorem backward_simulation_observation_improves:
-  forall L, forall obs gvmap, program_observes L obs -> fst obs = Some gvmap ->
-    exists tr_src, program_observes L (Some null_map, tr_src) /\ observation_improves (Some null_map, tr_src) obs.
-  Proof.
-    i. inv H; clarify.
-    - ss. clarify. exists beh. split.
-      + econs. et. {  }
-       { econs; et. }
-    2:{ exists (Goes_wrong []). split. { econs 2. et. }
-        unfold observation_improves. ss. split. { unfold behavior_improves. left. ss. econs. }
-        ss. }
-    Semantics_gen
-       exists (Partial_terminates []). split. { econs 2. } }
 
   Theorem single_compile_program_improves
           clight_prog md sk_mem mn
           (COMP: compile clight_prog mn = Errors.OK md)
           (MEMSKEL: mem_skel clight_prog = Errors.OK sk_mem)
     :
-      <<IMPROVES: improves2_program (clightp_sem sk_mem md) (Clight.semantics2 clight_prog)>>.
+      <<IMPROVES: improves2_program (clightp_sem sk_mem md) (semantics3 clight_prog)>>.
   Proof.
     red. unfold improves2_program. i. inv BEH; et.
     { hexploit single_compile_behavior_improves.
       { et. } { et. } { reflexivity. } { et. }
-      instantiate (1:=null_map).
-      unfold improves2, clightp_initial_state. i.
-      Search state_behaves.
-      eapply H; et. }
+      inv H2. unfold improves2, clightp_initial_state.
+      i. eapply H. et. }
+    
     (* initiall wrong case, for us only when main is not found *)
     exists (Tr.ub). split; red; eauto.
     2:{ pfold. econs 4; eauto.

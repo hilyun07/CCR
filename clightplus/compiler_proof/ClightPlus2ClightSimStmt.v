@@ -25,7 +25,7 @@ Section PROOF.
 
   Import ModSemL.
 
-  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (ModL.compile src) (Clight.semantics2 tgt)).
+  Let _sim_mon := Eval simpl in (fun (src: ModL.t) (tgt: Clight.program) => @sim_mon (ModL.compile src) (semantics3 tgt)).
   Hint Resolve _sim_mon: paco.
 
   Ltac sim_red := try red; Red.prw ltac:(_red_gen) 2 0.
@@ -64,12 +64,12 @@ Section PROOF.
     (NEXT: forall m', 
       Mem.free_list m (List.map (map_fst (fun b => pair b 0%Z)) (ClightPlusExprgen.blocks_of_env ce e)) = Some m' ->
       paco4
-        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
         (ktr (update pstate "Mem" m'↑, ()))
         tstate)
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * ()) <- 
         (EventsL.interp_Es (prog f_table)
           (transl_all mn (free_list_aux (ClightPlusExprgen.blocks_of_env ce e))) 
@@ -104,12 +104,12 @@ Section PROOF.
       Mem.free_list tm (Clight.blocks_of_env ge te) = Some tm' ->
       match_mem sk tge m' tm' ->
       paco4
-        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+        (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
         (ktr (update pstate "Mem" m'↑, ()))
         tstate)
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * ()) <- 
         (EventsL.interp_Es (prog f_table)
           (transl_all mn (free_list_aux (ClightPlusExprgen.blocks_of_env ce e))) 
@@ -135,12 +135,12 @@ Section PROOF.
             Mem.alloc tm 0 sz = (tm', map_blk sk tge blk) ->
             match_mem sk tge m' tm' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, blk))
               tstate)
 :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: p_state * block <-
         (EventsL.interp_Es
           (prog f_table)
@@ -169,12 +169,12 @@ Section PROOF.
             match_mem sk tge m' tm' ->
             match_e sk tge e' te' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, e'))
               tstate)
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * ClightPlusExprgen.env) <- 
         (EventsL.interp_Es
           (prog f_table)
@@ -219,12 +219,12 @@ Section PROOF.
             match_e sk tge e' te' ->
             match_le sk tge le' tle' ->
             paco4
-              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, (e', le')))
               tstate)
   :
     paco4
-      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics2 cprog)) r true b
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
       (`r0: (p_state * (ClightPlusExprgen.env * ClightPlusExprgen.temp_env)) <- 
         (EventsL.interp_Es
           (prog f_table)

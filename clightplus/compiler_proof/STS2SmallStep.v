@@ -17,8 +17,8 @@ Section Beh.
   | match_val_long : forall l, match_val (EVlong l) (Int64.signed l)↑
   | match_val_int : forall i, match_val (EVint i) (Int.signed i)↑
   | match_val_ptr id ofs : match_val (EVptr_global id ofs) (id, Ptrofs.unsigned ofs)↑
-  | match_val_ptr_long id ofs l (ARCH: Archi.ptr64 = true) (CAST: to_int_ev id ofs gvmap = Some (Vlong l)) : match_val (EVlong l) (id, ofs)↑
-  | match_val_ptr_int id ofs i (ARCH: Archi.ptr64 = false) (CAST: to_int_ev id ofs gvmap = Some (Vint i)) : match_val (EVint i) (id, ofs)↑.
+  | match_val_ptr_long id ofs l (ARCH: Archi.ptr64 = true) (CAST: to_int_ev id ofs gvmap = Some (Vlong l)) : match_val (EVlong l) (id, Ptrofs.unsigned ofs)↑
+  | match_val_ptr_int id ofs i (ARCH: Archi.ptr64 = false) (CAST: to_int_ev id ofs gvmap = Some (Vint i)) : match_val (EVint i) (id, Ptrofs.unsigned ofs)↑.
 
   Inductive match_event : Events.event -> STS.event -> Prop :=
   | match_event_intro
@@ -176,6 +176,177 @@ Lemma improves2_map_mon L0 L1 gm0 gm1 st_src st_tgt
   improves2 gm1 st_src st_tgt.
 Proof.  unfold improves2 in *. i. hexploit M0; et. i. des. hexploit match_beh_map_mon; et. Qed.
 
+Lemma match_event_trans o o1 x y y0
+  (R1: match_event o1 x y)
+  (R2: ev_rel o x y0)
+  (LE: Simulation.gm_improves o1 o)
+:
+  match_event o y0 y.
+Proof.
+  unfold ev_rel, event_rel in R2.
+  des_ifs; des; unfold lib.sflib.NW in *; clarify; inv R1.
+  econs.
+  - clear - MV R0 LE. revert uargs MV. induction R0; i; ss; inv MV; econs; et.
+    unfold evval_rel, eventval_bind in H.
+    des_ifs; des; unfold lib.sflib.NW in *; clarify.
+    all: inv H2; econs; et.
+    + unfold to_int_ev in *. des_ifs.
+    + unfold to_int_ev in CAST.
+      des_ifs. apply LE in Heq. unfold to_int_ev. des_ifs.
+  - unfold evval_rel, eventval_bind in R3.
+    des_ifs; des; unfold lib.sflib.NW in *; clarify.
+    all: inv MV0; econs; et.
+    + unfold to_int_ev in *. des_ifs.
+    + unfold to_int_ev in CAST.
+      des_ifs. apply LE in Heq. unfold to_int_ev. des_ifs.
+Qed.
+
+Lemma match_events_trans o o1 t t' mtr
+  (R1: Forall2 (match_event o1) t mtr)
+  (R2: tr_rel (ev_rel o) t t')
+  (LE: Simulation.gm_improves o1 o)
+:
+  Forall2 (match_event o) t' mtr.
+Proof.
+  unfold tr_rel in R2.
+  revert_until R1. revert t'.
+  ginduction R1; i; ss; inv R2; econs; et.
+  eapply match_event_trans; et.
+Qed.
+
+Lemma tr_app_trans tl1 tl2 tr
+:
+  Tr.app tl1 (Tr.app tl2 tr) = Tr.app (tl1 ++ tl2) tr.
+Proof. ginduction tl1; ss. i. f_equal; et. Qed.
+
+Lemma tr_app_inf o t t0 mtrinf
+  (M: match_beh o (Reacts (t *** t0)) mtrinf)
+:
+  (exists l t', mtrinf = Tr.app l Tr.ub
+    /\ behavior_prefix t' (Reacts (t *** t0)) /\ Forall2 (match_event o) t' l)
+  \/
+  exists l0 t0', mtrinf = Tr.app l0 t0' 
+    /\ Forall2 (match_event o) t l0
+    /\ match_beh o (Reacts t0) t0'.
+Proof.
+  ginduction t; i; ss.
+  - punfold M. inv M; clarify.
+    + right. pclearbot. exists []. esplits; et; ss.
+      pfold. econs 3; et.
+    + left. esplits; et.
+  - punfold M. inv M; clarify.
+    + pclearbot. hexploit IHt; et. i. des; clarify.
+      * left. rewrite Tr.fold_app. esplits; et.
+        2:{ econs; et. } unfold behavior_prefix in *. des; clarify.
+        exists beh'. destruct beh'; ss; clarify. rewrite H0. et.
+      * right. rewrite Tr.fold_app. esplits; et.
+    + left. esplits; et.
+Qed.
+
+Lemma tr_app_compare t t0 t1 t2
+  (EQ: t *** t0 = t1 *** t2)
+:
+  (exists l, t ++ l = t1) \/ (exists l, t1 ++ l = t).
+Proof.
+  ginduction t; i; ss.
+  - left. esplits; et.
+  - destruct t1; ss; clarify.
+    + right. esplits; et.
+    + apply IHt in H0. des; clarify; et.
+Qed.
+
+Lemma beh_app_compare t t1 beh beh0
+  (EQ: behavior_app t beh = behavior_app t1 beh0)
+:
+  (exists l, t ++ l = t1) \/ (exists l, t1 ++ l = t).
+Proof.
+  ginduction t; i; ss.
+  - left. esplits; et.
+  - destruct t1; ss; clarify.
+    + right. esplits; et.
+    + hexploit (IHt t1 beh beh0).
+      * clear - EQ. unfold behavior_app in *. des_ifs; f_equal; et.
+      * i. assert (a = e); cycle 1. des; clarify; et.
+        clear - EQ. unfold behavior_app in EQ. des_ifs.
+Qed.
+
+Theorem improves2_program_observe_trans L1 L2 L3
+  (LAYER1: improves2_program L1 L2)
+  (LAYER2: forall obs1, program_observes L3 obs1 -> exists obs0, program_observes L2 obs0 /\ observation_improves obs0 obs1)
+:
+  improves2_program L1 L3.
+Proof.
+  unfold improves2_program in *. i. des_ifs.
+  hexploit LAYER2; et. i. des. destruct obs0; ss.
+  inv H0. ss. unfold gm_improves' in H2. des_ifs.
+  apply LAYER1 in H. des. esplits; et.
+  clear -SIM H1 H2. revert p tr_tgt tr_src H1 SIM.
+  pcofix CIH. i. punfold SIM. inv SIM.
+  - inv H1.
+    + ss. des_ifs. des. clarify. pfold. econs 1. 2,3: et.
+      eapply match_events_trans; et.
+    + des; clarify. destruct H1. destruct x; ss. clarify.
+      hexploit Forall2_app_inv_l; et. i. des. clarify.
+      pfold. econs 5. et.
+      { eapply match_events_trans. 2: et. et. et. }
+      { unfold Tr.prefix. eexists. apply tr_app_trans. }
+  - inv H1.
+    + ss. des_ifs. pfold. econs 2. 2,3: et.
+      eapply match_events_trans; et.
+    + des; clarify. destruct H1. destruct x; ss. clarify.
+      hexploit Forall2_app_inv_l; et. i. des. clarify.
+      pfold. econs 5. et.
+      { eapply match_events_trans. 2: et. et. et. }
+      { unfold Tr.prefix. eexists. apply tr_app_trans. }
+  - pclearbot. inv H1.
+    + ss. des_ifs. pfold. punfold H. inv H. pclearbot.
+      econs 3. 3,4: et. eapply match_event_trans; et.
+      right. eapply CIH. 2:et. unfold behavior_improves. ss. et.
+    + des; clarify. destruct H1. destruct x; ss. clarify.
+      destruct t. { inv H0. pfold. econs 5; et. rr. eexists. ss. }
+      ss. clarify. inv H0. hexploit tr_app_inf; et. i. des; clarify.
+      * pfold. rewrite Tr.fold_app. unfold behavior_prefix in H0.
+        des. destruct beh'; ss; clarify.
+        hexploit tr_app_compare; et. i. des; clarify.
+        { hexploit Forall2_app_inv_l; et. i. des. clarify.
+          econs 5; et.
+          { econs. eapply match_event_trans; et. eapply match_events_trans. apply H. et. et. }
+          rr. rewrite Tr.fold_app. rewrite app_comm_cons. rewrite <- tr_app_trans. et. }
+        { hexploit Forall2_app_inv_l; et. i. des. clarify.
+          econs 4. { rewrite Tr.fold_app. et. }
+          { econs. eapply match_event_trans; et. eapply match_events_trans; et. }
+          rr. rewrite app_comm_cons. exists (Partial_terminates l2'). et. }
+      * pfold. econs 5; et. { econs. eapply match_event_trans; et. eapply match_events_trans; et. }
+        rr. eexists. ss.
+  - unfold behavior_improves in H1. des; clarify.
+    + hexploit prefix_tr_rel; et. i. des. pfold. econs 4; et.
+      eapply match_events_trans; et.
+    + unfold behavior_prefix in TB. des. destruct beh'; ss; clarify.
+      unfold tr_rel in H0.
+      hexploit Forall2_app_inv_l; et. i. des. clarify.
+      pfold. econs 4. et. eapply match_events_trans; et. 
+      unfold behavior_prefix in *. des. clarify.
+      rewrite behavior_app_assoc. et.
+    + unfold behavior_prefix in *. des. clarify. pfold.
+      hexploit beh_app_compare; et. i. des; clarify.
+      { hexploit Forall2_app_inv_l; et. i. des. clarify.
+        econs 5; et.
+        { eapply match_events_trans. apply H. et. et. }
+        rr. rewrite <- tr_app_trans. et. }
+      { hexploit Forall2_app_inv_l; et. i. des. clarify.
+        econs 4; et.
+        { eapply match_events_trans; et. }
+        rr. exists (Partial_terminates l2'). et. }
+  - unfold behavior_improves in H1. des; clarify.
+    + ss. des_ifs. hexploit match_events_trans; et.
+    + unfold behavior_prefix in *. des.
+      unfold Tr.prefix in *. des. clarify.
+      destruct beh'; ss; clarify.
+      hexploit Forall2_app_inv_l; et. i. des. clarify.
+      rewrite <- tr_app_trans. pfold. econs 5; et.
+      eapply match_events_trans. apply H. all: et.
+      rr. et.
+Qed.
 
 
 
