@@ -25,10 +25,10 @@ Require Import ClightPlus2ClightInit.
 Require Import ClightPlus2ClightSepComp.
 Require Import xorlistall01proof.
 
-Theorem refine_improve_trans mdl1 mdl2 clight_prog: refines_closed mdl1 mdl2 -> improves2_program (ModL.compile mdl1) (Clight.semantics2 clight_prog) -> improves2_program (ModL.compile mdl2) (Clight.semantics2 clight_prog).
+Theorem refine_improve_trans L mdl1 mdl2 : refines_closed mdl1 mdl2 -> improves2_program (ModL.compile mdl1) L -> improves2_program (ModL.compile mdl2) L.
 Proof.
-  i. unfold refines_closed, improves2_program in *. i. hexploit H0. { apply BEH. }
-  i. des. unfold Beh.of_program in H. hexploit H. { apply BEH0. }
+  i. unfold refines_closed, improves2_program in *. i. apply H0 in BEH. des_ifs.
+  des. unfold Beh.of_program in H. hexploit H. { apply BEH0. }
   i. esplits. { apply H1. } apply SIM.
 Qed.
 
@@ -584,7 +584,7 @@ Section PROOF.
   Qed.
 
   Theorem final_thm prog (LINK: xorlistall0._xor = Some prog) :
-    improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (Clight.semantics2 prog).
+    improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (ClightPlus2ClightMatchEnv.semantics3 prog).
   Proof.
     destruct xorlistall0.valid_xor.
     destruct xorlistall0.msk_xor.
