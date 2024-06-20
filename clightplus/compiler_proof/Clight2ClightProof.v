@@ -1301,8 +1301,7 @@ Proof.
         destruct (ZMap.get _ _); econs. destruct v; econs; ss.
         rewrite Ptrofs.add_zero. et.
     - i. unfold Mem.perm in *. rewrite ACCESS. et.
-    - i. Search Mem.capture.
-      destruct (Pos.eq_dec a b); cycle 1; clarify.
+    - i. destruct (Pos.eq_dec a b); cycle 1; clarify.
       { erewrite <- Mem.concrete_other; et. econs; et. }
       hexploit PREVADDR; et. i. des. rewrite <- H2. et. } 
 Qed.
