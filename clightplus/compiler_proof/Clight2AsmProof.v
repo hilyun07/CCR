@@ -858,6 +858,65 @@ Proof.
   - eapply find_label_aux0 in X. 2: econs; et. des_ifs. et.
 Qed.
 
+Lemma match_alloc_variables_match
+    ge e e' m m0 l m'
+    (OP: alloc_variables ge e m l e' m') 
+    (MM: Mem.extends m m0):
+  exists m0', alloc_variables ge e m0 l e' m0' /\ Mem.extends m' m0'.
+Proof.
+  ginduction OP; i; ss.
+  - esplits; et. econs.
+  - hexploit Mem.alloc_extends; et. instantiate (1:=0%Z). ss. instantiate (1:=sizeof ge ty). nia.
+    i. des. hexploit IHOP; et. i. des. esplits; et. econs; et.  
+Qed.
+
+Require Import ClightPlus2ClightLenv.
+
+Lemma match_bind_parameter_temps
+    params sle rvs rvs' sbase tbase
+    (BIND_SRC: bind_parameter_temps params rvs sbase = Some sle)
+    (MLE: match_temps sbase tbase)
+    (MV: Val.lessdef_list rvs rvs') :
+  exists tle, (<<BIND_TGT: Clight.bind_parameter_temps params rvs' tbase = Some tle>>).
+Proof.
+  apply (bind_parameter_temps_exists_if_same_length' params rvs' tbase).
+  clear -BIND_SRC MV. depgen sbase.
+  revert sle. depgen rvs. depgen params.
+  induction rvs'; i; ss; des_ifs. { inv MV. destruct params; ss. des_ifs. }
+  inv MV. destruct params; ss. des_ifs. f_equal. et.
+Qed.
+
+Lemma match_bind_parameter_temps_match
+    params sle tle rvs rvs' sbase tbase
+    (BIND_SRC: bind_parameter_temps params rvs sbase = Some sle)
+    (BIND_TGT: Clight.bind_parameter_temps params rvs' tbase = Some tle)
+    (MLE: match_temps sbase tbase) 
+    (MV: Val.lessdef_list rvs rvs') :
+  match_temps sle tle.
+Proof.
+  depgen sbase. depgen sle. depgen rvs. depgen params. revert tle tbase.
+  induction rvs'; i; ss; des_ifs. { inv MV. destruct params; ss; clarify. des_ifs. }
+  inv MV. destruct params; ss. des_ifs.
+  eapply IHrvs'; et. ii. destruct (Pos.eq_dec i id); clarify. { rewrite ! PTree.gss; et. }
+  rewrite ! PTree.gso; et.
+Qed.
+
+Lemma match_temps_refl le: match_temps le le.
+Proof. ii. destruct (le ! id); et. Qed.
+
+Lemma match_function_entry2_match
+    ge f args args' m m' e le m1
+    (OP: function_entry2 ge f args m e le m1)
+    (MV: Val.lessdef_list args args')
+    (MM: Mem.extends m m') :
+  exists m1' le', function_entry2 ge f args' m' e le' m1' /\ match_temps le le' /\ Mem.extends m1 m1'.
+Proof.
+  inv OP. hexploit match_bind_parameter_temps; et. apply match_temps_refl. 
+  i. des. hexploit match_bind_parameter_temps_match. 4: et. all: et.
+  apply match_temps_refl. i. hexploit match_alloc_variables_match; et. i. des.  
+  esplits; et. econs; et.
+Qed.
+
 Require Import ClightPlus2ClightSim.
 
 Lemma match_states_bsim p gmtgt st_src st_tgt
@@ -1150,7 +1209,55 @@ Proof.
         eapply find_label_aux2 with (k0 := call_cont k') in H8.
         2:{ clear -NEXT. ginduction NEXT; ss. econs. econs; et. }
         des. right. econs. econs. econs; et.
-  - admit "".
+  - pfold. econs. i. rr.
+    unfold safe in *. hexploit SAFESRC. { apply star_refl. }
+    i. des. { inv H. } inv H; des; clarify.
+    + econs.
+      * i. inv STEPTGT; des; clarify.
+        hexploit match_function_entry2_match. 2: et. all: et. i. des.
+        assert (e = e0 /\ le' = le0 /\ m1' = m2).
+        { inv H. inv H5. hexploit alloc_variables_determ. apply H7. apply H11. i. des. clarify. }
+        des. clarify.
+        left. esplits. econs. left. apply plus_one. econs; et. right. apply CIH. econs; et.
+      * i. inv FINALTGT.
+      * right. hexploit match_function_entry2_match. 2: et. all: et. i. des.
+        econs. econs. econs; et.
+    + econs.
+      * i. inv STEPTGT.
+        destruct (is_external_efb ef) eqn:B.
+        { hexploit is_external_ef_reflect. rewrite B. i. inv H.
+          hexploit external_call_mem_extends_backward. 3: et. all: et.
+          i. des.
+          - left. esplits.
+            { instantiate (1:=tr'). clear. apply tr_rel_refl. i. rr.
+              des_ifs; esplits; et; rr; des_ifs.
+              all: induction l; ss; econs; et; unfold evval_rel, eventval_bind; des_ifs. }
+            { left. apply plus_one. econs; et. }
+            { right. apply CIH. econs; eauto. }
+          - exfalso. eapply H. et.
+          - right. unfold lib.sflib.NW in *. des.
+            esplits; et. { apply star_one. econs; et. }
+            rewrite <- H2. apply tr_rel_refl. i. rr.
+            des_ifs; esplits; et; rr; des_ifs.
+            all: induction l; ss; econs; et; unfold evval_rel, eventval_bind; des_ifs. }
+        { hexploit is_external_ef_reflect. rewrite B. i. inv H.
+          hexploit external_call_mem_extends. 3: et. all: et. i. des.
+          hexploit external_call_determ. et. apply H9. et. i. des. clarify.
+          left. esplits.
+          { instantiate (1:=t). clear. apply tr_rel_refl. i. rr.
+            des_ifs; esplits; et; rr; des_ifs.
+            all: induction l; ss; econs; et; unfold evval_rel, eventval_bind; des_ifs. }
+          { left. apply plus_one. econs; et. }
+          { right. apply CIH. econs; eauto. } }
+      * i. inv FINALTGT.
+      * right. rr.
+        destruct (is_external_efb ef) eqn:B.
+        { hexploit is_external_ef_reflect. rewrite B. i. inv H.
+          hexploit external_call_mem_extends_backward_progress; eauto.
+          i. des. eexists _,_. econs; et. }
+        { hexploit is_external_ef_reflect. rewrite B. i. inv H.
+          hexploit external_call_mem_extends. 3: et. all: et. i. des.
+          eexists _,_. econs; et. }
   - pfold. econs. i. rr.
     econs.
     + i. inv STEPTGT. inv NEXT. left. esplits. econs. left. apply plus_one. econs.
@@ -1180,6 +1287,22 @@ Proof.
   replace ge0 with ge in * by auto. clear ge0. clarify.
   esplits; ss.
   { econs; eauto. }
-  { eauto. admit "asd". }
-  { eapply match_states_bsim. econs; eauto. 2:econs. admit "". }
-Admitted.
+  { eauto. ii. unfold concrete_snapshot in *. des_ifs. ss.
+    hexploit Genv.init_mem_logical; et. i. rewrite H0 in *. clarify. }
+  { eapply match_states_bsim. econs; eauto. 2:econs.
+    clear - CAPTURE. inv CAPTURE. revert CAP. generalize (Genv.non_static_glob (Genv.globalenv p) (Genv.genv_public (Genv.globalenv p))).
+    i. ginduction l; i; ss. { inv CAP. apply Mem.extends_refl. }
+    inv CAP. apply IHl in CAPLIST; et. eapply Mem.extends_extends_compose; et.
+    clear - CAP0. inv CAP0. econs; et.
+    - econs; unfold inject_id in *.
+      + i. clarify. replace (ofs + 0)%Z with ofs by nia. unfold Mem.perm in *. rewrite <- ACCESS. et.
+      + i. clarify. exists 0%Z. et.
+      + i. clarify. replace (ofs + 0)%Z with ofs by nia. rewrite CONTENTS.
+        destruct (ZMap.get _ _); econs. destruct v; econs; ss.
+        rewrite Ptrofs.add_zero. et.
+    - i. unfold Mem.perm in *. rewrite ACCESS. et.
+    - i. Search Mem.capture.
+      destruct (Pos.eq_dec a b); cycle 1; clarify.
+      { erewrite <- Mem.concrete_other; et. econs; et. }
+      hexploit PREVADDR; et. i. des. rewrite <- H2. et. } 
+Qed.
