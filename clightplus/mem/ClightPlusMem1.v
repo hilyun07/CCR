@@ -20,15 +20,107 @@ Inductive tag :=
 
 Record metadata := { blk : option block; sz : Z }.
 
-Let _pointstoRA: URA.t := (block ==> Z ==> (Consent.t memval))%ra.
-Let _allocatedRA: URA.t := (block ==> (Consent.t tag))%ra.
+Let __pointstoRA: URA.t := (block ==> Z ==> (Consent.t memval))%ra.
+Let __allocatedRA: URA.t := (block ==> (Consent.t tag))%ra.
+Let _pointstoRA: URA.t := Auth.t __pointstoRA.
+Let _allocatedRA: URA.t := Auth.t __allocatedRA.
+Let _blocksizeRA: URA.t := (option block ==> (OneShot.t Z))%ra.
+Let _blockaddressRA: URA.t := (option block ==> (OneShot.t ptrofs))%ra.
 
-Compute (URA.car (t:=_pointstoRA)).
-Compute (URA.car (t:=_allocatedRA)).
-Instance pointstoRA: URA.t := Auth.t _pointstoRA.
-Instance allocatedRA: URA.t := Auth.t _allocatedRA.
-Instance blocksizeRA: URA.t := (option block ==> (OneShot.t Z))%ra.
-Instance blockaddressRA: URA.t := (option block ==> (OneShot.t ptrofs))%ra.
+Module Mem. 
+Section MEM. 
+  Local Obligation Tactic := i; unseal "ra"; ss; des_ifs_safe.
+
+  Definition car : Type := _pointstoRA * _allocatedRA * _blocksizeRA * _blockaddressRA.
+
+  Let _add : car -> car -> car :=
+    fun '(a0, b0, c0, d0) '(a1, b1, c1, d1) =>
+      (URA.add a0 a1, URA.add b0 b1, URA.add c0 c1, URA.add d0 d1).
+  
+  Let _wf : car -> Prop :=
+    fun '(_p, _a, _s, _c) =>
+      URA.wf _p /\ URA.wf _a /\ URA.wf _s /\ URA.wf _c /\
+      match _a with
+      | Auth.frag al | Auth.excl _ al =>
+        forall b0 b1 q0 q1 tg0 tg1 sz0 sz1 a0 a1,
+          al b0 = Consent.just q0 tg0 ->
+          _s (Some b0) = OneShot.white sz0 ->
+          _c (Some b0) = OneShot.white a0 ->
+          al b1 = Consent.just q1 tg1 ->
+          _s (Some b1) = OneShot.white sz1 ->
+          _c (Some b1) = OneShot.white a1 ->
+          sz1 < Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
+          sz0 < Ptrofs.unsigned a1 - Ptrofs.unsigned a0
+      | _ => True
+      end /\
+      match _p with
+      | Auth.frag p | Auth.excl _ p =>
+        forall b0 b1 q0 q1 mv0 mv1 sz0 sz1 a0 a1,
+          (exists z, p b0 z = Consent.just q0 mv0) ->
+          _s (Some b0) = OneShot.white sz0 ->
+          _c (Some b0) = OneShot.white a0 ->
+          (exists z, p b1 z = Consent.just q1 mv1) ->
+          _s (Some b1) = OneShot.white sz1 ->
+          _c (Some b1) = OneShot.white a1 ->
+          sz1 < Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
+          sz0 < Ptrofs.unsigned a1 - Ptrofs.unsigned a0
+      | _ => True
+      end.
+
+  Let _unit : car := (URA.unit, URA.unit, URA.unit, URA.unit).
+
+  Let _core : car -> car :=
+    fun '(a, b, c, d) =>
+      (URA.core a, URA.core b, URA.core c, URA.core d).
+
+  Program Instance t: URA.t := {
+    URA.car := car;
+    URA._add := _add;
+    URA._wf := _wf;
+    URA.unit := _unit;
+    URA.core := _core;
+  }.
+
+  Next Obligation. subst _add. ss. des_ifs; et. rewrite (URA.add_comm c1). rewrite (URA.add_comm c2). rewrite (URA.add_comm c0). rewrite (URA.add_comm c). et. Qed.
+  Next Obligation. subst _add. ss. des_ifs. rewrite URA.add_assoc. rewrite URA.add_assoc. rewrite URA.add_assoc. rewrite URA.add_assoc. et. Qed.
+  Next Obligation. subst _add. ss. des_ifs. unfold _unit in Heq. clarify. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. et. Qed. 
+  Next Obligation.
+  Local Transparent URA.unit.
+    unfold "ε" in Heq. ss. clarify. ur. ur. ur. ur. splits; et; i; clarify.
+  Qed.
+  Next Obligation.
+    unfold _wf, _add in *. des_ifs_safe. des.
+    splits. all: try eapply URA.wf_mon; et.
+    - ur in H1. ur in H2. clear H4. ur in H3. des_ifs.
+      + i. pose proof (H1 (Some b0)). pose proof (H1 (Some b1)).
+        pose proof (H2 (Some b0)). pose proof (H2 (Some b1)).
+        rewrite URA.add_comm in H10.
+        rewrite URA.add_comm in H11.
+        rewrite URA.add_comm in H12.
+        rewrite URA.add_comm in H13.
+        rewrite H5 in *.
+        rewrite H6 in *.
+        rewrite H8 in *.
+        rewrite H9 in *.
+        ur in H0. ur in H0.
+        pose proof (H0 b0). pose proof (H0 b1).
+        rewrite H4 in *.
+        rewrite H7 in *.
+        assert ()
+        apply OneShot.oneshot_initialized in H10, H11, H12, H13.
+        eapply (H3 b0 b1). all: try solve [ur; des_ifs; des; clarify].
+        { ur. rewrite H4. rewrite H7. }
+         et. 
+  Next Obligation. subst _core _add. unfold _wf in *. des_ifs. Qed.
+  Next Obligation. subst _core. unfold _wf in *. des_ifs. Qed.
+  Next Obligation.
+    subst _core _add. ss.
+    des_ifs;
+      try solve [exists unit; ss];
+        try solve [exists boom; ss].
+    eexists (white _). et.
+  Qed.
+  
 
 Local Open Scope Z.
 Local Open Scope bi_scope.
