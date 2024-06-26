@@ -1132,6 +1132,14 @@ Proof.
   esplits;[|et]. apply Qp_le_add_l.
 Qed.
 
+Theorem consent_wf
+        q a x
+        (WF: URA.wf (t:=t) (a ⋅ (just q x)))
+  :
+    (exists q', a = just q' x) \/ a = unit
+.
+Proof. rewrite URA.unfold_add in WF; rewrite URA.unfold_wf in WF. ss. unfold _wf, _add in WF. des_ifs; et. Qed.
+
 (* Theorem wf
         a0 a1
         (WF: URA.wf (URA.add (just a0) a1))

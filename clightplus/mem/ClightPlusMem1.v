@@ -27,8 +27,8 @@ Let _allocatedRA: URA.t := Auth.t __allocatedRA.
 Let _blocksizeRA: URA.t := (option block ==> (OneShot.t Z))%ra.
 Let _blockaddressRA: URA.t := (option block ==> (OneShot.t ptrofs))%ra.
 
-Module Mem. 
-Section MEM. 
+Module Mem.
+Section MEM.
   Local Obligation Tactic := i; unseal "ra"; ss; des_ifs_safe.
 
   Definition car : Type := _pointstoRA * _allocatedRA * _blocksizeRA * _blockaddressRA.
@@ -91,35 +91,74 @@ Section MEM.
   Next Obligation.
     unfold _wf, _add in *. des_ifs_safe. des.
     splits. all: try eapply URA.wf_mon; et.
-    - ur in H1. ur in H2. clear H4. ur in H3. des_ifs.
-      + i. pose proof (H1 (Some b0)). pose proof (H1 (Some b1)).
-        pose proof (H2 (Some b0)). pose proof (H2 (Some b1)).
-        rewrite URA.add_comm in H10.
-        rewrite URA.add_comm in H11.
-        rewrite URA.add_comm in H12.
-        rewrite URA.add_comm in H13.
-        rewrite H5 in *.
-        rewrite H6 in *.
-        rewrite H8 in *.
-        rewrite H9 in *.
-        ur in H0. ur in H0.
-        pose proof (H0 b0). pose proof (H0 b1).
-        rewrite H4 in *.
-        rewrite H7 in *.
-        assert ()
-        apply OneShot.oneshot_initialized in H10, H11, H12, H13.
-        eapply (H3 b0 b1). all: try solve [ur; des_ifs; des; clarify].
-        { ur. rewrite H4. rewrite H7. }
-         et. 
-  Next Obligation. subst _core _add. unfold _wf in *. des_ifs. Qed.
-  Next Obligation. subst _core. unfold _wf in *. des_ifs. Qed.
-  Next Obligation.
-    subst _core _add. ss.
-    des_ifs;
-      try solve [exists unit; ss];
-        try solve [exists boom; ss].
-    eexists (white _). et.
+    - clear H4. ur in H1. ur in H2. ur in H3.
+      destruct c2; et; i.
+      all: pose proof (H1 (Some b0)); pose proof (H1 (Some b1)).
+      all: pose proof (H2 (Some b0)); pose proof (H2 (Some b1)).
+      all: rewrite URA.add_comm in H10; rewrite URA.add_comm in H11.
+      all: rewrite URA.add_comm in H12; rewrite URA.add_comm in H13.
+      all: rewrite H5 in *; rewrite H6 in *.
+      all: rewrite H8 in *; rewrite H9 in *.
+      all: apply OneShot.oneshot_initialized in H10, H11, H12, H13.
+      + des_ifs. 3:{ ur in H0. clarify. }
+        * ur in H0. ur in H0. pose proof (H0 b0). pose proof (H0 b1).
+          rewrite H4 in *. rewrite H7 in *.
+          rewrite URA.add_comm in H14. rewrite URA.add_comm in H15.
+          apply Consent.consent_wf in H14, H15.
+          des; eapply (H3 b0 b1); ur; des_ifs; clarify.
+          all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
+        * ur in H0. destruct H0 as [H0 X]. eapply URA.wf_extends in H0; et.
+          ur in H0. pose proof (H0 b0). pose proof (H0 b1).
+          rewrite H4 in *. rewrite H7 in *.
+          rewrite URA.add_comm in H14. rewrite URA.add_comm in H15.
+          apply Consent.consent_wf in H14, H15.
+          des; eapply (H3 b0 b1); ur; des_ifs; clarify.
+          all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
+      + des_ifs. 2,3: ur in H0; clarify.
+        ur in H0. destruct H0 as [H0 X]. eapply URA.wf_extends in H0; et.
+        ur in H0. pose proof (H0 b0). pose proof (H0 b1).
+        rewrite H4 in *. rewrite H7 in *.
+        rewrite URA.add_comm in H14. rewrite URA.add_comm in H15.
+        apply Consent.consent_wf in H14, H15.
+        des; eapply (H3 b0 b1); ur; des_ifs; clarify.
+        all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
+    - clear H3. ur in H1. ur in H2. ur in H4.
+      des_ifs; i; des. all: try solve [ur in H; clarify].
+      all: pose proof (H1 (Some b0)); pose proof (H1 (Some b1)).
+      all: pose proof (H2 (Some b0)); pose proof (H2 (Some b1)).
+      all: rewrite URA.add_comm in H10; rewrite URA.add_comm in H11.
+      all: rewrite URA.add_comm in H12; rewrite URA.add_comm in H13.
+      all: rewrite H5 in *; rewrite H6 in *.
+      all: rewrite H8 in *; rewrite H9 in *.
+      all: apply OneShot.oneshot_initialized in H10, H11, H12, H13.
+      all: ur in H. 2,3: destruct H as [H X]; eapply URA.wf_extends in H; et.
+      all: do 2 ur in H.
+      all: pose proof (H b0 z0); pose proof (H b1 z).
+      all: rewrite H3 in *; rewrite H7 in *.
+      all: rewrite URA.add_comm in H14; rewrite URA.add_comm in H15.
+      all: apply Consent.consent_wf in H14, H15.
+      all: des; eapply (H4 b0 b1); ur; des_ifs; clarify.
+      all: eexists; ur; try rewrite H3; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
   Qed.
+  Next Obligation.
+    subst _core _add. ss. des_ifs_safe.
+    repeat f_equal; des_ifs; do 4 ur; f_equal; extensionalities; des_ifs.
+  Qed.
+  Next Obligation.
+    subst _core. ss. des_ifs_safe.
+    repeat f_equal; des_ifs; extensionalities; des_ifs.
+  Qed.
+  Next Obligation.
+    destruct a as [[[p a] s] c]. destruct b as [[[p' a'] s'] c'].
+    simpl _add. hexploit (URA.core_mono p p').
+    hexploit (URA.core_mono a a').
+    hexploit (URA.core_mono s s').
+    hexploit (URA.core_mono c c'). i. des.
+    exists (c0, c1, c2, c3). ss. rewrite H. rewrite H0. rewrite H1. rewrite H2. et.
+  Qed.
+
+End MEM.
+End Mem.
   
 
 Local Open Scope Z.
