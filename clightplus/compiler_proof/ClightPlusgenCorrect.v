@@ -12,35 +12,23 @@ Require Import IRed.
 Require Import ClightPlusMem0.
 Require Import ClightPlusExprgen ClightPlusgen ClightPlusSkel.
 
-Require Import ClightPlus2ClightMatchEnv.
-Require Import ClightPlus2ClightArith.
-Require Import ClightPlus2ClightLenv.
-Require Import ClightPlus2ClightMem.
-Require Import ClightPlus2ClightMatchStmt.
+Require Import ClightPlusMatchEnv.
+Require Import ClightPlusLenvSim.
+Require Import ClightPlusMemSim.
+Require Import ClightPlusMatchStmt.
 
 Require Import STS2SmallStep.
-Require Import ClightPlus2ClightSimExpr.
-Require Import ClightPlus2ClightSimStmt.
-Require Import ClightPlus2ClightSim.
+Require Import ClightPlusExprSim.
+Require Import ClightPlusFunSim.
+Require Import ClightPlusSimAll.
 
-Require Import ClightPlus2ClightInit.
+Require Import ClightPlusInitProof.
 
 Definition compile_val mdl := @ModL.compile _ EMSConfigC mdl.
 
 Definition clightp_sem sk_mem mdl := compile_val (ModL.add (Mod.lift (Mem sk_mem)) mdl).
 
 Definition clightp_initial_state sk_mem mdl := (clightp_sem sk_mem mdl).(STS.initial_state).
-
-(* Section REF.
-
-  Theorem refine_improve_trans mdl1 mdl2 clight_prog sk: refines_closed (ModL.add (Mem sk) mdl1) (ModL.add (Mem sk) mdl2) -> improves2_program (clightp_sem sk mdl1) (semantics3 clight_prog) -> improves2_program (clightp_sem sk mdl2) (semantics3 clight_prog).
-  Proof.
-    i. unfold refines_closed, improves2_program in *. i. hexploit H0. { apply BEH. }
-    i. des. unfold Beh.of_program in H. unfold clightp_sem, compile_val in BEH0. hexploit H. { apply BEH0. }
-    i. esplits. { apply H1. } apply SIM.
-  Qed.
-
-End REF. *)
 
 Section PROOFSINGLE.
 
@@ -81,7 +69,6 @@ Section PROOFSINGLE.
   Arguments sloop_iter_body_two /.
   Arguments ktree_of_cont_itree /.
 
-  (* TODO: does semantics3 refine semantics3? *)
   (* The thm is targeting closed program *)
   Theorem single_compile_behavior_improves
           gvmap clight_prog md sk_mem mn left_st right_st

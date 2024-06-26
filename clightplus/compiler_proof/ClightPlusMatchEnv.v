@@ -8,14 +8,6 @@ Set Implicit Arguments.
 From compcert Require Import Globalenvs Smallstep AST Integers Events Behaviors Errors Memory Values Maps.
 From compcert Require Import Ctypes Clight Clightdefs Globalenvs.
 
-Section SEM.
-
-  Definition semantics3 (p: program) :=
-  let ge := globalenv p in
-  Semantics_gen step2 (initial_state p) eq (concrete_snapshot (Genv.globalenv p)) final_state is_external ge ge.
-
-End SEM.
-
 Section MATCH.
 
   Import List.

@@ -4,7 +4,7 @@ Require Import CoqlibCCR.
 Require Import PCM.
 Require Import AList.
 
-Require Import ClightPlus2ClightMatchEnv.
+Require Import ClightPlusMatchEnv.
 Require Import ClightPlusExprgen.
 
 Set Implicit Arguments.

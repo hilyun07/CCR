@@ -11,10 +11,9 @@ Require Import ClightPlusExprgen.
 Require Import STS2SmallStep.
 Require Import ClightPlusMem0.
 
-Require Import ClightPlus2ClightMatchEnv.
-Require Import ClightPlus2ClightArith.
-Require Import ClightPlus2ClightLenv.
-Require Import ClightPlus2ClightMem.
+Require Import ClightPlusMatchEnv.
+Require Import ClightPlusLenvSim.
+Require Import ClightPlusMemSim.
 
 From compcert Require Import Values Ctypes Clight Clightdefs.
 
@@ -482,20 +481,6 @@ Section PROOF.
     - hexploit match_to_int; et. i. rewrite H in Heqo. clarify.
     - hexploit match_to_int; et. i. rewrite H in Heqo. clarify.
   Qed.
-
-  (* Lemma ip_comm m c b ofs ofs' i i' :
-    Mem.to_int (Vptr b ofs) m = Some (Vlong i) ->
-    Mem.to_ptr (Vlong i') m = Some (Vptr b ofs') ->
-    Int64.cmpu c i i' = Ptrofs.cmpu c ofs ofs'.
-  Proof.
-    i. unfold Mem.to_int, Mem.to_ptr, Mem.ptr2int_v, Mem.ptr2int in *. des_ifs.
-    unfold Mem.denormalize in Heq1. apply Maps.PTree.gselectf in Heq1.
-    des. unfold Mem.denormalize_aux, Mem.is_valid, Mem.addr_is_in_block in Heq2.
-    des_ifs; bsimpl; clarify. change Ptrofs.modulus with (Ptrofs.max_unsigned + 1)%Z in Heq1.
-    destruct c; ss; unfold Int64.eq, Ptrofs.eq, Int64.ltu, Ptrofs.ltu.
-    all: rewrite Ptrofs.unsigned_repr; try nia.
-    - des_ifs; exfalso; apply n.
-      +  *)
 
   Lemma step_cmp_ptr pstate f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
