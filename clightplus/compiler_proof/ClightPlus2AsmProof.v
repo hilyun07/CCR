@@ -160,8 +160,8 @@ End CLIGHTPROOF.
 Require Import Skeleton ModSem.
 Require Import ClightPlusgen.
 Require Import STS2SmallStep.
-Require Import ClightPlus2ClightSepComp.
-Require Import Clight2ClightProof.
+Require Import ClightPlusgenCorrect.
+Require Import ClightPlus2ClightProof.
 
 Theorem compile_behavior_improves
     (clight_prog : Clight.program) (asm : Asm.program)

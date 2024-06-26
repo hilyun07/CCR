@@ -9,9 +9,8 @@ Require Import ModSem.
 Require Import ClightPlusMem0.
 
 Require Import ClightPlusSkel ClightPlusExprgen.
-Require Import ClightPlus2ClightMatchEnv.
-Require Import ClightPlus2ClightArith.
-Require Import ClightPlus2ClightLenv.
+Require Import ClightPlusMatchEnv.
+Require Import ClightPlusLenvSim.
 
 From compcert Require Import Clight Clightdefs.
 
@@ -358,38 +357,6 @@ Section MEM.
 
   Require Import ClightPlusMemAux.
 
-  (* Lemma _match_normalize_to_fragment_aux sk tge mv: map_memval sk tge (Mem._normalize_to_fragment_aux mv) = Mem._normalize_to_fragment_aux (map_memval sk tge mv).
-  Proof.
-    unfold Mem._normalize_to_fragment_aux. des_ifs; ss; clarify.
-    des_ifs. unfold inj_bytes in Heq1. rewrite nth_error_map in Heq1. unfold option_map in Heq1. des_ifs. 
-  Qed.
-
-  Lemma match_normalize_to_fragment_aux sk tge : Mem._normalize_to_fragment_aux ∘ (map_memval sk tge) = (map_memval sk tge) ∘ Mem._normalize_to_fragment_aux.
-  Proof. extensionalities. rewrite _match_normalize_to_fragment_aux. et. Qed.
-
-  Lemma match_normalize_to_fragment sk tge chunk mvl: match_ge sk tge -> List.map (map_memval sk tge) (Mem.normalize_to_fragment chunk mvl) = Mem.normalize_to_fragment chunk (List.map (map_memval sk tge) mvl).
-  Proof.
-    i. unfold Mem.normalize_to_fragment; ss. destruct chunk; et.
-    - destruct Archi.ptr64; et. rewrite match_proj_bytes. destruct proj_bytes.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. des_ifs. rewrite Heq in Heqo. clarify.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. rewrite Heqo. 
-          rewrite List.map_map. rewrite match_normalize_to_fragment_aux. rewrite <- (List.map_map Mem._normalize_to_fragment_aux).
-          rewrite match_proj_bytes. des_ifs.
-    - destruct Archi.ptr64; et. rewrite match_proj_bytes. destruct proj_bytes.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. des_ifs. rewrite Heq in Heqo. clarify.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. rewrite Heqo. 
-          rewrite List.map_map. rewrite match_normalize_to_fragment_aux. rewrite <- (List.map_map Mem._normalize_to_fragment_aux).
-          rewrite match_proj_bytes. des_ifs.
-  Qed. *)
-
   Lemma match_is_frag_mv sk ge mvl : existsb is_frag_mv (map (map_memval sk ge) mvl) = existsb is_frag_mv mvl.
   Proof. induction mvl; ss. rewrite IHmvl. destruct a; ss. Qed.
 
@@ -413,71 +380,6 @@ Section MEM.
   : 
     Mem.ptr2int (map_blk sk tge b) z tm = Mem.ptr2int b z m.
   Proof. unfold Mem.ptr2int. inv MM. rewrite <- MEM_CONC. et. Qed.
-
-  (* Lemma _match_decode_normalize_aux_frag m tm sk tge mv
-    (MM: match_mem sk tge m tm)
-  : 
-    map_memval sk tge (Mem._decode_normalize_aux_frag m mv) = Mem._decode_normalize_aux_frag tm (map_memval sk tge mv).
-  Proof.
-    unfold Mem._decode_normalize_aux_frag. des_ifs; ss; clarify.
-    - erewrite match_ptr2int in Heq1; et. des_ifs.
-    - erewrite match_ptr2int in Heq1; et. des_ifs.
-    - erewrite match_ptr2int in Heq1; et. des_ifs.
-  Qed.
-
-  Lemma match_decode_normalize_aux_frag m tm sk tge
-    (MM: match_mem sk tge m tm)
-  : 
-    (map_memval sk tge) ∘ (Mem._decode_normalize_aux_frag m) = (Mem._decode_normalize_aux_frag tm) ∘ (map_memval sk tge).
-  Proof. extensionalities. erewrite _match_decode_normalize_aux_frag; et. Qed.
-
-  Lemma match_decode_normalize m tm sk tge chunk mvl
-    (MM: match_mem sk tge m tm)
-  : 
-    List.map (map_memval sk tge) (Mem.decode_normalize chunk m mvl) = Mem.decode_normalize chunk tm (List.map (map_memval sk tge) mvl).
-  Proof.
-    unfold Mem.decode_normalize. rewrite match_bytes_not_pure. des_ifs.
-    - rewrite List.map_map. erewrite match_decode_normalize_aux_frag; et. rewrite <- List.map_map. et.
-    - rewrite List.map_map. erewrite match_decode_normalize_aux_frag; et. rewrite <- List.map_map. et.
-  Qed. *)
-  (* Search Mem.normalize_mvs.
-  Search Mem._decode_normalize_mv.
-  Search encode_val.
-  Search Mem.change_check.
-  Print decode_val. *)
-
-  (* Lemma _match_normalize_to_fragment_aux sk tge mv: map_memval sk tge (Mem._normalize_to_fragment_aux mv) = Mem._normalize_to_fragment_aux (map_memval sk tge mv).
-  Proof.
-    unfold Mem._normalize_to_fragment_aux. des_ifs; ss; clarify.
-    des_ifs. unfold inj_bytes in Heq1. rewrite nth_error_map in Heq1. unfold option_map in Heq1. des_ifs. 
-  Qed.
-
-  Lemma match_normalize_to_fragment_aux sk tge : Mem._normalize_to_fragment_aux ∘ (map_memval sk tge) = (map_memval sk tge) ∘ Mem._normalize_to_fragment_aux.
-  Proof. extensionalities. rewrite _match_normalize_to_fragment_aux. et. Qed.
-
-  Lemma match_normalize_to_fragment sk tge chunk mvl: match_ge sk tge -> List.map (map_memval sk tge) (Mem.normalize_mvs chunk mvl) = Mem.normalize_mvs chunk (List.map (map_memval sk tge) mvl).
-  Proof.
-    i. unfold Mem.normalize_to_fragment; ss. destruct chunk; et.
-    - destruct Archi.ptr64; et. rewrite match_proj_bytes. destruct proj_bytes.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. des_ifs. rewrite Heq in Heqo. clarify.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. rewrite Heqo. 
-          rewrite List.map_map. rewrite match_normalize_to_fragment_aux. rewrite <- (List.map_map Mem._normalize_to_fragment_aux).
-          rewrite match_proj_bytes. des_ifs.
-    - destruct Archi.ptr64; et. rewrite match_proj_bytes. destruct proj_bytes.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. des_ifs. rewrite Heq in Heqo. clarify.
-      + destruct proj_fragment eqn:?; ss.
-        * rewrite <- match_proj_frag_Some in Heqo; et. des_ifs.
-        * rewrite <- match_proj_frag_none in Heqo. rewrite Heqo. 
-          rewrite List.map_map. rewrite match_normalize_to_fragment_aux. rewrite <- (List.map_map Mem._normalize_to_fragment_aux).
-          rewrite match_proj_bytes. des_ifs.
-  Qed. *)
-
 
   Lemma zindex_surj p : exists z, p = ZIndexed.index z.
   Proof. 

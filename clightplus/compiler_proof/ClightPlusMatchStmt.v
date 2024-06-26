@@ -8,7 +8,7 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import ModSem.
 Require Import ClightPlusExprgen ClightPlusgen.
-Require Import ClightPlus2ClightMatchEnv.
+Require Import ClightPlusMatchEnv.
 (* Require Import ClightPlusMem0. *)
 
 Set Implicit Arguments.

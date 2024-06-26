@@ -12,11 +12,10 @@ Require Import ClightPlusgen.
 Require Import STS2SmallStep.
 Require Import ClightPlusMem0.
 
-Require Import ClightPlus2ClightMatchEnv.
-Require Import ClightPlus2ClightMatchStmt.
-Require Import ClightPlus2ClightArith.
-Require Import ClightPlus2ClightLenv.
-Require Import ClightPlus2ClightMem.
+Require Import ClightPlusMatchEnv.
+Require Import ClightPlusMatchStmt.
+Require Import ClightPlusLenvSim.
+Require Import ClightPlusMemSim.
 
 From compcert Require Import Values Ctypes Clight Clightdefs.
 
@@ -30,6 +29,22 @@ Section PROOF.
 
   Ltac sim_red := try red; Red.prw ltac:(_red_gen) 2 0.
   Ltac sim_tau := (try sim_red); try pfold; econs 3; ss; clarify; eexists; exists (step_tau _).
+
+  Let oeq [A] (a: A) b: Prop := (a = b).
+  Opaque oeq. 
+
+  Ltac to_oeq :=
+    match goal with
+    | |- ?A = ?B => change (oeq A B)
+    end.
+
+  Ltac from_oeq :=
+    match goal with
+    | |- oeq ?A ?B => change (A = B)
+    end.
+
+  Ltac sim_redE :=
+    to_oeq; cbn; repeat (Red.prw ltac:(_red_gen) 1 0); repeat (Red.prw ltac:(_red_gen) 2 0); from_oeq.
 
   Ltac solve_ub := des; irw in H; dependent destruction H; clarify.
   Ltac sim_triggerUB := 
@@ -245,6 +260,43 @@ Section PROOF.
     - i. des. eapply NEXT; et. bsimpl. des.
       econs; et. { apply norepet; et. } { apply norepet; et. }
       apply disjoint; et.
+  Qed.
+
+  Lemma return_cont pstate f_table modl cprog sk_mem sk tge le tle e te m tm
+    (PSTATE: pstate "Mem"%string = m↑)
+    (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
+    (MGE: match_ge sk tge)
+    (ME: match_e sk tge e te)
+    (MLE: match_le sk tge le tle)
+    (MM: match_mem sk tge m tm)
+    itr_cont v
+    r b tstate tcont ty mn ms ce
+    (MCONT: match_cont sk tge ce ms ty mn itr_cont tcont)
+    (NEXT: forall itr_cont'' itr_cont',
+            match_cont sk tge ce ms ty mn itr_cont' (call_cont tcont) ->
+            itr_cont'' = 
+              (`r0: (p_state * val) <- itr_cont' (pstate, (e, le, None, Some v));;
+                let (_, retv) := r0 in Ret retv↑) ->
+            paco4
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
+              itr_cont''
+              tstate)
+  :
+    paco4
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
+      (`r0: (p_state * val) <- itr_cont (pstate, (e, le, None, Some v));;
+        let (_, retv) := r0 in Ret retv↑)
+      tstate.
+  Proof.
+    depgen v. induction MCONT; i.
+    - rewrite ITR. ss. unfold Es_to_eventE. sim_red. eapply IHMCONT; et.
+    - rewrite ITR. ss. unfold Es_to_eventE. sim_red. eapply IHMCONT; et.
+    - rewrite ITR. ss. unfold Es_to_eventE. sim_red. eapply IHMCONT; et.
+    - ss. eapply NEXT; et. econs; et. 
+    - rewrite ITR. ss. unfold Es_to_eventE.
+      sim_red. eapply NEXT. { econs; et. }
+      rewrite ITR. unfold ktree_of_cont_itree, Es_to_eventE.
+      sim_redE. et.
   Qed.
 
 End PROOF.

@@ -119,7 +119,7 @@ Proof.
 Qed.
 
 (* These theorems are conditions should satisfied in closed program *)
-Require Import ClightPlus2ClightMatchEnv.
+Require Import ClightPlusMatchEnv.
 Local Opaque in_dec.
 Local Opaque ident_of_string.
 Local Transparent call_ban.
@@ -238,7 +238,7 @@ Proof.
     rewrite Genv.find_def_symbol in H2. des. clarify.
 Qed.
 
-Require Import ClightPlusMem0 ClightPlus2ClightMem.
+Require Import ClightPlusMem0 ClightPlusMemSim.
 From compcert Require Import Memory Maps Values.
 
 Lemma store_init_data_list_aligned sk m b p il m' :
@@ -1193,13 +1193,3 @@ Proof.
   - i. erewrite Genv.init_mem_logical with (m:=tm); et.
     erewrite src_init_mem_concrete; et.
 Qed.
-
-
-
-(* 
-
-to prove (GEND: map_blk (Pos.of_succ_nat (length sk)) = Genv.genv_next tge) => unfold map_blk. des_ifs; try nia.
-
-(* memory problem starts here : src memory init -> tgt init is not valid because of ill formed symb *)
-
-*)

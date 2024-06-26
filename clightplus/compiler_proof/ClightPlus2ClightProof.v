@@ -1,6 +1,5 @@
 From compcert Require Import Globalenvs Smallstep Simulation AST Integers Events Behaviors Errors Memory Values Maps.
 From compcert Require Import Ctypes Clight Clightdefs Globalenvs.
-Require Import ClightPlus2ClightMatchEnv.
 From Paco Require Export paco.
 Require Import String CoqlibCCR.
 
@@ -81,13 +80,6 @@ Proof.
   hexploit Mem.free_parallel_extends; eauto.
   i. des. des_ifs. eapply IHl; eauto.
 Qed.
-
-(* IntPtrRel.binded_val
-(* IntptrRel.load_concrete_extends *)
-(* Mem.loadv_extends *)
-(* Mem.storev_extends *)
-Search IntPtrRel.concrete_extends.
-volatile_load *)
 
 Lemma match_sem_cast_match
     m m' v v' ty1 ty2 v0' v0
@@ -870,7 +862,7 @@ Proof.
     i. des. hexploit IHOP; et. i. des. esplits; et. econs; et.  
 Qed.
 
-Require Import ClightPlus2ClightLenv.
+Require Import ClightPlusLenvSim.
 
 Lemma match_bind_parameter_temps
     params sle rvs rvs' sbase tbase
@@ -917,14 +909,12 @@ Proof.
   esplits; et. econs; et.
 Qed.
 
-Require Import ClightPlus2ClightSim.
+Require Import ClightPlusExprgen ClightPlusSimAll.
 
 Lemma match_states_bsim p gmtgt st_src st_tgt
   (M: match_states st_src st_tgt)
 :
-  NOSTUTTER.bsim (semantics3 p) (semantics2 p) gmtgt
-  (* (concrete_snapshot (Genv.globalenv p) (Callstate f [] Kstop m'))  *)
-  lt 0%nat st_src st_tgt.
+  NOSTUTTER.bsim (semantics3 p) (semantics2 p) gmtgt lt 0%nat st_src st_tgt.
 Proof.
   revert_until st_src. revert st_src. pcofix CIH.
   i. inv M.
@@ -1303,5 +1293,5 @@ Proof.
     - i. unfold Mem.perm in *. rewrite ACCESS. et.
     - i. destruct (Pos.eq_dec a b); cycle 1; clarify.
       { erewrite <- Mem.concrete_other; et. econs; et. }
-      hexploit PREVADDR; et. i. des. rewrite <- H2. et. } 
+      hexploit PREVADDR; et. i. des. rewrite <- H2. et. }
 Qed.

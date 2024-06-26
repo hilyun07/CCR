@@ -21,8 +21,8 @@ From compcert Require Import Clightdefs.
 
 Require Import Hoare.
 Require Import ClightPlusMem01Proof.
-Require Import ClightPlus2ClightInit.
-Require Import ClightPlus2ClightSepComp.
+Require Import ClightPlusInitProof.
+Require Import ClightPlusgenCorrect.
 Require Import xorlistall01proof.
 
 Theorem refine_improve_trans L mdl1 mdl2 : refines_closed mdl1 mdl2 -> improves2_program (ModL.compile mdl1) L -> improves2_program (ModL.compile mdl2) L.
@@ -584,7 +584,7 @@ Section PROOF.
   Qed.
 
   Theorem final_thm prog (LINK: xorlistall0._xor = Some prog) :
-    improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (ClightPlus2ClightMatchEnv.semantics3 prog).
+    improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (semantics3 prog).
   Proof.
     destruct xorlistall0.valid_xor.
     destruct xorlistall0.msk_xor.
@@ -655,7 +655,7 @@ Section PROOF.
         iSplitL "B"; iExists _; iFrame; iPureIntro; splits; et; ss.
   Qed.
 
-  Require Import Clight2Asm ClightPlus2AsmProof Clight2ClightProof.
+  Require Import Clight2Asm ClightPlus2AsmProof ClightPlus2ClightProof.
   From compcert Require Import Behaviors.
 
   Theorem final_thm_asm prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight_program prog = Errors.OK asm) :

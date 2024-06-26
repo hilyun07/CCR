@@ -1395,33 +1395,6 @@ Section SIM.
       unfold Tr.prefix in *. des. exists tl. ss. rr. f_equal. et.
   Qed.
 
-  (* Lemma match_val_inj gvmap
-        v_tgt0 v_src0 v_src1
-        (M0: match_val gvmap v_tgt0 v_src0)
-        (M1: match_val gvmap v_tgt0 v_src1)
-    :
-      v_src0 = v_src1
-  .
-  Proof. inv M0. inv M1. ss. Qed.
-
-  Lemma match_event_inj
-        e_tgt0 e_src0 e_src1
-        (M0: match_event e_tgt0 e_src0)
-        (M1: match_event e_tgt0 e_src1)
-    :
-      e_src0 = e_src1
-  .
-  Proof.
-    inv M0. inv M1. f_equal.
-    { f_equal. clear - MV MV1. ginduction MV; ii; ss.
-      { inv MV1; ss. }
-      inv MV1; ss.
-      f_equal; et.
-      eapply match_val_inj; et.
-    }
-    f_equal. eapply match_val_inj; et.
-  Qed. *)
-
   Lemma safe_along_events_step_some
         st_src0 st_src1 e_src e0 es0
         (WFSRC: wf L0 st_src0)
