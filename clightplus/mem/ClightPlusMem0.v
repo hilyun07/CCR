@@ -6,7 +6,6 @@ Require Import Any.
 Require Import ModSem.
 Require Import AList.
 Require Import ClightPlusSkel.
-Require Import ClightPlusExprgen.
 
 From compcert Require Import
      AST Maps Globalenvs Memory Values IntPtrRel Linking Integers.
