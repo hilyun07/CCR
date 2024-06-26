@@ -146,13 +146,14 @@ Section CLIGHTPROOF.
     etrans. eapply Asmgen_correct; eauto. refl.
   Qed.
 
-  Theorem transf_clight_program_preservation
+  Theorem transf_clight_program_preservation_lbd
       p tp
       (T: transf_clight_program p = Errors.OK tp) :
-    improves (Clight.semantics2 p) (Asm.semantics tp).
+    improves (Clight.semantics2 p) (Lowerbound.semantics tp).
   Proof.
-    apply match_prog_clight_preservation.
+    etrans. apply match_prog_clight_preservation.
     apply transf_clight_program_match. et.
+    eapply Lowerbound_correct; eauto.
   Qed.
 
 End CLIGHTPROOF.
@@ -163,18 +164,18 @@ Require Import STS2SmallStep.
 Require Import ClightPlusgenCorrect.
 Require Import ClightPlus2ClightProof.
 
-Theorem compile_behavior_improves
+Theorem compile_behavior_improves_lbd
     (clight_prog : Clight.program) (asm : Asm.program)
     (mn: string) (md: Mod.t) (sk_mem: Sk.t)
     (COMP: compile clight_prog mn = Errors.OK md)
     (MEMSKEL: mem_skel clight_prog = Errors.OK sk_mem)
     (COMP': transf_clight_program clight_prog = Errors.OK asm)
 :
-    (improves2_program (clightp_sem sk_mem md) (Asm.semantics asm)).
+    (improves2_program (clightp_sem sk_mem md) (Lowerbound.semantics asm)).
 Proof.
   eapply improves2_program_observe_trans.
   eapply single_compile_program_improves; et.
-  eapply transf_clight_program_preservation in COMP'.
+  eapply transf_clight_program_preservation_lbd in COMP'.
   unfold Complements.improves in *. i. hexploit COMP'; et.
   i. des. hexploit semantics2to3; et. i. des.
   esplits; et. eapply observation_improves_trans; et.
