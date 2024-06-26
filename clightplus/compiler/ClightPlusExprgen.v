@@ -10,7 +10,7 @@ Require Import AList.
 Require Import ClightPlusSkel.
 
 From compcert Require Import
-     AST Maps Globalenvs Memory Values Linking Integers.
+     Smallstep AST Maps Globalenvs Memory Values Linking Integers.
 From compcert Require Import
      Ctypes Clight Clightdefs.
 
@@ -28,6 +28,14 @@ Global Instance EMSConfigC: EMSConfig := {|
   initial_arg := ([]: list val)↑;
 |}
 .
+
+Section TGTSEM.
+
+  Definition semantics3 (p: program) :=
+  let ge := globalenv p in
+  Semantics_gen step1 (initial_state p) eq (concrete_snapshot (Genv.globalenv p)) final_state is_external ge ge.
+
+End TGTSEM.
 
 Section ABENVS.
 

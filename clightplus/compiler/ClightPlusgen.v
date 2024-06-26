@@ -7,7 +7,7 @@ Require Import ModSem.
 Require Import AList.
 
 From compcert Require Import
-     AST Maps Globalenvs Memory Values Linking Integers.
+     Smallstep AST Maps Globalenvs Memory Values Linking Integers.
 From compcert Require Import
      Ctypes Clight Clightdefs.
 
@@ -49,17 +49,26 @@ Fixpoint alloc_variables_c (ce: comp_env) (e: env)
     alloc_variables_c ce (alist_add id (b, ty) e) vars'
   end.
 
+Fixpoint bind_parameters_c (ce: comp_env) (e: env)
+         (vars: list (ident * type)) (vargs: list val)
+  : itree eff unit :=
+  match vars, vargs with
+  | [], [] => Ret tt
+  | (id, ty) :: vars', v1 :: vl =>
+    '(b, ty) <- (alist_find id e)?;;
+    assign_loc_c ce ty (Vptr b Ptrofs.zero) v1;;;
+    bind_parameters_c ce e vars' vl
+  | _, _ => triggerUB
+  end.
+
 Definition function_entry_c
            (ce: comp_env) (f: function) (vargs: list val)
   : itree eff (env * temp_env) :=
-  if (id_list_norepet_c (var_names (fn_vars f)) &&
-      id_list_norepet_c (var_names (fn_params f)) &&
-      id_list_disjoint_c (var_names (fn_params f))
-                         (var_names (fn_temps f)))%bool
+  if (id_list_norepet_c (var_names (fn_params f) ++ var_names (fn_vars f)))%bool
   then
-    e <- alloc_variables_c ce [] (fn_vars f);;
-    le <- (bind_parameter_temps (fn_params f) vargs (create_undef_temps (fn_temps f)))?;;
-    Ret (e, le)
+    e <- alloc_variables_c ce [] (fn_params f ++ fn_vars f);;
+    le <- bind_parameters_c ce e (fn_params f) vargs;;
+    Ret (e, create_undef_temps (fn_temps f))
   else triggerUB.
 
 Section DECOMP.
