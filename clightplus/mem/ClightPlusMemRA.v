@@ -178,7 +178,7 @@ Section POINTSTO.
       else Consent.unit
   .
 
-  Definition _points_to (b: block) (ofs: Z) (mvs: list memval) (q: Qp): _pointstoRA := Auth.white (__points_to b ofs mvs q).
+  Definition _points_to (b: block) (ofs: Z) (mvs: list memval) (q: Qp): Mem.t := (Auth.white (__points_to b ofs mvs q), ε, ε, ε).
 
 End POINTSTO.
 
@@ -191,13 +191,13 @@ Section ALLOCATEDWITH.
       else Consent.unit
   .
 
-  Definition _allocated_with (b: block) (tg: tag) (q: Qp) : _allocatedRA := Auth.white (__allocated_with b tg q).
+  Definition _allocated_with (b: block) (tg: tag) (q: Qp) : Mem.t := (ε, Auth.white (__allocated_with b tg q), ε, ε).
 
 End ALLOCATEDWITH.
 
 Section BLOCKSIZE.
 
-  Definition _has_size (ob: option block) (sz: Z) : _blocksizeRA :=
+  Definition __has_size (ob: option block) (sz: Z) : _blocksizeRA :=
     fun _ob =>
       match ob, _ob with
       | Some b, Some _b =>
@@ -208,20 +208,24 @@ Section BLOCKSIZE.
       end
   .
 
+  Definition _has_size (ob: option block) (sz: Z) : Mem.t := (ε, ε, __has_size ob sz, ε).
+
 End BLOCKSIZE.
 
 Section BLOCKADDR.
 
-  Definition _has_base (ob: option block) (base: ptrofs) : _blockaddressRA :=
+  Definition __has_base (ob: option block) (base: ptrofs) : _blockaddressRA :=
     fun _ob =>
       match ob, _ob with
       | Some b, Some _b =>
         if Pos.eq_dec _b b then OneShot.white base
-        else ε
+        else OneShot.unit
       | None, None => OneShot.white base
-      | _, _ => ε
+      | _, _ => OneShot.unit
       end
   .
+
+  Definition _has_base (ob: option block) (base: ptrofs) : Mem.t := (ε, ε, ε, __has_base ob base).
 
 End BLOCKADDR.
 

@@ -6,224 +6,23 @@ Require Import Behavior.
 Require Import ModSem.
 Require Import PCM IPM.
 Require Import HoareDef STB.
+
+From compcert Require Import Floats Integers Values Memory AST Ctypes Clight Clightdefs.
+
 Require Import ClightPlusSkel.
 Require Import ClightPlusExprgen.
-From compcert Require Import Floats Integers Values Memory AST Ctypes Clight Clightdefs.
-Require Import List.
+Require Import ClightPlusMemRA.
+
+From stdpp Require Import base.
 
 Set Implicit Arguments.
 
-Inductive tag :=
-| Dynamic
-| Local
-| Unfreeable.
+Section PRED.
 
-Record metadata := { blk : option block; sz : Z }.
+  Context `{@GRA.inG Mem.t Σ}.
 
-Let __pointstoRA: URA.t := (block ==> Z ==> (Consent.t memval))%ra.
-Let __allocatedRA: URA.t := (block ==> (Consent.t tag))%ra.
-Let _pointstoRA: URA.t := Auth.t __pointstoRA.
-Let _allocatedRA: URA.t := Auth.t __allocatedRA.
-Let _blocksizeRA: URA.t := (option block ==> (OneShot.t Z))%ra.
-Let _blockaddressRA: URA.t := (option block ==> (OneShot.t ptrofs))%ra.
-
-Module Mem.
-Section MEM.
-  Local Obligation Tactic := i; unseal "ra"; ss; des_ifs_safe.
-
-  Definition car : Type := _pointstoRA * _allocatedRA * _blocksizeRA * _blockaddressRA.
-
-  Let _add : car -> car -> car :=
-    fun '(a0, b0, c0, d0) '(a1, b1, c1, d1) =>
-      (URA.add a0 a1, URA.add b0 b1, URA.add c0 c1, URA.add d0 d1).
-  
-  Let _wf : car -> Prop :=
-    fun '(_p, _a, _s, _c) =>
-      URA.wf _p /\ URA.wf _a /\ URA.wf _s /\ URA.wf _c /\
-      match _a with
-      | Auth.frag al | Auth.excl _ al =>
-        forall b0 b1 q0 q1 tg0 tg1 sz0 sz1 a0 a1,
-          al b0 = Consent.just q0 tg0 ->
-          _s (Some b0) = OneShot.white sz0 ->
-          _c (Some b0) = OneShot.white a0 ->
-          al b1 = Consent.just q1 tg1 ->
-          _s (Some b1) = OneShot.white sz1 ->
-          _c (Some b1) = OneShot.white a1 ->
-          sz1 < Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
-          sz0 < Ptrofs.unsigned a1 - Ptrofs.unsigned a0
-      | _ => True
-      end /\
-      match _p with
-      | Auth.frag p | Auth.excl _ p =>
-        forall b0 b1 q0 q1 mv0 mv1 sz0 sz1 a0 a1,
-          (exists z, p b0 z = Consent.just q0 mv0) ->
-          _s (Some b0) = OneShot.white sz0 ->
-          _c (Some b0) = OneShot.white a0 ->
-          (exists z, p b1 z = Consent.just q1 mv1) ->
-          _s (Some b1) = OneShot.white sz1 ->
-          _c (Some b1) = OneShot.white a1 ->
-          sz1 < Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
-          sz0 < Ptrofs.unsigned a1 - Ptrofs.unsigned a0
-      | _ => True
-      end.
-
-  Let _unit : car := (URA.unit, URA.unit, URA.unit, URA.unit).
-
-  Let _core : car -> car :=
-    fun '(a, b, c, d) =>
-      (URA.core a, URA.core b, URA.core c, URA.core d).
-
-  Program Instance t: URA.t := {
-    URA.car := car;
-    URA._add := _add;
-    URA._wf := _wf;
-    URA.unit := _unit;
-    URA.core := _core;
-  }.
-
-  Next Obligation. subst _add. ss. des_ifs; et. rewrite (URA.add_comm c1). rewrite (URA.add_comm c2). rewrite (URA.add_comm c0). rewrite (URA.add_comm c). et. Qed.
-  Next Obligation. subst _add. ss. des_ifs. rewrite URA.add_assoc. rewrite URA.add_assoc. rewrite URA.add_assoc. rewrite URA.add_assoc. et. Qed.
-  Next Obligation. subst _add. ss. des_ifs. unfold _unit in Heq. clarify. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. et. Qed. 
-  Next Obligation.
-  Local Transparent URA.unit.
-    unfold "ε" in Heq. ss. clarify. ur. ur. ur. ur. splits; et; i; clarify.
-  Qed.
-  Next Obligation.
-    unfold _wf, _add in *. des_ifs_safe. des.
-    splits. all: try eapply URA.wf_mon; et.
-    - clear H4. ur in H1. ur in H2. ur in H3.
-      destruct c2; et; i.
-      all: pose proof (H1 (Some b0)); pose proof (H1 (Some b1)).
-      all: pose proof (H2 (Some b0)); pose proof (H2 (Some b1)).
-      all: rewrite URA.add_comm in H10; rewrite URA.add_comm in H11.
-      all: rewrite URA.add_comm in H12; rewrite URA.add_comm in H13.
-      all: rewrite H5 in *; rewrite H6 in *.
-      all: rewrite H8 in *; rewrite H9 in *.
-      all: apply OneShot.oneshot_initialized in H10, H11, H12, H13.
-      + des_ifs. 3:{ ur in H0. clarify. }
-        * ur in H0. ur in H0. pose proof (H0 b0). pose proof (H0 b1).
-          rewrite H4 in *. rewrite H7 in *.
-          rewrite URA.add_comm in H14. rewrite URA.add_comm in H15.
-          apply Consent.consent_wf in H14, H15.
-          des; eapply (H3 b0 b1); ur; des_ifs; clarify.
-          all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
-        * ur in H0. destruct H0 as [H0 X]. eapply URA.wf_extends in H0; et.
-          ur in H0. pose proof (H0 b0). pose proof (H0 b1).
-          rewrite H4 in *. rewrite H7 in *.
-          rewrite URA.add_comm in H14. rewrite URA.add_comm in H15.
-          apply Consent.consent_wf in H14, H15.
-          des; eapply (H3 b0 b1); ur; des_ifs; clarify.
-          all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
-      + des_ifs. 2,3: ur in H0; clarify.
-        ur in H0. destruct H0 as [H0 X]. eapply URA.wf_extends in H0; et.
-        ur in H0. pose proof (H0 b0). pose proof (H0 b1).
-        rewrite H4 in *. rewrite H7 in *.
-        rewrite URA.add_comm in H14. rewrite URA.add_comm in H15.
-        apply Consent.consent_wf in H14, H15.
-        des; eapply (H3 b0 b1); ur; des_ifs; clarify.
-        all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
-    - clear H3. ur in H1. ur in H2. ur in H4.
-      des_ifs; i; des. all: try solve [ur in H; clarify].
-      all: pose proof (H1 (Some b0)); pose proof (H1 (Some b1)).
-      all: pose proof (H2 (Some b0)); pose proof (H2 (Some b1)).
-      all: rewrite URA.add_comm in H10; rewrite URA.add_comm in H11.
-      all: rewrite URA.add_comm in H12; rewrite URA.add_comm in H13.
-      all: rewrite H5 in *; rewrite H6 in *.
-      all: rewrite H8 in *; rewrite H9 in *.
-      all: apply OneShot.oneshot_initialized in H10, H11, H12, H13.
-      all: ur in H. 2,3: destruct H as [H X]; eapply URA.wf_extends in H; et.
-      all: do 2 ur in H.
-      all: pose proof (H b0 z0); pose proof (H b1 z).
-      all: rewrite H3 in *; rewrite H7 in *.
-      all: rewrite URA.add_comm in H14; rewrite URA.add_comm in H15.
-      all: apply Consent.consent_wf in H14, H15.
-      all: des; eapply (H4 b0 b1); ur; des_ifs; clarify.
-      all: eexists; ur; try rewrite H3; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
-  Qed.
-  Next Obligation.
-    subst _core _add. ss. des_ifs_safe.
-    repeat f_equal; des_ifs; do 4 ur; f_equal; extensionalities; des_ifs.
-  Qed.
-  Next Obligation.
-    subst _core. ss. des_ifs_safe.
-    repeat f_equal; des_ifs; extensionalities; des_ifs.
-  Qed.
-  Next Obligation.
-    destruct a as [[[p a] s] c]. destruct b as [[[p' a'] s'] c'].
-    simpl _add. hexploit (URA.core_mono p p').
-    hexploit (URA.core_mono a a').
-    hexploit (URA.core_mono s s').
-    hexploit (URA.core_mono c c'). i. des.
-    exists (c0, c1, c2, c3). ss. rewrite H. rewrite H0. rewrite H1. rewrite H2. et.
-  Qed.
-
-End MEM.
-End Mem.
-  
-
-Local Open Scope Z.
-Local Open Scope bi_scope.
-
-Section POINTSTO.
-
-  Definition __points_to (b: block) (ofs: Z) (mvs: list memval) (q: Qp): _pointstoRA :=
-    (fun _b _ofs => if (dec _b b) && (Coqlib.zle ofs _ofs) && (Coqlib.zlt _ofs (ofs + Z.of_nat (List.length mvs)))
-                    then 
-                      match List.nth_error mvs (Z.to_nat (_ofs - ofs)) with
-                      | Some mv => Consent.just q mv
-                      | None => ε
-                      end
-                    else ε)
-  .
-
-  Definition _points_to (b: block) (ofs: Z) (mvs: list memval) (q: Qp): pointstoRA := Auth.white (__points_to b ofs mvs q).
-
-End POINTSTO.
-
-Section ALLOCATEDWITH.
-
-  Definition __allocated_with (b: block) (tg: tag) (q: Qp) : _allocatedRA :=
-    (fun _b => if dec _b b
-              then Consent.just q tg
-              else ε)
-  .
-
-  Definition _allocated_with (b: block) (tg: tag) (q: Qp) : allocatedRA := Auth.white (__allocated_with b tg q).
-
-End ALLOCATEDWITH.
-
-Section BLOCKSIZE.
-
-  Definition _has_size (ob: option block) (sz: Z) : blocksizeRA :=
-    (fun _ob => match ob, _ob with
-             | Some b, Some _b => if dec _b b
-                                 then OneShot.white sz
-                                 else OneShot.unit
-             | None, None => OneShot.white sz (* sz should be zero *)
-             | _, _ => OneShot.unit
-             end).
-
-End BLOCKSIZE.
-
-Section BLOCKADDR.
-
-  Definition _has_base (ob: option block) (base: ptrofs) : blockaddressRA :=
-    (fun _ob => match ob, _ob with
-             | Some b, Some _b => if dec _b b
-                                 then OneShot.white base
-                                 else ε
-             | None, None => OneShot.white base
-             | _, _ => ε
-             end).
-
-End BLOCKADDR.
-
-Section PROP.
-
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Local Open Scope Z.
+  Local Open Scope bi_scope.
 
   Definition get_align (sz: nat) : Z :=
     if lt_dec sz 2 then 1
@@ -250,7 +49,8 @@ Section PROP.
                   /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None) 
                   /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
        | _ => ⌜False⌝
-       end.
+       end
+  .
 
   Definition equiv_prov vaddr vaddr' m : iProp :=
     ∃ ofs, _has_offset vaddr m ofs ** _has_offset vaddr' m ofs.
@@ -263,13 +63,15 @@ Section PROP.
         OwnM (_has_size (Some blk) m.(sz))
         ** ∃ ofs, OwnM (_points_to blk (Ptrofs.unsigned ofs) mvs q) ** _has_offset vaddr m ofs
         ** ⌜Ptrofs.unsigned ofs + length mvs ≤ m.(sz)⌝
-    end%I.
+    end%I
+  .
 
   Definition has_offset vaddr m ofs tg q : iProp :=
     match m.(blk) with
     | None => ⌜False⌝
     | Some blk => OwnM(_allocated_with blk tg q) ** _has_offset vaddr m ofs
-    end%I.
+    end%I
+  .
 
   Definition m_null : metadata.
   Proof.
@@ -285,7 +87,7 @@ Section PROP.
   Definition weak_valid (m: metadata) (ofs: ptrofs) : Prop :=
     Ptrofs.unsigned ofs ≤ m.(sz).
 
-End PROP.
+End PRED.
 
 Notation "vaddr ⊨ m # ofs" := (_has_offset vaddr m ofs) (at level 10).
 Notation "vaddr '(↦_' m , q ) mvs" := (points_to vaddr m mvs q) (at level 20).
@@ -294,6 +96,8 @@ Notation "m #^ m0" := (disjoint m m0) (at level 20).
 Notation "vaddr '(≃_' m ) vaddr'" := (equiv_prov vaddr vaddr' m) (at level 20).
 
 Section AUX.
+
+  Local Open Scope Z.
 
   Lemma ptrofs_int64_neg i :
     Archi.ptr64 = true -> Ptrofs.neg (Ptrofs.of_int64 i) = Ptrofs.of_int64 (Int64.neg i).
@@ -334,160 +138,136 @@ Section AUX.
     apply Int64.eqm_unsigned_repr.
   Qed.
 
+  Lemma paddr_no_overflow_cond_lt i a sz:
+        Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a) < sz ->
+        Ptrofs.unsigned a + sz ≤ Ptrofs.max_unsigned ->
+        0 ≤ Int64.unsigned i - Ptrofs.unsigned a < sz.
+  Proof.
+    i. unfold Ptrofs.sub, Ptrofs.of_int64 in *.
+    rewrite (Ptrofs.unsigned_repr (_ i)) in H. 2:{ apply Int64.unsigned_range_2. }
+    rewrite Ptrofs.unsigned_repr_eq in *.
+    destruct (Coqlib.zle 0 (Ptrofs.unsigned a - Int64.unsigned i)); cycle 1.
+    { rewrite Z.mod_small in *; try nia.
+      destruct a; destruct i; ss. change Int64.modulus with Ptrofs.modulus in *. nia. }
+    destruct (Coqlib.zeq 0 (Int64.unsigned i - Ptrofs.unsigned a)). { rewrite <- e in *. ss. }
+    replace (Int64.unsigned i - Ptrofs.unsigned a) with (- (Ptrofs.unsigned a - Int64.unsigned i)) in H by nia.
+    rewrite Z_mod_nz_opp_full in *; [>rewrite Z.mod_small in *|rewrite Z.mod_small..]; et.
+    all: try apply Ptrofs.unsigned_range; try nia.
+    change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in H.
+    all: destruct a; destruct i; ss; nia.
+  Qed.
+
+
 End AUX.
 
 Section RULES.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
+
+  Local Open Scope Z.
 
   Lemma _has_size_dup
-      b s
-    :
-      OwnM (_has_size b s) ⊢ OwnM (_has_size b s) ** OwnM (_has_size b s).
+      b s :
+    OwnM (_has_size b s) ⊢ OwnM (_has_size b s) ** OwnM (_has_size b s).
   Proof.
     iIntros "A".
-    set (_has_size _ _) at 1.
-    replace c with ((_has_size b s) ⋅ (_has_size b s)).
-    2:{ unfold c. ur. extensionalities. i. ur. des_ifs. unfold _has_size in Heq. des_ifs. }
-    iDestruct "A" as "[? ?]". iFrame.
+    set (_has_size _ _) as r at 1.
+    replace r with ((_has_size b s) ⋅ (_has_size b s)).
+    { iDestruct "A" as "[? ?]". iFrame. }
+    unfold r. ur. unfold _has_size, __has_size. rewrite ! URA.unit_id. repeat f_equal. 
+    ur. extensionalities. des_ifs; ur; des_ifs; et.
+  Qed.
+
+  Lemma _has_size_unique
+      b s0 s1 :
+    OwnM (_has_size b s0 ⋅ _has_size b s1) ⊢ ⌜s0 = s1⌝.
+  Proof.
+    iIntros "C". iOwnWf "C" as wfc. iPureIntro.
+    ur in wfc. des.
+    match goal with
+    | H : @URA.wf ClightPlusMemRA._blocksizeRA _ |- _ => rename H into X
+    end.
+    clear -X. ur in X. spc X. unfold __has_size in X. des_ifs; ur in X; des_ifs.
   Qed.
 
   Lemma _has_base_dup
-      b s
-    :
-      OwnM (_has_base b s) ⊢ OwnM (_has_base b s) ** OwnM (_has_base b s).
+      b s :
+    OwnM (_has_base b s) ⊢ OwnM (_has_base b s) ** OwnM (_has_base b s).
   Proof.
     iIntros "A".
-    set (_has_base _ _) at 1.
-    replace c with ((_has_base b s) ⋅ (_has_base b s)).
-    2:{ unfold c. ur. extensionalities. i. ur. des_ifs. unfold _has_base in Heq. des_ifs. }
-    iDestruct "A" as "[? ?]". iFrame.
+    set (_has_base _ _) as r at 1.
+    replace r with ((_has_base b s) ⋅ (_has_base b s)).
+    { iDestruct "A" as "[? ?]". iFrame. }
+    unfold r. ur. unfold _has_base, __has_base. rewrite ! URA.unit_id. repeat f_equal. 
+    ur. extensionalities. des_ifs; ur; des_ifs; et.
   Qed.
 
   Lemma _has_base_unique
-      b s0 s1
-    :
-      OwnM (_has_base b s0 ⋅ _has_base b s1) ⊢ ⌜s0 = s1⌝.
+      b s0 s1 :
+    OwnM (_has_base b s0 ⋅ _has_base b s1) ⊢ ⌜s0 = s1⌝.
   Proof.
-    iIntros "C".
-    iOwnWf "C" as wfc. iPureIntro.
-    ur in wfc. specialize (wfc b).
-    ur in wfc. unfold _has_base in wfc. des_ifs.
+    iIntros "C". iOwnWf "C" as wfc. iPureIntro.
+    ur in wfc. des.
+    match goal with
+    | H : @URA.wf ClightPlusMemRA._blockaddressRA _ |- _ => rename H into X
+    end.
+    clear -X. ur in X. spc X. unfold __has_base in X. des_ifs; ur in X; des_ifs.
   Qed.
 
   Lemma _has_offset_slide
-      vaddr m ofs k
-    :
-      vaddr ⊨ m # ofs ⊢ Val.addl vaddr (Vptrofs k) ⊨ m # (Ptrofs.add ofs k).
+      vaddr m ofs k :
+    vaddr ⊨ m # ofs ⊢ Val.addl vaddr (Vptrofs k) ⊨ m # (Ptrofs.add ofs k).
   Proof.
-    destruct m. destruct blk0; cycle 1.
-    - unfold _has_offset. ss. des_ifs.
-      + iIntros "[A B]".
-        iDestruct "B" as (a) "[B %]".
-        iFrame. iExists a. iFrame.
-        iPureIntro.
-        des. split; clarify. rewrite <- Ptrofs.sub_add_l. f_equal.
-        unfold Val.addl, Vptrofs in *.
-        des_ifs. rewrite ptrofs_int64_add; et.
-      + iIntros "[A %]". des; clarify.
-    - iIntros "A".
-      unfold _has_offset.
-      des_ifs; try solve [iDestruct "A" as "[A %]"; clarify].
-      + iDestruct "A" as "[? A]". iFrame.
-        iDestruct "A" as (a) "[? %]". iExists _. iFrame.
-        iPureIntro. des. clarify. split; clarify.
-        rewrite <- Ptrofs.sub_add_l. f_equal.
-        unfold Val.addl, Vptrofs in *.
-        des_ifs. rewrite ptrofs_int64_add; et.
-      + iDestruct "A" as "[A %]".
-        iFrame. iPureIntro. des. clarify.
-        ss. des_ifs. unfold Vptrofs in *. des_ifs.
-        split; et. rewrite Ptrofs.of_int64_to_int64; et.
+    iIntros "[S A]". unfold _has_offset. iFrame. des_ifs.
+    - iDestruct "A" as (a) "[A %]". des. iExists _. iFrame. iPureIntro. splits; et.
+      clarify. rewrite <- Ptrofs.sub_add_l. f_equal. unfold Val.addl, Vptrofs in *.
+      des_ifs. rewrite ptrofs_int64_add; et.
+    - iDestruct "A" as "%". des. iPureIntro. unfold Val.addl, Vptrofs in *. des_ifs.
+      splits; et. f_equal. rewrite Ptrofs.of_int64_to_int64; et. 
   Qed.
 
   Lemma _has_offset_slide_rev
-      vaddr m ofs k
-    :
-      Val.addl vaddr (Vptrofs k) ⊨ m # (Ptrofs.add ofs k) ⊢ vaddr ⊨ m # ofs.
+      vaddr m ofs k :
+    Val.addl vaddr (Vptrofs k) ⊨ m # (Ptrofs.add ofs k) ⊢ vaddr ⊨ m # ofs.
   Proof.
-    destruct m. destruct blk0; cycle 1.
-    - unfold _has_offset. ss. des_ifs.
-      + iIntros "[A B]".
-        iDestruct "B" as (a) "[B %]".
-        iFrame. iExists a. iFrame.
-        iPureIntro.
-        des. split; clarify.
-        unfold Val.addl, Vptrofs in *.
-        des_ifs. rewrite <- ptrofs_int64_add in H3; et.
-        rewrite Ptrofs.sub_add_l in H3.
-        apply (f_equal (fun x => Ptrofs.add x (Ptrofs.neg k))) in H3.
-        rewrite Ptrofs.add_assoc in H3.
-        rewrite Ptrofs.add_assoc in H3.
-        rewrite Ptrofs.add_neg_zero in H3.
-        rewrite Ptrofs.add_zero in H3.
-        rewrite Ptrofs.add_zero in H3.
-        et.
-      + iIntros "[A %]". des; clarify.
-    - iIntros "A".
-      unfold _has_offset.
-      des_ifs; try solve [iDestruct "A" as "[A %]"; clarify].
-      + iDestruct "A" as "[? A]". iFrame.
-        iDestruct "A" as (a) "[? %]". iExists _. iFrame.
-        iPureIntro. des. clarify. split; clarify.
-        unfold Val.addl, Vptrofs in *.
-        des_ifs. rewrite <- ptrofs_int64_add in H3; et.
-        rewrite Ptrofs.sub_add_l in H3.
-        apply (f_equal (fun x => Ptrofs.add x (Ptrofs.neg k))) in H3.
-        rewrite Ptrofs.add_assoc in H3.
-        rewrite Ptrofs.add_assoc in H3.
-        rewrite Ptrofs.add_neg_zero in H3.
-        rewrite Ptrofs.add_zero in H3.
-        rewrite Ptrofs.add_zero in H3.
-        et.
-      + iDestruct "A" as "[A %]".
-        iFrame. iPureIntro. des. clarify.
-        ss. unfold Vptrofs in Heq. dup Heq.
-        apply (f_equal (fun v => match v with Vptr _ ofs => ofs | _ => Ptrofs.zero end)) in Heq.
-        destruct Archi.ptr64 eqn:?. 2:{ clarify. }
-        inversion Heq0. subst. split; et. rewrite Ptrofs.of_int64_to_int64 in Heq; et.
-        apply (f_equal (fun x => Ptrofs.add x (Ptrofs.neg k))) in Heq.
-        rewrite Ptrofs.add_assoc in Heq.
-        rewrite Ptrofs.add_assoc in Heq.
-        rewrite Ptrofs.add_neg_zero in Heq.
-        rewrite Ptrofs.add_zero in Heq.
-        rewrite Ptrofs.add_zero in Heq.
-        et.
+    iIntros "[S A]". unfold _has_offset. iFrame. des_ifs.
+    - iDestruct "A" as (a) "[A %]". des. iExists _. iFrame. iPureIntro. splits; et.
+      unfold Val.addl, Vptrofs in *. des_ifs. 
+      match goal with
+      | H : Ptrofs.add _ _ = Ptrofs.sub _ _ |- _ => rename H into X
+      end.
+      rewrite <- ptrofs_int64_add in X; et. rewrite Ptrofs.sub_add_l in X.
+      apply (f_equal (fun x => Ptrofs.add x (Ptrofs.neg k))) in X.
+      rewrite ! Ptrofs.add_assoc in X. rewrite ! Ptrofs.add_neg_zero in X.
+      rewrite ! Ptrofs.add_zero in X. et.
+    - iDestruct "A" as "%". des. unfold Val.addl, Vptrofs in *. des_ifs.
+      iPureIntro. splits; et. rewrite Ptrofs.of_int64_to_int64 in *; et.
+      assert (X: Ptrofs.add ofs k = Ptrofs.add i0 k).
+      { apply Ptrofs.same_if_eq. rewrite Heq0. rewrite Heq. unfold Ptrofs.eq. ss. des_ifs. } 
+      apply (f_equal (fun x => Ptrofs.add x (Ptrofs.neg k))) in X.
+      rewrite ! Ptrofs.add_assoc in X. rewrite ! Ptrofs.add_neg_zero in X.
+      rewrite ! Ptrofs.add_zero in X. et.
   Qed.
 
   Lemma _has_offset_unique
-      vaddr m ofs0 ofs1
-    :
-      vaddr ⊨ m # ofs0 ** vaddr ⊨ m # ofs1 ⊢ ⌜ofs0 = ofs1⌝.
+      vaddr m ofs0 ofs1 :
+    vaddr ⊨ m # ofs0 ** vaddr ⊨ m # ofs1 ⊢ ⌜ofs0 = ofs1⌝.
   Proof.
-    iIntros "[A B]".
-    unfold _has_offset.
-    des_ifs; try solve [iDestruct "A" as "[A %]"; clarify]. 
-    - iDestruct "A" as "[_ A]".
-      iDestruct "B" as "[_ B]".
-      iDestruct "A" as (a) "[A1 %]".
-      iDestruct "B" as (a0) "[B1 %]".
-      des. clarify.
-      iCombine "A1 B1" as "C".
+    iIntros "[[S A] [S' B]]". des_ifs.
+    - iDestruct "A" as (a) "[A %]". iDestruct "B" as (a0) "[B %]".
+      des. clarify. iCombine "A B" as "C".
       iOwnWf "C" as wfc. iPureIntro.
-      ur in wfc. specialize (wfc (blk m)).
-      ur in wfc. unfold _has_base in wfc. des_ifs.
-    - iDestruct "A" as "[A %]".
-      iDestruct "B" as "[B %]".
-      des. clarify.
+      ur in wfc. des.
+      match goal with
+      | H : @URA.wf ClightPlusMemRA._blockaddressRA _ |- _ => rename H into X
+      end. clear - X. ur in X. specialize (X (blk m)). unfold __has_base in X.
+      des_ifs; ur in X; des_ifs.
+    - iDestruct "A" as "[A %]". iDestruct "B" as "[B %]". des. clarify.
   Qed.
 
   Lemma _has_offset_dup
-      vaddr m ofs
-    :
-      vaddr ⊨m# ofs ⊢ vaddr ⊨m# ofs ** vaddr ⊨m# ofs.
+      vaddr m ofs :
+    vaddr ⊨m# ofs ⊢ vaddr ⊨m# ofs ** vaddr ⊨m# ofs.
   Proof.
     iIntros "[A' A]".
     unfold _has_offset.
@@ -507,65 +287,80 @@ Section RULES.
   Qed.
 
   Lemma offset_slide
-      vaddr m tg q ofs k
-    :
-       vaddr (⊨_ m, tg, q) ofs ⊢ (Val.addl vaddr (Vptrofs k)) (⊨_ m,tg,q) (Ptrofs.add ofs k).
+      vaddr m tg q ofs k :
+    vaddr (⊨_ m, tg, q) ofs ⊢ (Val.addl vaddr (Vptrofs k)) (⊨_ m,tg,q) (Ptrofs.add ofs k).
   Proof.
-    iIntros "A".
-    destruct m. destruct blk0; ss. unfold has_offset. ss. 
+    iIntros "A". unfold has_offset. des_ifs.
     iDestruct "A" as "[? A]". iFrame. iApply _has_offset_slide. et.
   Qed.
 
   Lemma offset_slide_rev
-      vaddr m tg q ofs k
-    :
-       (Val.addl vaddr (Vptrofs k)) (⊨_ m,tg,q) (Ptrofs.add ofs k) ⊢ vaddr (⊨_ m, tg, q) ofs.
+      vaddr m tg q ofs k :
+    (Val.addl vaddr (Vptrofs k)) (⊨_ m,tg,q) (Ptrofs.add ofs k) ⊢ vaddr (⊨_ m, tg, q) ofs.
   Proof.
-    iIntros "A".
-    destruct m. destruct blk0; ss. unfold has_offset. ss. 
-    iDestruct "A" as "[? A]". iFrame. 
-    iApply _has_offset_slide_rev. et.
+    iIntros "A". unfold has_offset. des_ifs.
+    iDestruct "A" as "[? A]". iFrame. iApply _has_offset_slide_rev. et.
   Qed.
 
   Lemma offset_unique
-      vaddr m tg0 tg1 q0 q1 ofs0 ofs1
-    :
-      vaddr (⊨_ m, tg0, q0) ofs0 ** vaddr (⊨_ m, tg1, q1) ofs1 ⊢ ⌜ofs0 = ofs1⌝.
+      vaddr m tg0 tg1 q0 q1 ofs0 ofs1 :
+    vaddr (⊨_ m, tg0, q0) ofs0 ** vaddr (⊨_ m, tg1, q1) ofs1 ⊢ ⌜ofs0 = ofs1⌝.
   Proof.
-    destruct m. destruct blk0; cycle 1.
-    { unfold has_offset. ss. iIntros "%". des; clarify. }
-    iIntros "[A B]".
-    iDestruct "A" as "[_ A]".
-    iDestruct "B" as "[_ B]".
-    iCombine "A B" as "C".
-    iApply _has_offset_unique; et.
+    iIntros "[A B]". unfold has_offset. des_ifs.
+    iDestruct "A" as "[_ A]". iDestruct "B" as "[_ B]".
+    iCombine "A B" as "C". iApply _has_offset_unique; et.
   Qed.
 
   Lemma offset_trivial
-      b m tg q ofs0 ofs1
-    :
-      Vptr b ofs0 (⊨_ m, tg, q) ofs1 ⊢ ⌜m.(blk) = Some b /\ ofs0 = ofs1⌝.
+      b m tg q ofs0 ofs1 :
+    Vptr b ofs0 (⊨_ m, tg, q) ofs1 ⊢ ⌜m.(blk) = Some b /\ ofs0 = ofs1⌝.
   Proof.
-    destruct m. destruct blk0; cycle 1.
-    { unfold has_offset. ss. iIntros "%". des; clarify. }
-    iIntros "[A B]".
-    iDestruct "B" as "[_ %]". des. et. 
+    iIntros "A". unfold has_offset. des_ifs.
+    iDestruct "A" as "[_ A]". unfold _has_offset.
+    iDestruct "A" as "[_ %]". des. iPureIntro. clarify. split; et. symmetry. etrans; et.
+  Qed.
+
+  Lemma offset_unique_meta
+      vaddr m0 m1 tg0 tg1 q0 q1 ofs0 ofs1 :
+    vaddr (⊨_ m0, tg0, q0) ofs0 ** vaddr (⊨_ m1, tg1, q1) ofs1 ** ⌜valid m0 ofs0 /\ valid m1 ofs1⌝ ⊢ ⌜m0 = m1⌝.
+  Proof.
+    iIntros "[[A B] %]". rename H0 into X. unfold has_offset. des_ifs. unfold _has_offset.
+    iDestruct "A" as "[Aa [As A]]". iDestruct "B" as "[Ba [Bs B]]". des_ifs; cycle 1.
+    - iDestruct "A" as "%". iDestruct "B" as "%". des.
+      rewrite <- H0. rewrite <- H1. iCombine "As Bs" as "C".
+      iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+    - iDestruct "A" as (a) "[Ac %]". iDestruct "B" as (a0) "[Bc %]". des.
+      rewrite Heq. rewrite Heq0.
+      destruct (Pos.eq_dec b b0).
+      + clarify. iCombine "As Bs" as "C".
+        iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+      + unfold _allocated_with, _has_size, _has_base, __allocated_with.
+        iCombine "Aa As Ac Ba Bs Bc" as "C". ur. rewrite ! URA.unit_idl.
+        ur. des_ifs. assert (f0 = fun _ => Consent.unit). { inv Heq3. extensionalities. ss. }
+        clarify. iOwnWf "C" as wf. des. ur in wf. des.
+        clear wf wf0 wf1 wf2 wf4. hexploit wf3; et.
+        { des_ifs. ur. et. }
+        { clear wf3. instantiate (1:= sz m0). des_ifs. }
+        { clear wf3. instantiate (1:= a). des_ifs. }
+        { des_ifs. ur. et. }
+        { clear wf3. instantiate (1:= sz m1). des_ifs. }
+        { clear wf3. instantiate (1:= a0). des_ifs. }
+        i. clear wf3. exfalso. unfold valid in *. clear - X X0 H0 H5 H3.
+        apply paddr_no_overflow_cond_lt in X; et. apply paddr_no_overflow_cond_lt in X0; et. nia.
   Qed.
 
   Lemma _points_to_ownership
-      b ofs mvs q0 q1
-    :
-      _points_to b ofs mvs (q0 + q1) = (_points_to b ofs mvs q0) ⋅ (_points_to b ofs mvs q1).
+      b ofs mvs q0 q1 :
+    _points_to b ofs mvs (q0 + q1) = (_points_to b ofs mvs q0) ⋅ (_points_to b ofs mvs q1).
   Proof.
-    unfold _points_to. unfold Auth.white. ur. ur. ur.
-    f_equal. ss. extensionalities. i. extensionalities. i. ur.
-    unfold __points_to. des_ifs.
+    unfold _points_to. ur. rewrite ! URA.unit_id. repeat f_equal. 
+    unfold Auth.white. ur. f_equal. extensionalities. ur. ur.
+    unfold __points_to. des_ifs; ur; des_ifs.
   Qed.
 
   Lemma points_to_ownership
-      vaddr mvs m q0 q1
-    : 
-      ⊢ vaddr (↦_ m, q0 + q1) mvs ∗-∗ (vaddr (↦_ m, q0) mvs ** vaddr (↦_ m, q1) mvs).
+      vaddr mvs m q0 q1 : 
+    ⊢ vaddr (↦_ m, q0 + q1) mvs ∗-∗ (vaddr (↦_ m, q0) mvs ** vaddr (↦_ m, q1) mvs).
   Proof.
     iIntros. iSplit.
     - iIntros "A". unfold points_to.
@@ -586,19 +381,17 @@ Section RULES.
   Qed.
 
   Lemma _allocated_with_ownership
-      b tg q0 q1
-    :
-      _allocated_with b tg (q0 + q1) = (_allocated_with b tg q0) ⋅ (_allocated_with b tg q1).
+      b tg q0 q1 :
+    _allocated_with b tg (q0 + q1) = (_allocated_with b tg q0) ⋅ (_allocated_with b tg q1).
   Proof.
-    unfold _allocated_with. unfold Auth.white. ur. ur. ur.
-    f_equal. ss. extensionalities. i.
-    unfold __allocated_with. des_ifs.
+    unfold _allocated_with. ur. rewrite ! URA.unit_id. repeat f_equal.
+    unfold Auth.white. ur. f_equal. extensionalities. ur.
+    unfold __allocated_with. des_ifs; ur; des_ifs.
   Qed.
 
   Lemma offset_ownership
-      vaddr m tg q0 q1 ofs
-    :
-      ⊢ vaddr (⊨_ m, tg, (q0 + q1)%Qp) ofs  ∗-∗ (vaddr (⊨_ m, tg, q0) ofs ** vaddr (⊨_ m, tg, q1) ofs).
+      vaddr m tg q0 q1 ofs :
+    ⊢ vaddr (⊨_ m, tg, (q0 + q1)%Qp) ofs  ∗-∗ (vaddr (⊨_ m, tg, q0) ofs ** vaddr (⊨_ m, tg, q1) ofs).
   Proof.
     iIntros. iSplit.
     - iIntros "A". unfold has_offset.
@@ -618,43 +411,36 @@ Section RULES.
 
   Lemma _points_to_nil : forall blk ofs q _b _ofs, __points_to blk ofs [] q _b _ofs = ε.
   Proof.
-    intros. unfold __points_to. destruct dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss. 
-    edestruct nth_error_None. rewrite H4; et. ss. nia.
+    intros. unfold __points_to. destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss. 
+    des_ifs. destruct (Z.to_nat _); ss.
   Qed.
 
   Lemma points_to_nil : forall blk ofs q, __points_to blk ofs [] q = ε.
-  Proof.
-    i. replace (__points_to blk0 ofs [] q) with ((λ (_ : block) (_ : Z), @URA.unit (Consent.t memval))).
-    2:{ extensionalities. rewrite _points_to_nil. et. }
-    et.
-  Qed.     
+  Proof. i. extensionalities. rewrite _points_to_nil. et. Qed.
 
   Lemma _points_to_content
-      b ofs mvs0 mvs1 q
-    :
-      _points_to b ofs (mvs0 ++ mvs1) q = (_points_to b ofs mvs0 q) ⋅ (_points_to b (ofs + length mvs0) mvs1 q).
+      b ofs mvs0 mvs1 q :
+    _points_to b ofs (mvs0 ++ mvs1) q = (_points_to b ofs mvs0 q) ⋅ (_points_to b (ofs + length mvs0) mvs1 q).
   Proof.
-    unfold _points_to. unfold Auth.white. ur. ur. ur.
-    f_equal. ss. extensionalities. ur. rename H4 into x0.
+    unfold _points_to. ur. rewrite ! URA.unit_id. repeat f_equal.
+    unfold Auth.white. ur. f_equal. extensionalities. ur. ur.
     unfold __points_to.
-    destruct dec; ss;
-    destruct Coqlib.zle; ss;
-    destruct Coqlib.zlt; ss;
+    destruct Pos.eq_dec; ur; et; ss;
+    destruct Coqlib.zle; ur; et; ss;
+    destruct Coqlib.zlt; ur; et; ss;
     try destruct Coqlib.zle; ss;
     try destruct Coqlib.zlt; ss;
     try destruct Coqlib.zlt; ss;
     des_ifs; try rewrite app_length in *; try nia;
     try solve [rewrite nth_error_app1 in *; try nia; clarify
               |rewrite nth_error_app2 in *; try nia;
-               replace (Z.to_nat _) with ((Z.to_nat (x0 - ofs)) - length mvs0)%nat in * by nia;
+               replace (Z.to_nat _) with ((Z.to_nat (H1 - ofs)) - length mvs0)%nat in * by nia;
                clarify].
   Qed.
 
   Lemma points_to_split
-      vaddr mvs0 mvs1 m q
-    : 
-      vaddr (↦_m,q) (mvs0 ++ mvs1)
-      ⊢ vaddr (↦_m,q) mvs0 ** (Val.addl vaddr (Vptrofs (Ptrofs.repr (length mvs0))) (↦_m,q) mvs1).
+      vaddr mvs0 mvs1 m q : 
+    vaddr (↦_m,q) (mvs0 ++ mvs1) ⊢ vaddr (↦_m,q) mvs0 ** (Val.addl vaddr (Vptrofs (Ptrofs.repr (length mvs0))) (↦_m,q) mvs1).
   Proof.
     iIntros "A". unfold points_to.
     destruct (blk m); try solve [iDestruct "A" as "%"; clarify].
@@ -662,20 +448,21 @@ Section RULES.
     iPoseProof (_has_size_dup with "B") as "[? ?]". iFrame.
     iDestruct "A" as (ofs) "[[B A] %]". rewrite _points_to_content.
     iPoseProof (_has_offset_dup with "A") as "[? A]". iDestruct "B" as "[? B]".
-    rewrite app_length in H3. iSplitR "A B"; iExists _; iFrame; [iPureIntro; nia|].
+    match goal with
+    | H : Ptrofs.unsigned _ + Z.of_nat (length _) <= _ |- _ => rename H into X
+    end.
+    rewrite app_length in X. iSplitR "A B"; iExists _; iFrame; [iPureIntro; nia|].
     iPoseProof (_has_offset_nooverflow with "A") as "%".
-    assert (X: Ptrofs.unsigned ofs + length mvs0 = Ptrofs.unsigned (Ptrofs.add ofs (Ptrofs.repr (length mvs0)))); cycle 1.
-    { rewrite X. iFrame. iSplit. { iApply _has_offset_slide. et. } iPureIntro. nia. }
+    assert (Y: Ptrofs.unsigned ofs + length mvs0 = Ptrofs.unsigned (Ptrofs.add ofs (Ptrofs.repr (length mvs0)))); cycle 1.
+    { rewrite Y. iFrame. iSplit. { iApply _has_offset_slide. et. } iPureIntro. nia. }
     unfold Ptrofs.add. destruct ofs. ss.
     rewrite (Ptrofs.unsigned_repr (length _)); try nia.
     rewrite (Ptrofs.unsigned_repr); et. nia.
   Qed.
 
   Lemma points_to_collect
-      vaddr mvs0 mvs1 m q
-    : 
-      vaddr (↦_m,q) mvs0 ** (Val.addl vaddr (Vptrofs (Ptrofs.repr (Z.of_nat (List.length mvs0)))) (↦_m,q) mvs1)
-      ⊢ vaddr (↦_m,q) (mvs0 ++ mvs1).
+      vaddr mvs0 mvs1 m q : 
+    vaddr (↦_m,q) mvs0 ** (Val.addl vaddr (Vptrofs (Ptrofs.repr (Z.of_nat (List.length mvs0)))) (↦_m,q) mvs1) ⊢ vaddr (↦_m,q) (mvs0 ++ mvs1).
   Proof.
     iIntros "[A B]". unfold points_to.
     destruct (blk m); try solve [iDestruct "A" as "%"; clarify].
@@ -694,8 +481,47 @@ Section RULES.
     rewrite (Ptrofs.unsigned_repr); et. nia.
   Qed.
 
-  Lemma equiv_refl_point m p q mvs
-    : p (↦_m,q) mvs  ⊢  p (↦_m,q) mvs ** p (≃_m) p.
+  Lemma points_to_unique_meta
+      vaddr m0 m1 q0 q1 mvs0 mvs1 :
+    vaddr (↦_m0,q0) mvs0 ** vaddr (↦_m1,q1) mvs1 ** ⌜0 < length mvs0 /\ 0 < length mvs1⌝ ⊢ ⌜m0 = m1⌝.
+  Proof.
+    iIntros "[[A B] %]". rename H0 into X. unfold points_to. des_ifs.
+    iDestruct "A" as "[_ A]". iDestruct "B" as "[_ B]". 
+    iDestruct "A" as (ofs) "[[Ap [As A]] %]". iDestruct "B" as (ofs0) "[[Bp [Bs B]] %]".
+    des_ifs; cycle 1.
+    - iDestruct "A" as "%". iDestruct "B" as "%". des.
+      rewrite <- H2. rewrite <- H3. iCombine "As Bs" as "C".
+      iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+    - iDestruct "A" as (a) "[Ac %]". iDestruct "B" as (a0) "[Bc %]". des.
+      rewrite Heq. rewrite Heq0.
+      destruct (Pos.eq_dec b b0).
+      + clarify. iCombine "As Bs" as "C".
+        iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+      + unfold _points_to, _has_size, _has_base, __points_to.
+        assert (exists x0, hd_error mvs0 = Some x0). { destruct mvs0; ss; et. }
+        assert (exists x1, hd_error mvs1 = Some x1). { destruct mvs1; ss; et. }
+        iCombine "Ap As Ac Bp Bs Bc" as "C". ur. rewrite ! URA.unit_idl. rewrite ! URA.unit_id.
+        ur. clarify. iOwnWf "C" as wf. des. ur in wf. des.
+        clear wf wf0 wf1 wf2 wf3. hexploit wf4; et; clear wf4.
+        { ur. exists (Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)).
+          destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; try nia.
+          destruct Pos.eq_dec; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs0; ss.
+          ur. clarify. }
+        { instantiate (1:= sz m0). des_ifs. }
+        { instantiate (1:= a). des_ifs. }
+        { ur. exists (Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)).
+          destruct Pos.eq_dec; destruct Coqlib.zle at 2; destruct Coqlib.zlt at 2; ss; try nia.
+          destruct Pos.eq_dec; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs1; ss.
+          ur. clarify. }
+        { instantiate (1:= sz m1). des_ifs. }
+        { instantiate (1:= a0). des_ifs. }
+        i. exfalso. hexploit (paddr_no_overflow_cond_lt i); et; try nia. move H7 at bottom.
+        hexploit (paddr_no_overflow_cond_lt i); et; try nia.
+  Qed.
+
+  Lemma equiv_refl_point 
+      m p q mvs :
+    p (↦_m,q) mvs  ⊢  p (↦_m,q) mvs ** p (≃_m) p.
   Proof.
     iIntros "A". unfold points_to.
     destruct (blk m); try solve [iDestruct "A" as "%"; clarify].
@@ -705,8 +531,9 @@ Section RULES.
     iSplitL "A B"; iExists _; iFrame. et.
   Qed.
 
-  Lemma equiv_refl_offset m p tg q ofs
-    : p (⊨_m,tg,q) ofs  ⊢  p (⊨_m,tg,q) ofs ** p (≃_m) p.
+  Lemma equiv_refl_offset
+      m p tg q ofs :
+    p (⊨_m,tg,q) ofs  ⊢  p (⊨_m,tg,q) ofs ** p (≃_m) p.
   Proof.
     iIntros "A". unfold has_offset.
     destruct (blk m); try solve [iDestruct "A" as "%"; clarify].
@@ -716,10 +543,10 @@ Section RULES.
     iSplitR "A"; iFrame. iExists _. et.
   Qed.
 
-  Lemma equiv_trivial_offset m p tg q ofs b
-      (BLK: blk m = Some b)
-    : 
-      p (⊨_m,tg,q) ofs  ⊢ (Vptr b ofs) (⊨_m,tg,q) ofs ** p (≃_m) (Vptr b ofs).
+  Lemma equiv_trivial_offset
+      m p tg q ofs b
+      (BLK: blk m = Some b) : 
+    p (⊨_m,tg,q) ofs  ⊢ (Vptr b ofs) (⊨_m,tg,q) ofs ** p (≃_m) (Vptr b ofs).
   Proof.
     iIntros "A". unfold has_offset.
     destruct (blk m) eqn:?; try solve [iDestruct "A" as "%"; clarify]. clarify.
@@ -741,8 +568,9 @@ Section RULES.
       + iFrame. rewrite Heqo. iDestruct "B" as "%". des. et.
   Qed.
 
-  Lemma equiv_refl_equiv m p q
-    : p (≃_m) q ⊢ p (≃_m) p.
+  Lemma equiv_refl_equiv
+      m p q :
+    p (≃_m) q ⊢ p (≃_m) p.
   Proof.
     iIntros "A". unfold equiv_prov.
     iDestruct "A" as (ofs) "[A _]".
@@ -750,17 +578,18 @@ Section RULES.
     iExists _. iFrame.
   Qed.
 
-  Lemma equiv_sym p q m
-    : p (≃_m) q ⊢ q (≃_m) p.
+  Lemma equiv_sym
+      p q m :
+    p (≃_m) q ⊢ q (≃_m) p.
   Proof.
     iIntros "A". unfold equiv_prov.
     iDestruct "A" as (ofs) "[A B]".
     iExists ofs. iFrame.
   Qed.
 
-  Lemma equiv_trans p q r m
-    : p (≃_m) q ** q (≃_m) r 
-    ⊢ p (≃_m) r.
+  Lemma equiv_trans
+      p q r m :
+    p (≃_m) q ** q (≃_m) r ⊢ p (≃_m) r.
   Proof.
     iIntros "A". unfold equiv_prov.
     iDestruct "A" as "[A B]".
@@ -769,9 +598,9 @@ Section RULES.
     iExists ofs2. iFrame.
   Qed.
 
-  Lemma equiv_dup p q m
-    : p (≃_m) q
-    ⊢ p (≃_m) q ** p (≃_m) q.
+  Lemma equiv_dup
+      p q m :
+    p (≃_m) q ⊢ p (≃_m) q ** p (≃_m) q.
   Proof.
     unfold equiv_prov.
     iIntros "A".
@@ -782,18 +611,16 @@ Section RULES.
   Qed.
 
   Lemma equiv_slide
-      p q m k
-    :
-       p (≃_m) q ⊢ (Val.addl p (Vptrofs k)) (≃_m) (Val.addl q (Vptrofs k)).
+      p q m k :
+    p (≃_m) q ⊢ (Val.addl p (Vptrofs k)) (≃_m) (Val.addl q (Vptrofs k)).
   Proof.
     iIntros "A". iDestruct "A" as (ofs) "[A A']". 
     iExists _. iSplitL "A"; iApply _has_offset_slide; et.
   Qed.
 
   Lemma equiv_slide_rev
-      p q m k
-    :
-      (Val.addl p (Vptrofs k)) (≃_m) (Val.addl q (Vptrofs k)) ⊢ p (≃_m) q.
+      p q m k :
+    (Val.addl p (Vptrofs k)) (≃_m) (Val.addl q (Vptrofs k)) ⊢ p (≃_m) q.
   Proof.
     iIntros "A". iDestruct "A" as (ofs) "[A A']". 
     replace ofs with (Ptrofs.add (Ptrofs.add ofs (Ptrofs.neg k)) k).
@@ -803,9 +630,8 @@ Section RULES.
   Qed.
 
   Lemma capture_unique
-      p m i j
-    :
-      p (≃_m) (Vptrofs i) ** p (≃_m) (Vptrofs j) ⊢ ⌜i = j⌝.
+      p m i j :
+    p (≃_m) (Vptrofs i) ** p (≃_m) (Vptrofs j) ⊢ ⌜i = j⌝.
   Proof.
     iIntros "[A B]".
     iDestruct "A" as (ofs0) "[A' A]".
@@ -821,9 +647,9 @@ Section RULES.
     iPoseProof (_has_base_unique with "C") as "%". clarify.
     iPureIntro.
     assert (i0 = i1).
-    { des. rewrite H4 in H3. clear - H3.
+    { des. rewrite H0 in H1. clear - H1.
       assert (Ptrofs.eq (Ptrofs.sub (Ptrofs.of_int64 i0) a1) (Ptrofs.sub (Ptrofs.of_int64 i1) a1) = true).
-      { rewrite H3. apply Ptrofs.eq_true. }
+      { rewrite H1. apply Ptrofs.eq_true. }
       do 2 rewrite Ptrofs.sub_add_opp in H.
       rewrite Ptrofs.translate_eq in H.
       apply Ptrofs.same_if_eq in H.
@@ -838,7 +664,8 @@ Section RULES.
     rewrite Ptrofs.of_int64_to_int64 in Heq1; et.
   Qed.
 
-  Lemma _ii_offset_eq i j ofs m :
+  Lemma _ii_offset_eq
+      i j ofs m :
     Vptrofs i ⊨ m # ofs ** Vptrofs j ⊨ m # ofs ⊢ ⌜i = j⌝.
   Proof.
     iIntros "[A B]".
@@ -848,21 +675,23 @@ Section RULES.
     iDestruct "A" as (a) "[A %]".
     iDestruct "B" as (a') "[B %]".
     iCombine "A B" as "C". iOwnWf "C" as wfc.
-    iPureIntro. ur in wfc. specialize (wfc (blk m)).
-    ur in wfc. unfold _has_base in *. 
-    des_ifs; unfold Vptrofs in *; des_ifs; rewrite Ptrofs.of_int64_to_int64 in *; et; des; subst.
-    all: match goal with
-         | H : Ptrofs.sub ?i ?x = Ptrofs.sub ?j ?x |- _ =>
-           clear -H;
-           rewrite <- (Ptrofs.add_zero_l x) in H;
-           apply (f_equal ((flip Ptrofs.add) x)) in H
-         end; ss;
-         rewrite <-! Ptrofs.sub_add_l in *;
-         rewrite ! Ptrofs.sub_shifted in *;
-         rewrite ! Ptrofs.sub_zero_l in *; et.
+    iPureIntro. ur in wfc. des.
+    match goal with
+    | H : @URA.wf ClightPlusMemRA._blockaddressRA _ |- _ => rename H into X
+    end. ur in X. specialize (X (blk m)). clear wfc3 wfc4. unfold __has_base in X.
+    assert (a = a'). { des_ifs; ur in X; des_ifs. }
+    clarify. clear X. unfold Vptrofs in *. des_ifs.
+    rewrite Ptrofs.of_int64_to_int64 in *; et.
+    assert (X: Ptrofs.sub j a' = Ptrofs.sub i a').
+    { apply Ptrofs.same_if_eq. rewrite Heq3. rewrite Heq2. unfold Ptrofs.eq. ss. des_ifs. }
+    apply (f_equal ((flip Ptrofs.add) a')) in X. ss.
+    rewrite ! Ptrofs.sub_add_opp in X. rewrite ! Ptrofs.add_assoc in X.
+    rewrite ! (Ptrofs.add_commut _ a') in X. rewrite ! Ptrofs.add_neg_zero in X.
+    rewrite ! Ptrofs.add_zero in X. et.
   Qed.
 
-  Lemma equiv_ii_eq i j m :
+  Lemma equiv_ii_eq
+      i j m :
     Vptrofs i (≃_m) Vptrofs j ⊢ ⌜i = j⌝.
   Proof.
     iIntros "A".
@@ -870,7 +699,8 @@ Section RULES.
     iApply _ii_offset_eq. et.
   Qed.
   
-  Lemma equiv_point_comm p q f m mvs :
+  Lemma equiv_point_comm
+      p q f m mvs :
     p (≃_m) q ** p (↦_m,f) mvs ⊢ q (↦_m,f) mvs.
   Proof.
     iIntros "[A B]". unfold equiv_prov. iDestruct "A" as (ofs) "[A A']".
@@ -885,7 +715,8 @@ Section RULES.
     iExists _. iFrame. et.
   Qed.
 
-  Lemma equiv_offset_comm p q tg f m ofs :
+  Lemma equiv_offset_comm
+      p q tg f m ofs :
     p (≃_m) q ** p (⊨_m,tg,f) ofs ⊢ q (⊨_m,tg,f) ofs.
   Proof.
     iIntros "[A B]".
@@ -898,9 +729,7 @@ Section RULES.
     clarify.
   Qed.
 
-  Lemma null_equiv p
-    : 
-      Vnullptr (≃_m_null) p ⊢ ⌜p = Vnullptr⌝.
+  Lemma null_equiv p : Vnullptr (≃_m_null) p ⊢ ⌜p = Vnullptr⌝.
   Proof.
     iIntros "A". 
     destruct p;
@@ -908,14 +737,13 @@ Section RULES.
     - change Vnullptr with (Vptrofs Ptrofs.zero).
       replace (Vlong i) with (Vptrofs (Ptrofs.of_int64 i)).
       2:{ unfold Vptrofs. des_ifs. f_equal. apply Ptrofs.to_int64_of_int64; et. }
-      iPoseProof (equiv_ii_eq with "A") as "%".
-      rewrite H3. et.
+      iPoseProof (equiv_ii_eq with "A") as "%". rewrite H0. et.
     - iDestruct "A" as (ofs) "[_ [_ %]]". des. clarify.
   Qed.
 
-  Lemma equiv_notundef p q m
-    : 
-      p (≃_m) q ⊢ ⌜p <> Vundef⌝.
+  Lemma equiv_notundef 
+      p q m : 
+    p (≃_m) q ⊢ ⌜p <> Vundef⌝.
   Proof.
     iIntros "A". 
     destruct p;
@@ -924,9 +752,8 @@ Section RULES.
   Qed.
 
   Lemma point_notnull 
-      vaddr m q mvs
-    : 
-      vaddr (↦_m,q) mvs ⊢ ⌜vaddr <> Vnullptr⌝.
+      vaddr m q mvs : 
+    vaddr (↦_m,q) mvs ⊢ ⌜vaddr <> Vnullptr⌝.
   Proof.
     iIntros "A". unfold points_to. des_ifs.
     iDestruct "A" as "[_ A]".
@@ -939,15 +766,15 @@ Section RULES.
     red. i. subst. unfold Ptrofs.sub in *.
     change (Ptrofs.unsigned (Ptrofs.of_int64 Int64.zero)) with 0%Z in *.
     rewrite Ptrofs.unsigned_repr_eq in *.
-    destruct (Coqlib.zeq 0 (Ptrofs.unsigned a)). { rewrite H5 in *; et. clarify. }
-    rewrite Z_mod_nz_opp_full in H3. 2: rewrite Z.mod_small; et; apply Ptrofs.unsigned_range.
+    destruct (Coqlib.zeq 0 (Ptrofs.unsigned a)). { rewrite H2 in *; et. clarify. }
+    rewrite Z_mod_nz_opp_full in H0. 2: rewrite Z.mod_small; et; apply Ptrofs.unsigned_range.
     rewrite Z.mod_small in *. 2: apply Ptrofs.unsigned_range.
     change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in *. nia.
   Qed.
 
-  Lemma point_notundef p q m mvs
-    : 
-      p (↦_m, q) mvs ⊢ ⌜p <> Vundef⌝.
+  Lemma point_notundef
+      p q m mvs : 
+    p (↦_m, q) mvs ⊢ ⌜p <> Vundef⌝.
   Proof.
     iIntros "A". unfold points_to.
     des_ifs. iDestruct "A" as "[_ A]". iDestruct "A" as (ofs) "[[_ A] _]".
@@ -955,35 +782,34 @@ Section RULES.
   Qed.
 
   Lemma offset_notundef
-      p m tg q ofs
-    : 
-      p (⊨_m,tg,q) ofs ⊢ ⌜p <> Vundef⌝.
+      p m tg q ofs : 
+    p (⊨_m,tg,q) ofs ⊢ ⌜p <> Vundef⌝.
   Proof.
     iIntros "A". unfold has_offset, _has_offset.
     des_ifs. iDestruct "A" as "[_ [_ []]]".
   Qed.
 
-  Lemma _offset_ptr {eff} {K:eventE -< eff} v m ofs
-    : 
-      v ⊨m# ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
+  Lemma _offset_ptr 
+      {eff} {K:eventE -< eff} v m ofs : 
+    v ⊨m# ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
     iIntros "A". unfold has_offset.
     destruct v; ss; des_ifs_safe;
     iDestruct "A" as "[A %]"; clarify.
   Qed.
 
-  Lemma offset_cast_ptr {eff} {K:eventE -< eff} v m tg q ofs
-    : 
-      v (⊨_m,tg,q) ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
+  Lemma offset_cast_ptr 
+      {eff} {K:eventE -< eff} v m tg q ofs : 
+    v (⊨_m,tg,q) ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
     iIntros "A". unfold has_offset. des_ifs.
     unfold _has_offset.
     des_ifs; iDestruct "A" as "[_ [_ %]]"; clarify.
   Qed.
 
-  Lemma point_cast_ptr {eff} {K:eventE -< eff} v m q mvs
-    : 
-      v (↦_m,q) mvs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
+  Lemma point_cast_ptr 
+      {eff} {K:eventE -< eff} v m q mvs : 
+    v (↦_m,q) mvs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
     iIntros "A". unfold points_to.
     destruct (blk m); clarify.
@@ -992,14 +818,14 @@ Section RULES.
     iApply _offset_ptr. et.
   Qed.
 
-  Lemma ptrofs_cast_ptr {eff} {K:eventE -< eff} i
-    : 
-      @cast_to_ptr eff K (Vptrofs i) = Ret (Vptrofs i).
+  Lemma ptrofs_cast_ptr 
+      {eff} {K:eventE -< eff} i : 
+    @cast_to_ptr eff K (Vptrofs i) = Ret (Vptrofs i).
   Proof. unfold cast_to_ptr. des_ifs. Qed.
 
-  Lemma points_to_is_ptr v m q mvs
-    : 
-      v (↦_m,q) mvs ⊢ ⌜is_ptr_val v = true⌝.
+  Lemma points_to_is_ptr
+      v m q mvs : 
+    v (↦_m,q) mvs ⊢ ⌜is_ptr_val v = true⌝.
   Proof.
     iIntros "A". unfold points_to, _has_offset.
     destruct blk; clarify.
@@ -1008,34 +834,35 @@ Section RULES.
     des_ifs.
   Qed.
 
-  Lemma decode_encode_ptr_ofs v m tg q ofs 
-    : 
-      v (⊨_m,tg,q) ofs ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
+  Lemma decode_encode_ptr_ofs
+      v m tg q ofs : 
+    v (⊨_m,tg,q) ofs ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
   Proof.
     unfold Mptr. des_ifs.
     pose proof (decode_encode_val_general v Mint64 Mint64).
-    unfold decode_encode_val in H3.
+    unfold decode_encode_val in H0.
     iIntros "A". unfold has_offset, _has_offset.
     destruct v; try solve [iDestruct "A" as "[A [A' %]]"; clarify];
-      des_ifs; rewrite H3; et.
+      des_ifs; rewrite H0; et.
     all: iDestruct "A" as "[_ [_ %]]"; clarify.
   Qed.
 
-  Lemma decode_encode_ptr_equiv p m q
-    : 
-      p (≃_m) q ⊢ ⌜decode_val Mptr (encode_val Mptr p) = p⌝.
+  Lemma decode_encode_ptr_equiv
+      p m q : 
+    p (≃_m) q ⊢ ⌜decode_val Mptr (encode_val Mptr p) = p⌝.
   Proof.
     unfold Mptr. des_ifs.
     pose proof (decode_encode_val_general p Mint64 Mint64).
-    unfold decode_encode_val in H3.
+    unfold decode_encode_val in H0.
     iIntros "A". iDestruct "A" as (ofs) "[A _]".
     destruct p; try solve [iDestruct "A" as "[? []]"].
-    - rewrite H3. et.
+    - rewrite H0. et.
     - des_ifs.
   Qed.
 
-  Lemma add_null_r v m tg q ofs: 
-      v (⊨_m,tg,q) ofs ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
+  Lemma add_null_r
+      v m tg q ofs: 
+    v (⊨_m,tg,q) ofs ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
   Proof.
     iIntros "A". unfold has_offset, _has_offset.
     des_ifs; try solve [iDestruct "A" as "[A [A' %]]"; clarify].
@@ -1051,10 +878,9 @@ End RULES.
 
 Section SPEC.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
+
+  Local Open Scope Z.
 
   (* input: Z, output: block *)
   Definition salloc_spec: fspec :=
@@ -1369,15 +1195,14 @@ End SPEC.
 
 Section MRS.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
+
+  Local Open Scope Z.
 
   Variable sk: Sk.t.
   Let skenv: SkEnv.t := load_skenv sk.
 
-  Definition store_init_data (res : _pointstoRA) (b : block) (p : Z) (optq : option Qp) (id : init_data) : option _pointstoRA :=
+  Definition store_init_data (res : ClightPlusMemRA.__pointstoRA) (b : block) (p : Z) (optq : option Qp) (id : init_data) : option ClightPlusMemRA.__pointstoRA :=
     match id with
     | Init_int8 n => 
       if Zdivide_dec (align_chunk Mint8unsigned) p
@@ -1446,7 +1271,7 @@ Section MRS.
       end
     end.
 
-  Fixpoint store_init_data_list (res : _pointstoRA) (b : block) (p : Z) (optq: option Qp) (idl : list init_data) {struct idl} : option _pointstoRA :=
+  Fixpoint store_init_data_list (res : ClightPlusMemRA.__pointstoRA) (b : block) (p : Z) (optq: option Qp) (idl : list init_data) {struct idl} : option ClightPlusMemRA.__pointstoRA :=
     match idl with
     | [] => Some res
     | id :: idl' =>
@@ -1456,10 +1281,10 @@ Section MRS.
         end
     end.
 
-  Definition alloc_global (res : _pointstoRA * _allocatedRA * blocksizeRA) (b: block) (gd : globdef fundef type) : option (_pointstoRA * _allocatedRA * blocksizeRA) :=
+  Definition alloc_global (res : ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) (b: block) (gd : globdef fundef type) : option (ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) :=
     let '(p, a, s) := res in
     match gd with
-    | Gfun _ => Some (p, a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (_has_size (Some b) 1)) 
+    | Gfun _ => Some (p, a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (__has_size (Some b) 1)) 
     | Gvar v =>
       let optq := match Globalenvs.Genv.perm_globvar v with
                   | Freeable | Writable => Some 1%Qp
@@ -1468,12 +1293,12 @@ Section MRS.
                   end
       in
       match store_init_data_list ε b 0 optq (gvar_init v) with
-      | Some res' => Some (p ⋅ res', a ⋅ (__allocated_with b  Unfreeable (1/2)%Qp), s ⋅ (_has_size (Some b) (init_data_list_size (gvar_init v))))
+      | Some res' => Some (p ⋅ res', a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (__has_size (Some b) (init_data_list_size (gvar_init v))))
       | None => None
       end
     end.
 
-  Fixpoint alloc_globals (res: _pointstoRA * _allocatedRA * blocksizeRA) (b: block) (sk: Sk.t) : option (_pointstoRA * _allocatedRA * blocksizeRA) :=
+  Fixpoint alloc_globals (res : ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) (b: block) (sk: Sk.t) : option (ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) :=
     match sk with
     | nil => Some res
     | g :: gl' => 
@@ -1484,20 +1309,37 @@ Section MRS.
       end
     end.
 
-  Definition res_init : Σ :=
+  Definition res_init : Mem.t :=
     match alloc_globals (ε, ε, ε) xH sk with
-    | Some (p, a, s) => GRA.embed (Auth.black p) ⋅ GRA.embed (Auth.black a) ⋅ GRA.embed s
-    | None => GRA.embed (Auth.black ε : pointstoRA) ⋅ GRA.embed (Auth.black ε : allocatedRA)
+    | Some (p, a, s) => (Auth.black p, Auth.black a, 
+                          s ⋅ (fun ob =>
+                                match ob with
+                                | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
+                                | None => OneShot.white 0
+                                end) : ClightPlusMemRA._blocksizeRA,
+                          fun ob =>
+                            match ob with
+                            | Some _ => OneShot.black
+                            | None => OneShot.white Ptrofs.zero
+                            end) 
+    | None => (Auth.black ε, Auth.black ε, 
+                fun ob =>
+                  match  ob with
+                  | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
+                  | None => OneShot.white 0
+                  end,
+                fun ob =>
+                  match ob with
+                  | Some _ => OneShot.black
+                  | None => OneShot.white Ptrofs.zero
+                  end) 
     end.
 
 End MRS.
 
 Section SMOD.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   Definition MemSbtb: list (gname * fspecbody) :=
     [("salloc", mk_pure salloc_spec);
@@ -1520,15 +1362,7 @@ Section SMOD.
     {|
       SModSem.fnsems := MemSbtb;
       SModSem.mn := "Mem";
-      SModSem.initial_mr := (res_init sk)
-                            ⋅ GRA.embed ((fun ob => match ob with
-                                                   | Some _ => OneShot.black
-                                                   | None => OneShot.white Ptrofs.zero
-                                                   end) : blockaddressRA)
-                            ⋅ GRA.embed ((fun ob => match  ob with
-                                                   | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
-                                                   | None => OneShot.white 0
-                                                   end) : blocksizeRA);
+      SModSem.initial_mr := GRA.embed (res_init sk);
       SModSem.initial_st := tt↑;
     |} .
 
