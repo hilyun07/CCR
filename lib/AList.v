@@ -25,6 +25,18 @@ Global Program Instance positive_Dec: Dec positive. Next Obligation. decide equa
 Global Program Instance string_Dec: Dec String.string. Next Obligation. apply String.string_dec. Defined.
 Global Program Instance nat_Dec: Dec nat. Next Obligation. apply Nat.eq_dec. Defined.
 Global Program Instance Z_Dec: Dec Z. Next Obligation. apply Z.eq_dec. Defined.
+Global Program Instance option_Dec A `{Dec A}: Dec (option A).
+Next Obligation.
+Proof.
+  i. destruct a0, a1.
+  - destruct (H a a0).
+    + left. f_equal. apply e.
+    + right. ii. inversion H0. et.
+  - right. ss.
+  - right. ss.
+  - left. refl.
+Defined.
+
 
 Definition update K `{Dec K} V (f: K -> V) (k: K) (v: V): K -> V :=
   fun _k => if dec k _k then v else f _k.
