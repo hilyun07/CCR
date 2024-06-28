@@ -21,12 +21,10 @@ From compcert Require Import Clightdefs.
 
 Section PROOF.
 
+  Import ClightPlusMemRA.
   Import ClightPlusMem1.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
   
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).

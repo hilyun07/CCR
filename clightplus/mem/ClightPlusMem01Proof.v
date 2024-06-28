@@ -10,10 +10,7 @@ Section INV.
 
   Local Open Scope Z.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   Definition Q1 : Qp := 1%Qp.
 
@@ -631,10 +628,8 @@ Require Import HSim IProofMode.
 From compcert Require Import Ctypes Floats Integers Values Memory AST Clight Clightdefs IntPtrRel.
 
 Section SIMMODSEM.
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+
+  Context `{@GRA.inG Mem.t Σ}.
 
   Let world := unit.
 

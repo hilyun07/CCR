@@ -7,6 +7,7 @@ Require Import STB.
 Require Import Any.
 Require Import ModSem.
 Require Import ModSemE.
+Require Import ClightPlusMemRA.
 Require Import ClightPlusMem1.
 From compcert Require Export Ctypes Values AST Memdata Integers.
 
@@ -14,10 +15,7 @@ Set Implicit Arguments.
 
 Section PROP.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   Definition vlist_delete_hd (l: list val) (default: val) : val * list val := (hd default l, tl l).
 
@@ -281,10 +279,7 @@ End PROP.
 
 Section SPEC.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   (* Definition encrypt_hoare1 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
       fun '(left_ptr, right_ptr, m_l, m_r, ofs_l, ofs_r, tg_l, tg_r, q_l, q_r) => (
@@ -428,10 +423,7 @@ End SPEC.
 
 Section SMOD.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   Definition xorSbtb: list (gname * fspecbody) :=
     [

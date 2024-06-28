@@ -4,15 +4,14 @@ Require Import ModSem.
 Require Import PCM IPM.
 Require Import HoareDef STB.
 Require Export HSim IProofMode.
+Require Import ClightPlusMemRA.
 Require Import ClightPlusMem1.
 From compcert Require Import AST Values Integers Memdata Memory.
 
 Section MEM.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
+
   Variable world: Type.
   Variable le: relation world.
   Variable I: world -> Any.t -> Any.t -> iProp.

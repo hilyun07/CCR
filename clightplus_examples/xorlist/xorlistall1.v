@@ -7,6 +7,7 @@ Require Import STB.
 Require Import Any.
 Require Import ModSem.
 Require Import ModSemE.
+Require Import ClightPlusMemRA.
 Require Import ClightPlusMem1.
 Require Import xorlistall0.
 Require Import xorlist1.
@@ -16,10 +17,7 @@ Require Import main1.
 Set Implicit Arguments.
 Section SMOD.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   Definition SxorAllSem : SModSem.t := {|
     SModSem.fnsems := firstn 2 xorlist1.xorSbtb ++ main1.mainSbtb ++ drop 2 xorlist1.xorSbtb ;

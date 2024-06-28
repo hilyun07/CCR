@@ -10,7 +10,7 @@ Require Import STB.
 Require Import HTactics ProofMode.
 Require Import HSim IProofMode.
 Require Import ClightPlusSkel ClightPlusExprgen ClightPlusgen.
-Require Import ClightPlusMem0 ClightPlusMem1 ClightPlusMemAux.
+Require Import ClightPlusMemRA ClightPlusMem0 ClightPlusMem1 ClightPlusMemAux.
 Require Import CProofMode CIProofMode.
 Require Import xorlist.
 Require Import xorlistall0.
@@ -59,10 +59,7 @@ Section PROOF.
 
   Import ClightPlusMem1.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
   
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb xorStb) (GlobalStb sk).

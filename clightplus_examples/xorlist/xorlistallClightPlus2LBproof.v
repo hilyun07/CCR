@@ -20,6 +20,7 @@ From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
 Require Import Hoare.
+Require Import ClightPlusMemRA.
 Require Import ClightPlusMem01Proof.
 Require Import ClightPlusInitProof.
 Require Import ClightPlusgenCorrect.
@@ -34,10 +35,7 @@ Qed.
 
 Section Lemma.
 
-  Context `{@GRA.inG pointstoRA Σ}.
-  Context `{@GRA.inG allocatedRA Σ}.
-  Context `{@GRA.inG blocksizeRA Σ}.
-  Context `{@GRA.inG blockaddressRA Σ}.
+  Context `{@GRA.inG Mem.t Σ}.
 
   Lemma valid_point sk' sk p a s
     (SUCC: alloc_globals sk' (ε, ε, ε) xH sk = Some (p, a, s))
@@ -534,24 +532,12 @@ End Lemma.
 
 
 Section PROOF.
-  Let Σ := GRA.of_list [pointstoRA; allocatedRA; blocksizeRA; blockaddressRA].
+  Let Σ := GRA.of_list [Mem.t].
   Local Existing Instance Σ.
 
-  Let pointstoRA_inG: @GRA.inG pointstoRA Σ.
+  Let Mem_inG: @GRA.inG Mem.t Σ.
   Proof. exists 0. ss. Defined.
-  Local Existing Instance pointstoRA_inG.
-
-  Let allocatedRA_inG: @GRA.inG allocatedRA Σ.
-  Proof. exists 1. ss. Defined.
-  Local Existing Instance allocatedRA_inG.
-
-  Let blocksizeRA_inG: @GRA.inG blocksizeRA Σ.
-  Proof. exists 2. ss. Defined.
-  Local Existing Instance blocksizeRA_inG.
-
-  Let blockaddressRA_inG: @GRA.inG blockaddressRA Σ.
-  Proof. exists 3. ss. Defined.
-  Local Existing Instance blockaddressRA_inG.
+  Local Existing Instance Mem_inG.
 
   Let mfsk : Sk.t := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (Ctypes.External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)); ("free", Gfun (Ctypes.External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))].
 
