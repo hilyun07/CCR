@@ -196,7 +196,7 @@ Section PROP.
       iDestruct "A" as (i_prev i_next m_hd) "[[[[% D] C] B] A]".
       iPoseProof (IHxs with "A") as "A".
       generalize (rev xs). i.
-      iStopProof. clear - H3. ginduction l; i; ss.
+      iStopProof. clear - H0. ginduction l; i; ss.
       + iIntros "[A [B [C [D E]]]]".
         iPoseProof (equiv_sym with "E") as "E".
         iPoseProof (equiv_dup with "E") as "[E E']".
@@ -214,7 +214,7 @@ Section PROP.
         destruct a; try solve [iDestruct "D" as "[]"].
         iDestruct "D" as (i_prev0 i_next0 m_hd0) "[[[[% G] D] E] F]".
         iExists _,_,_. iFrame. iSplit; ss.
-        iApply IHl. { apply H3. } iFrame. 
+        iApply IHl. { apply H0. } iFrame. 
   Qed.
 
   Lemma xorlist_hd_deen q m_prev m_next hd_prev hd tl tl_next xs

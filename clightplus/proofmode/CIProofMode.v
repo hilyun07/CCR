@@ -218,7 +218,7 @@ Section MEM.
     ss. iFrame. iSplit; et. 
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "H0".
     iDestruct "H0" as "[INV [% %]]".
-    rewrite H3. des_ifs; iExists _; iSplit; et; iApply "H1"; iFrame.
+    rewrite H0. des_ifs; iExists _; iSplit; et; iApply "H1"; iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr1
@@ -733,7 +733,7 @@ Section MEM.
   Proof.
     iIntros "[[H0 H2] H1]".
     iDestruct "H2" as (mvs_dst) "[[[[% H5] H4] H3] H2]".
-    destruct H3 as [? [? [? [? [? [? ?]]]]]].
+    destruct H0 as [? [? [? [? [? [? ?]]]]]].
     iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. ss. }
@@ -778,7 +778,7 @@ Section MEM.
   Proof.
     iIntros "[[H0 H2] H1]".
     iDestruct "H2" as "[[% H5] H4]".
-    destruct H3 as [? [? [? [? ?]]]].
+    destruct H0 as [? [? [? [? ?]]]].
     iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. ss. }

@@ -58,13 +58,13 @@ Section PROOF.
   Proof.
     eassert (_xor = _).
     { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
-    rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
+    rewrite H0 in *. clear H0. destruct Ctypes.link_build_composite_env. destruct a.
     inversion VALID_link. clear VALID_link. subst.
     clear a. simpl in ce.
     set (compile _ _) in VALID_comp.
     eassert (r = Errors.OK _).
     { reflexivity. }
-    rewrite H3 in *. clear r H3.
+    rewrite H0 in *. clear r H0.
     inversion VALID_comp. clear VALID_comp. subst.
     econs; ss. red.
 
