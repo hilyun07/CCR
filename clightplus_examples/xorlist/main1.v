@@ -37,5 +37,5 @@ Section SMOD.
 
   Definition mainSbtb: list (gname * fspecbody) :=
     [("main", mk_specbody main_spec (cfunU main_body))].
-  
+
 End SMOD.

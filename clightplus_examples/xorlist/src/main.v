@@ -486,7 +486,7 @@ Definition public_idents : list ident :=
  ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
  ___builtin_ais_annot :: nil).
 
-Definition prog : Clight.program := 
+Definition prog : Clight.program :=
   mkprogram composites global_definitions public_idents _main Logic.I.
 
 

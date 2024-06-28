@@ -69,15 +69,15 @@ Section MEM.
     :
       bi_entails
         (inv_with le I w0 st_src st_tgt
-        ** (∃ m mvs vaddr, 
+        ** (∃ m mvs vaddr,
            ⌜m.(blk) = ob /\ m.(sz) = size /\ Z.of_nat (List.length mvs) = m.(sz)⌝
            ** vaddr (↦_m,1) mvs
            ** vaddr (⊨_m,Local,1) Ptrofs.zero)
-           
-        
+
+
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt))
-              
+
             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sfree" (ob, size) >>= ktr_tgt)).
   Proof.
@@ -95,7 +95,7 @@ Section MEM.
     iDestruct "POST'" as "[? %]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_load
@@ -112,14 +112,14 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (vaddr (↦_m,q1) mvs
-            ** vaddr (⊨_m,tg,q0) ofs 
+            ** vaddr (⊨_m,tg,q0) ofs
             ** ⌜List.length mvs = size_chunk_nat chunk
                /\ Mem.change_check chunk mvs = false
                /\ chunk <> Many64
                /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)%Z⌝)
-                  
+
         ** (∀ st_src st_tgt,
-            ((inv_with le I w0 st_src st_tgt) 
+            ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (↦_m,q1) mvs
                 ** vaddr (⊨_m,tg,q0) ofs))
 
@@ -141,7 +141,7 @@ Section MEM.
     iDestruct "POST'" as (v) "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_store
@@ -157,12 +157,12 @@ Section MEM.
     :
       bi_entails
         (inv_with le I w0 st_src st_tgt
-        ** (∃ mvs_old, 
+        ** (∃ mvs_old,
             ⌜length mvs_old = size_chunk_nat chunk
             /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)%Z⌝
             ** vaddr (↦_m,1) mvs_old
             ** vaddr (⊨_m,tg,q) ofs)
-        
+
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (↦_m,1) (encode_val chunk v_new)
@@ -186,7 +186,7 @@ Section MEM.
     iDestruct "POST'" as (mvs_new) "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr0
@@ -202,10 +202,10 @@ Section MEM.
     :
       bi_entails
         (inv_with le I w0 st_src st_tgt
-        
+
         ** (∀ st_src st_tgt,
             (inv_with le I w0 st_src st_tgt)
-            
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (match c with Ceq | Cle | Cge => true | _ => false end))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, Vnullptr, Vnullptr) >>= ktr_tgt)).
   Proof.
@@ -215,7 +215,7 @@ Section MEM.
       { ss. instantiate(1:=inl _). ss. }
       { ss. } }
     instantiate (1:=(c)).
-    ss. iFrame. iSplit; et. 
+    ss. iFrame. iSplit; et.
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "H0".
     iDestruct "H0" as "[INV [% %]]".
     rewrite H0. des_ifs; iExists _; iSplit; et; iApply "H1"; iFrame.
@@ -236,7 +236,7 @@ Section MEM.
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
             ** vaddr (⊨_m,tg,q) ofs)
-        
+
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
               ** vaddr (⊨_m,tg,q) ofs)
@@ -259,7 +259,7 @@ Section MEM.
     iDestruct "POST'" as "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr2
@@ -277,11 +277,11 @@ Section MEM.
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
            ** vaddr (⊨_m,tg,q) ofs)
-                  
+
         ** (∀ st_src st_tgt,
-            ((inv_with le I w0 st_src st_tgt) 
+            ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (⊨_m,tg,q) ofs))
-           
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, Vnullptr, vaddr) >>= ktr_tgt)).
   Proof.
@@ -300,7 +300,7 @@ Section MEM.
     iDestruct "POST'" as "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr3
@@ -322,7 +322,7 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (⊨_m,tg,q) ofs))
-             
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr, Vnullptr) >>= ktr_tgt)).
   Proof.
@@ -341,7 +341,7 @@ Section MEM.
     iDestruct "POST'" as "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr4
@@ -361,7 +361,7 @@ Section MEM.
            ** vaddr (⊨_m,tg,q) ofs)
 
         ** (∀ st_src st_tgt,
-            ((inv_with le I w0 st_src st_tgt) 
+            ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (⊨_m,tg,q) ofs))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
@@ -382,7 +382,7 @@ Section MEM.
     iDestruct "POST'" as "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr5
@@ -404,10 +404,10 @@ Section MEM.
            ** vaddr1 (⊨_m,tg,q1) ofs1)
 
         ** (∀ st_src st_tgt,
-            ((inv_with le I w0 st_src st_tgt) 
+            ((inv_with le I w0 st_src st_tgt)
              ** (vaddr0 (⊨_m,tg,q0) ofs0
                 ** vaddr1 (⊨_m,tg,q1) ofs1))
-              
+
           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (cmp_ofs c (Ptrofs.unsigned ofs0) (Ptrofs.unsigned ofs1)))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
@@ -428,7 +428,7 @@ Section MEM.
     iDestruct "POST'" as "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr6
@@ -474,7 +474,7 @@ Section MEM.
     iDestruct "POST'" as "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_cmp_ptr7
@@ -499,8 +499,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
              ** (vaddr0 (⊨_m0,tg0,q0) ofs0
                 ** vaddr1 (⊨_m1,tg1,q1) ofs1))
-              
-              
+
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
@@ -521,7 +521,7 @@ Section MEM.
     iDestruct "POST'" as "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_sub_ptr
@@ -548,7 +548,7 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
             ** vaddr0 (⊨_m,tg,q0) ofs0
             ** vaddr1 (⊨_m,tg,q1) ofs1)
-                
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs (Ptrofs.repr (Z.quot (Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1) size))))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sub_ptr" (size, vaddr0, vaddr1) >>= ktr_tgt)).
   Proof.
@@ -569,7 +569,7 @@ Section MEM.
     iDestruct "POST'" as "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_non_null
@@ -611,7 +611,7 @@ Section MEM.
     iDestruct "POST'" as "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
   Lemma isim_ccallU_malloc
@@ -633,8 +633,8 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
             ** (⌜m.(sz) = Ptrofs.unsigned n⌝
                 ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat (Ptrofs.unsigned n))
-                ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero)) 
-                    
+                ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero))
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt vaddr)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "malloc" [Vptrofs n] >>= ktr_tgt)).
   Proof.
@@ -672,10 +672,10 @@ Section MEM.
         ** (∃ m mvs, ⌜Z.of_nat (List.length mvs) = m.(sz)⌝
            ** vaddr (↦_m,1) mvs
            ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero)
-                  
+
         ** (∀ st_src st_tgt,
-            ((inv_with le I w0 st_src st_tgt)) 
-            
+            ((inv_with le I w0 st_src st_tgt))
+
         -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "free" [vaddr] >>= ktr_tgt)).
   Proof.
@@ -727,7 +727,7 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
             ** (vaddr' (⊨_m_src,tg',q') ofs_src ** vaddr (⊨_m_dst,tg,q) ofs_dst ** vaddr' (↦_m_src,qp) mvs_src ** vaddr (↦_m_dst,1) mvs_src))
-              
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr']) >>= ktr_tgt)).
   Proof.
@@ -772,7 +772,7 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
             ** (vaddr (⊨_m_dst,tg,q) ofs_dst ** vaddr (↦_m_dst,1) mvs_dst))
-              
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr]) >>= ktr_tgt)).
   Proof.
@@ -809,7 +809,7 @@ Section MEM.
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt))
-            
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vnullptr)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "capture" [Vnullptr] >>= ktr_tgt)).
   Proof.
@@ -846,9 +846,9 @@ Section MEM.
 
         ** (∀ st_src st_tgt i,
             (((inv_with le I w0 st_src st_tgt)
-              ** (vaddr (⊨_m,tg,q) ofs 
+              ** (vaddr (⊨_m,tg,q) ofs
                   ** vaddr (≃_m) (Vptrofs i)))
-            
+
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs i)))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "capture" [vaddr] >>= ktr_tgt)).
   Proof.
@@ -865,7 +865,7 @@ Section MEM.
     iDestruct "POST'" as (i) "[[% ?] ?]".
     des. clarify.
     iExists _. iSplit; ss.
-    iApply "POST". iFrame. 
+    iApply "POST". iFrame.
   Qed.
 
 End MEM.

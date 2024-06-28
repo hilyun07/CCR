@@ -36,7 +36,7 @@ Section PROOFSINGLE.
   Ltac sim_tau := (try sim_red); try pfold; econs 3; ss; clarify; eexists; exists (ModSemL.step_tau _).
 
   Ltac solve_ub := des; irw in H; dependent destruction H; clarify.
-  Ltac sim_triggerUB := 
+  Ltac sim_triggerUB :=
     (try rename H into HH); ss; unfold triggerUB; try sim_red; try pfold; econs 5; i; ss; auto;
                         [solve_ub | irw in  STEP; dependent destruction STEP; clarify].
 
@@ -44,7 +44,7 @@ Section PROOFSINGLE.
   Opaque arrow.
 
   Let oeq [A] (a: A) b: Prop := (a = b).
-  Opaque oeq. 
+  Opaque oeq.
 
   Ltac to_oeq :=
     match goal with
@@ -130,12 +130,12 @@ Section PROOFSINGLE.
       apply in_map_iff in H14. des. destruct x. ss. clarify. bsimpl. des.
       apply incl_filter in H0. rewrite forallb_forall in Heq3.
       hexploit Heq3; et. i. ss. destruct Pos.eq_dec; clarify. }
-    { set (update _ _ _) as init_pstate. econs; et. 
+    { set (update _ _ _) as init_pstate. econs; et.
       { instantiate (1:=get_ce clight_prog). unfold get_ce. ss. econs. split; i.
         - apply alist_find_some_iff; et. rewrite CoqlibC.NoDup_norepet. apply Maps.PTree.elements_keys_norepet.
         - eapply alist_find_some; et. }
       { instantiate (1:= init_pstate). unfold init_pstate. unfold update. ss. }
-      { ii. hexploit compile_sk_incl; et. i. 
+      { ii. hexploit compile_sk_incl; et. i.
         set (ModSemL.fnsems _). eassert (a = (ModSemL.fnsems (MemSem sk_mem)) ++ _) by ss.
         rewrite H19. rewrite alist_find_app_o.
         assert (alist_find s (ModSemL.fnsems (MemSem sk_mem)) = None).
@@ -150,7 +150,7 @@ Section PROOFSINGLE.
         { destruct (alist_find s l) eqn:?; clarify.
           clear a H19. eapply alist_find_none in Heqo. exfalso. apply Heqo.
           unfold l. rewrite in_map_iff. set (sort _).
-          eexists (s, cfunU (decomp_func a (get_ce clight_prog) f)). split; et. 
+          eexists (s, cfunU (decomp_func a (get_ce clight_prog) f)). split; et.
           generalize Sk.le_canon_rev. i. clear H20.
           ss. apply H19 in H14. unfold Sk.add in H14.
           ss. apply in_app in H14. des.
@@ -168,12 +168,12 @@ Section PROOFSINGLE.
         unfold l in Heqo. rewrite alist_find_map_snd in Heqo. uo. des_ifs.
         hexploit in_tgt_prog_defs_decomp; et. i. des. clarify.
         replace f0 with f. { eexists. f_equal. extensionalities. des_ifs. }
-        clear -H23 H18 COMP. 
+        clear -H23 H18 COMP.
         assert (alist_find (ident_of_string s) (prog_defs clight_prog) = Some (Gfun (Internal f))); clarify.
         apply alist_find_some_iff; et. unfold compile, get_sk in COMP. des_ifs. destruct list_norepet_dec; clarify.
         apply CoqlibC.NoDup_norepet. et. }
       { econs; et. }
-      unfold itree_of_stmt, itree_stop, Es_to_eventE, kstop_itree, itree_of_cont_pop. 
+      unfold itree_of_stmt, itree_stop, Es_to_eventE, kstop_itree, itree_of_cont_pop.
       unfold sk_init. ss. sim_redE. apply bind_extk. i.
       repeat (des_ifs; progress (sim_redE; grind)). }
   Qed.
@@ -191,7 +191,7 @@ Section PROOFSINGLE.
       { et. } { et. } { reflexivity. } { et. }
       inv H2. unfold improves2, clightp_initial_state.
       i. eapply H. et. }
-    
+
     (* initiall wrong case, for us only when main is not found *)
     exists (Tr.ub). split; red; eauto.
     2:{ pfold. econs 4; eauto.

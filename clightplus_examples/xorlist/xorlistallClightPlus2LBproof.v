@@ -103,56 +103,56 @@ Section Lemma.
           ginduction l; i; ss; clarify.
           { destruct (Coqlib.zlt k0 z); unfold Coqlib.Plt in *; [apply H0|rewrite H]; try nia; ur; ss. }
           des_ifs. unfold store_init_data in Heq. des_ifs.
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite repeat_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite repeat_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. des_ifs. nia. }
             { i. unfold __points_to.
@@ -209,56 +209,56 @@ Section Lemma.
           ginduction l; i; ss; clarify.
           { destruct (Coqlib.zlt k0 z); unfold Coqlib.Plt in *; [apply H0|rewrite H]; try nia; ur; ss. }
           des_ifs. unfold store_init_data in Heq. des_ifs.
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite repeat_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite repeat_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. des_ifs. nia. }
             { i. unfold __points_to.
@@ -315,56 +315,56 @@ Section Lemma.
           ginduction l; i; ss; clarify.
           { destruct (Coqlib.zlt k0 z); unfold Coqlib.Plt in *; [apply H0|rewrite H]; try nia; ur; ss. }
           des_ifs. unfold store_init_data in Heq. des_ifs.
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite length_inj_bytes. rewrite encode_int_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to. rewrite repeat_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. }
             { i. unfold __points_to. rewrite repeat_length.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia.
               { rewrite H; try nia. r_solve. des_ifs. }
               r_solve. ur in H0. eapply H0. nia. } }
-          { hexploit IHl; et; ss; ur; ur. 
+          { hexploit IHl; et; ss; ur; ur.
             { i. rewrite H; try nia. unfold __points_to.
               destruct AList.dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; try nia. r_solve. des_ifs. nia. }
             { i. unfold __points_to.
@@ -479,7 +479,7 @@ Section Lemma.
                             | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
                             | None => OneShot.white 0%Z
                             end)).
-  Proof. 
+  Proof.
     set ε as p0 in SUCC.
     set ε as a0 in SUCC.
     set ε as s0 in SUCC.
@@ -499,7 +499,7 @@ Section Lemma.
       { unfold Coqlib.Plt in n. hexploit (H4 b); try nia. i. ur. unfold Values.block. rewrite H6. ss. }
       { unfold Values.block in *. rewrite H3. ur. ss. }
     - des_ifs.
-      + hexploit IHsk; et. 
+      + hexploit IHsk; et.
         * ur. rewrite H3. r_solve.
         * i. ur. rewrite H4; try nia. r_solve.
           Local Transparent _has_size.
@@ -584,7 +584,7 @@ Section PROOF.
       { clear H H0 LINK. unfold xorStb. stb_incl_tac; tauto. }
       i.
       eassert (x0 = mfsk).
-      { unfold _xor in LINK. vm_compute (Linking.link _ _) in LINK. 
+      { unfold _xor in LINK. vm_compute (Linking.link _ _) in LINK.
         destruct Ctypes.link_build_composite_env. destruct a. inversion LINK.
         clear LINK. subst. vm_compute (mem_skel _) in H0. inversion H0. refl. }
       clear LINK H H0. ii. eapply H1. ss.
@@ -600,7 +600,7 @@ Section PROOF.
       + instantiate (1:= GRA.embed (_has_size None 0%Z : blocksizeRA) ⋅ GRA.embed (_has_base None Ptrofs.zero : blockaddressRA)).
         clear. ss. unfold SMod.get_initial_mrs. ss. rewrite URA.unit_idl.
         rewrite URA.unit_id.
-        unfold res_init. 
+        unfold res_init.
         destruct alloc_globals eqn:?.
         2:{ rewrite wf_iff in Heqo. pose proof _wf_sk. rewrite Heqo in H. exfalso. apply H. et. }
         destruct p as [[p a] s].

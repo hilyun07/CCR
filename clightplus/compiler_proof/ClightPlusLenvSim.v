@@ -19,7 +19,7 @@ Section LENV.
     destruct o; ss. econs. i. inv MLE. destruct (Pos.eq_dec i id).
     - subst. rewrite alist_add_find_eq in H. clarify.
       rewrite PTree.gss. et.
-    - rewrite alist_add_find_neq in H; et. rewrite PTree.gso; et. 
+    - rewrite alist_add_find_neq in H; et. rewrite PTree.gso; et.
   Qed.
 
 
@@ -82,7 +82,7 @@ Section LENV.
   Lemma match_block_of_binding tce ce ge
         (EQ1: tce = ge.(genv_cenv))
         (MCE: match_ce ce tce)
-    : 
+    :
         Clight.block_of_binding ge = (map_fst (fun b => (b, 0%Z))) ∘ (block_of_binding ce).
   Proof.
     unfold Clight.block_of_binding, block_of_binding.
@@ -160,7 +160,7 @@ Section ENV.
     split; i.
     - destruct a. apply Maps.PTree.elements_complete in H.
       rewrite in_map_iff. destruct (Pos.eq_dec p i).
-      + subst. rewrite Maps.PTree.gss in H. clarify. 
+      + subst. rewrite Maps.PTree.gss in H. clarify.
         exists (i, (blk, t)). split; et. ss. et.
       + rewrite Maps.PTree.gso in H; et. apply Maps.PTree.elements_correct in H.
         apply ME in H. apply in_map_iff in H. des. eexists; split; et.
@@ -177,7 +177,7 @@ Section ENV.
       + rewrite Maps.PTree.gso; et.
         apply Maps.PTree.elements_complete.
         rewrite ME.
-        change ((_, (_,_))) with (map_env_entry sk tge (p, (b, t0))). 
+        change ((_, (_,_))) with (map_env_entry sk tge (p, (b, t0))).
         apply in_map.
         eapply alist_find_some_iff in H0; cycle 1.
         { apply alist_add_nodup. et. }

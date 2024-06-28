@@ -186,7 +186,7 @@ Section MODSEM.
         if b then Ret Vundef
         else
           match varg with
-          | [vaddr] => 
+          | [vaddr] =>
             match Mem.to_ptr vaddr m0 with
             | Some (Vptr b ofs) =>
               v_sz <- (Mem.load Mptr m0 b (Ptrofs.unsigned ofs - size_chunk Mptr))?;;
@@ -236,7 +236,7 @@ Section MODSEM.
             end
         | _ => triggerUB
         end.
-    
+
     Definition captureF : list val -> itree Es val :=
       fun varg =>
         mp <- trigger (PGet);;
@@ -252,7 +252,7 @@ Section MODSEM.
         | [Vlong i] => if Archi.ptr64 then Ret (Vlong i) else triggerUB
         | _ => triggerUB
         end.
-    
+
     (* Definition reallocF: list val -> itree Es val :=
       fun varg =>
         match varg with
@@ -296,7 +296,7 @@ Section MODSEM.
             end
         | _ => triggerUB
         end. *)
-    
+
   End BODY.
 
   Section STATE.
@@ -366,14 +366,14 @@ Section MODSEM.
   Defined.
 
   End STATE.
-  
+
 
   Definition MemSem : ModSem.t :=
-      {| 
+      {|
         ModSem.fnsems := [("salloc", cfunU sallocF); ("sfree", cfunU sfreeF);
-                          ("load", cfunU loadF); 
+                          ("load", cfunU loadF);
                           (* ("loadbytes", cfunU loadbytesF); *)
-                          ("store", cfunU storeF); 
+                          ("store", cfunU storeF);
                           (* ("storebytes", cfunU storebytesF); *)
                           ("sub_ptr", cfunU sub_ptrF); ("cmp_ptr", cfunU cmp_ptrF);
                           ("non_null?", cfunU non_nullF);

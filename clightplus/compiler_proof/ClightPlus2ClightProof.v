@@ -24,26 +24,26 @@ Inductive match_cont : cont -> cont -> Prop :=
         (NEXT: match_cont k k') :
       match_cont (Kswitch k) (Kswitch k')
   | match_Kcall
-        id f e le le' k k' 
-        (LEINJ: match_temps le le') 
+        id f e le le' k k'
+        (LEINJ: match_temps le le')
         (NEXT: match_cont k k') :
       match_cont (Kcall id f e le k) (Kcall id f e le' k').
 
 Variant match_states : state -> state -> Prop :=
   | match_state
-        f s k k' e le le' m m' 
+        f s k k' e le le' m m'
         (EXT: Mem.extends m m')
         (LEINJ: match_temps le le')
         (NEXT: match_cont k k') :
       match_states (State f s k e le m) (State f s k' e le' m')
   | match_callstate
-        fd args args' k k' m m' 
+        fd args args' k k' m m'
         (EXT: Mem.extends m m')
         (VALINJ: Val.lessdef_list args args')
         (NEXT: match_cont k k') :
       match_states (Callstate fd args k m) (Callstate fd args' k' m')
   | match_returnstate
-        res res' k k' m m' 
+        res res' k k' m m'
         (EXT: Mem.extends m m')
         (VALINJ: Val.lessdef res res')
         (NEXT: match_cont k k') :
@@ -69,7 +69,7 @@ Proof.
   i. des. clarify. eapply IHl; eauto.
 Qed.
 
-Lemma match_free_list_match 
+Lemma match_free_list_match
     m m' m0 l
     (MM: Mem.extends m m')
     (FREE: Mem.free_list m l = Some m0) :
@@ -166,7 +166,7 @@ Proof.
       hexploit (Mem.to_ptr_extends m v1 v1); eauto. i.
       hexploit (Mem.to_ptr_extends m v2 v2); eauto. i.
       hexploit (Mem.to_int_extends m v1 v1); eauto. i.
-      hexploit (Mem.to_int_extends m v2 v2); eauto. i. 
+      hexploit (Mem.to_int_extends m v2 v2); eauto. i.
       unfold Cop._sem_ptr_sub_join, Cop._sem_ptr_sub, IntPtrRel.to_int_val, IntPtrRel.to_ptr_val.
       rewrite H, H0, H1, H2. ss. des_ifs.
       { repeat re. f_equal. etransitivity; eauto. }
@@ -183,7 +183,7 @@ Proof.
     { unfold IntPtrRel.to_ptr_val. rewrite H. rewrite H0. ss. }
     { rewrite Heq4. rewrite Heq5. ss. }
     i. ss; des; des_ifs; clarify. unfold lib.sflib.NW in *. des; clarify.
-    exfalso. hexploit Ptrofs.eq_spec. rewrite Heq3. i. apply H2. 
+    exfalso. hexploit Ptrofs.eq_spec. rewrite Heq3. i. apply H2.
     rewrite <- Ptrofs.of_int64_to_int64 at 1; ss. f_equal. apply Int64.same_if_eq.
     unfold Int64.eq. des_ifs.
   - clear Heq. unfold Cop._sem_ptr_sub in Heq0. des_ifs; repeat wd; try solve [ss; des_ifs]; ss.
@@ -197,7 +197,7 @@ Proof.
     { rewrite Heq4. rewrite Heq5. ss. }
     { unfold IntPtrRel.to_int_val. rewrite H. rewrite H0. ss. }
     i. unfold lib.sflib.NW in *. ss; des; des_ifs; clarify.
-    exfalso. hexploit Ptrofs.eq_spec. rewrite Heq3. i. apply H1. 
+    exfalso. hexploit Ptrofs.eq_spec. rewrite Heq3. i. apply H1.
     rewrite <- Ptrofs.of_int64_to_int64 at 1; ss. f_equal. rewrite Heq7.
     apply Int64.same_if_eq. unfold Int64.eq. des_ifs.
 Qed.
@@ -226,7 +226,7 @@ Proof.
     unfold Mem.weak_valid_pointer in *.
     unfold Cop.cmp_ptr. ss. des_ifs. ss. et.
   - inv MV1. inv MV2. bsimpl. des. hexploit Mem.valid_pointer_extends; et. i. move Heq2 at bottom.
-    hexploit Mem.valid_pointer_extends; et. i. 
+    hexploit Mem.valid_pointer_extends; et. i.
     unfold Cop.cmp_ptr. ss. des_ifs. rewrite Heq. ss. et.
 Qed.
 
@@ -266,14 +266,14 @@ Proof.
   - hexploit match_sem_ptr_match. et. apply Heq. apply match_to_ptr_match; et.
     apply match_to_ptr_match; et. i. des. inv H0.
     unfold Cop.cmp_ptr_join. des_ifs; et; exfalso.
-    all: try solve [clear -Heq2; unfold Cop.cmp_ptr, Coqlib.option_map in Heq2; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]]. 
+    all: try solve [clear -Heq2; unfold Cop.cmp_ptr, Coqlib.option_map in Heq2; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]].
     clear Heq Heq0. unfold Cop.cmp_ptr, Coqlib.option_map in *. des_ifs.
     hexploit IntPtrRel.cmplu_no_angelic; et. i. rewrite H in *. rewrite H0 in *.
     clarify. unfold Int.eq in *. des_ifs.
   - hexploit match_sem_ptr_match. et. apply Heq0. apply match_to_int_match; et.
     apply match_to_int_match; et. i. des. inv H0.
     unfold Cop.cmp_ptr_join. des_ifs; et. 2:{ re. clarify. et. } all: exfalso.
-    all: try solve [clear -Heq1; unfold Cop.cmp_ptr, Coqlib.option_map in Heq1; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]]. 
+    all: try solve [clear -Heq1; unfold Cop.cmp_ptr, Coqlib.option_map in Heq1; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]].
     clear Heq Heq0. unfold Cop.cmp_ptr, Coqlib.option_map in *. des_ifs.
     hexploit IntPtrRel.cmplu_no_angelic; et. i. rewrite H in *. rewrite H0 in *.
     clarify. unfold Int.eq in *. des_ifs.
@@ -624,7 +624,7 @@ Lemma match_deref_loc_match
   Val.lessdef v v'.
 Proof.
   inv DEREF; inv DEREF'; ss; clarify; rewrite H in *; clarify.
-  hexploit Mem.loadv_extends; eauto. i. des. clarify. 
+  hexploit Mem.loadv_extends; eauto. i. des. clarify.
 Qed.
 
 Lemma match_deref_loc
@@ -690,14 +690,14 @@ Proof.
       * hexploit H; et. i. des. hexploit match_deref_loc. et. et.
         { instantiate (1:=if Archi.ptr64 then Val.addl v' (Vptrofs (Ptrofs.repr delta)) else Val.add v' (Vptrofs (Ptrofs.repr delta))).
           inv H2; ss. }
-        i. des. esplits; et. 
+        i. des. esplits; et.
         econs; et. econs; et. inv H2; ss.
       * hexploit H; et. i. des. hexploit match_deref_loc; et. i. des. esplits; et.
         econs; et. eapply eval_Efield_union; et. inv H2; ss.
     + hexploit H; et. i. des.
       exists (if Archi.ptr64 then Val.addl v' (Vptrofs (Ptrofs.repr delta)) else Val.add v' (Vptrofs (Ptrofs.repr delta))).
       esplits. { econs; et. inv H2; ss. } { inv H2; ss. }
-    + hexploit H; et. i. des. esplits; et. 
+    + hexploit H; et. i. des. esplits; et.
       eapply eval_Efield_union; et. inv H2; ss.
   (* case: Esizeof *)
   - split; i; inv H; try solve [inv H0]. esplits; et. econs.
@@ -769,7 +769,7 @@ Lemma match_assign_loc
   exists m0', assign_loc ce ty m' vp' v' m0'.
 Proof.
   inv ASN.
-  - hexploit Mem.storev_extends; et. i. des. eexists. econs; et. 
+  - hexploit Mem.storev_extends; et. i. des. eexists. econs; et.
   - hexploit Mem.to_ptr_extends; et. i.
     hexploit Mem.to_ptr_extends. 3: apply TOPTR1. all: et. i.
     hexploit Mem.loadbytes_extends; et. i. destruct H7 as [bytes2 [H7 H8]].
@@ -806,7 +806,7 @@ Lemma find_label_aux1
   find_label_ls lbl sl k = None -> find_label_ls lbl sl k0 = None.
 Proof.
   ginduction sl; i; ss.
-  destruct find_label eqn:X; ss. eapply find_label_aux0 in X. 
+  destruct find_label eqn:X; ss. eapply find_label_aux0 in X.
   2:{ econs. et. } rewrite X. et.
 Qed.
 
@@ -821,10 +821,10 @@ Proof.
   set (p0 := fun ls => forall s' k k0 k' lbl, match_cont k k0 -> find_label_ls lbl ls k = Some (s', k') -> exists k0', find_label_ls lbl ls k0 = Some (s', k0') /\ match_cont k' k0').
   hexploit (stmt_ind p p0); et; unfold p, p0 in *; clear p p0.
   all: try solve [i; ss].
-  - i. ss. destruct find_label eqn:X; ss; clarify. 
+  - i. ss. destruct find_label eqn:X; ss; clarify.
     + hexploit H. 2: et. econs. et. i. des. des_ifs. et.
     + eapply find_label_aux0 in X. 2:{ econs. et. } des_ifs. et.
-  - i. ss. destruct find_label eqn:X; ss; clarify. 
+  - i. ss. destruct find_label eqn:X; ss; clarify.
     + hexploit H; et. i. des. des_ifs. et.
     + eapply find_label_aux0 in X; et. des_ifs. et.
   - i. ss. destruct find_label eqn:X; ss; clarify.
@@ -852,14 +852,14 @@ Qed.
 
 Lemma match_alloc_variables_match
     ge e e' m m0 l m'
-    (OP: alloc_variables ge e m l e' m') 
+    (OP: alloc_variables ge e m l e' m')
     (MM: Mem.extends m m0):
   exists m0', alloc_variables ge e m0 l e' m0' /\ Mem.extends m' m0'.
 Proof.
   ginduction OP; i; ss.
   - esplits; et. econs.
   - hexploit Mem.alloc_extends; et. instantiate (1:=0%Z). ss. instantiate (1:=sizeof ge ty). nia.
-    i. des. hexploit IHOP; et. i. des. esplits; et. econs; et.  
+    i. des. hexploit IHOP; et. i. des. esplits; et. econs; et.
 Qed.
 
 Require Import ClightPlusLenvSim.
@@ -882,7 +882,7 @@ Lemma match_bind_parameter_temps_match
     params sle tle rvs rvs' sbase tbase
     (BIND_SRC: bind_parameter_temps params rvs sbase = Some sle)
     (BIND_TGT: Clight.bind_parameter_temps params rvs' tbase = Some tle)
-    (MLE: match_temps sbase tbase) 
+    (MLE: match_temps sbase tbase)
     (MV: Val.lessdef_list rvs rvs') :
   match_temps sle tle.
 Proof.
@@ -903,9 +903,9 @@ Lemma match_function_entry2_match
     (MM: Mem.extends m m') :
   exists m1' le', function_entry2 ge f args' m' e le' m1' /\ match_temps le le' /\ Mem.extends m1 m1'.
 Proof.
-  inv OP. hexploit match_bind_parameter_temps; et. apply match_temps_refl. 
+  inv OP. hexploit match_bind_parameter_temps; et. apply match_temps_refl.
   i. des. hexploit match_bind_parameter_temps_match. 4: et. all: et.
-  apply match_temps_refl. i. hexploit match_alloc_variables_match; et. i. des.  
+  apply match_temps_refl. i. hexploit match_alloc_variables_match; et. i. des.
   esplits; et. econs; et.
 Qed.
 
@@ -1035,7 +1035,7 @@ Proof.
             rewrite <- H4. apply tr_rel_refl. i. rr.
             des_ifs; esplits; et; rr; des_ifs.
             all: induction l0; ss; econs; et; unfold evval_rel, eventval_bind; des_ifs. }
-        { hexploit is_external_ef_reflect. rewrite B. i. inv H1. 
+        { hexploit is_external_ef_reflect. rewrite B. i. inv H1.
           hexploit external_call_mem_extends. 3: et. all: et. i. des.
           hexploit external_call_determ. et. apply H13. et. i. des. clarify.
           left. esplits.
@@ -1075,7 +1075,7 @@ Proof.
         { left. apply plus_one. econs; eauto. }
         { right. apply CIH. des_ifs; econs; eauto. }
       * i. inv FINALTGT.
-      * right. 
+      * right.
         hexploit match_eval_expr_match; eauto. i. des.
         econs. econs. econs; et. instantiate (1:=b).
         clear - EXT H0 H11. unfold Cop.bool_val in *. des_ifs; inv H0; ss.
@@ -1195,7 +1195,7 @@ Proof.
         left. esplits. econs. left. apply plus_one. econs; et.
         right. apply CIH. econs; et.
       * i. inv FINALTGT.
-      * dup H8. 
+      * dup H8.
         eapply find_label_aux2 with (k0 := call_cont k') in H8.
         2:{ clear -NEXT. ginduction NEXT; ss. econs. econs; et. }
         des. right. econs. econs. econs; et.

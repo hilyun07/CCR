@@ -57,7 +57,7 @@ Definition incl (sk0 sk1: alist gname gdef): Prop :=
 forall gn gd (IN: List.In (gn, gd) sk0),
     List.In (gn, gd) sk1.
 
-Program Definition gdefs: Sk.ld := 
+Program Definition gdefs: Sk.ld :=
   @Sk.mk (alist gname gdef) nil (@List.app _) sort (fun sk => @List.NoDup _ (List.map fst sk)) (fun sk => ListDec.NoDup_dec string_dec (List.map fst sk)) incl
   _ _ _ _ _ _ _ _ _ _ _ _ _ _.
 Next Obligation.
@@ -219,7 +219,7 @@ Proof.
   instantiate (1:=symb). rewrite Heq0. ss.
 Qed.
 
-Lemma sk_incl_gd sk0 sk1 gn blk gd: 
+Lemma sk_incl_gd sk0 sk1 gn blk gd:
   Sk.wf sk1 ->
   Sk.le sk0 sk1 ->
   SkEnv.id2blk (load_skenv sk1) gn = Some blk ->

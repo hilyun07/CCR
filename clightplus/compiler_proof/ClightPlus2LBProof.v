@@ -35,7 +35,7 @@ Section CLIGHTPROOF.
 
   Local Open Scope string_scope.
   Local Open Scope linking_scope.
-  
+
   Definition Clight_to_Asm :=
   mkpass Cshmgenproof.match_prog
   ::: mkpass Cminorgenproof.match_prog

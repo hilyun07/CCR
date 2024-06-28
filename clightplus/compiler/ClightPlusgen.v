@@ -41,7 +41,7 @@ Definition id_list_disjoint_c: list ident -> list ident -> bool :=
 
 Fixpoint alloc_variables_c (ce: comp_env) (e: env)
          (vars: list (ident * type))
-  : itree eff env := 
+  : itree eff env :=
   match vars with
   | [] => Ret e
   | (id, ty) :: vars' =>
@@ -71,7 +71,7 @@ Section DECOMP.
   Definition _sassign_c e le a1 a2 :=
     tau;;
     vp <- eval_lvalue_c sk ce e le a1;;
-    v <- eval_expr_c sk ce e le a2;; 
+    v <- eval_expr_c sk ce e le a2;;
     v' <- sem_cast_c v (typeof a2) (typeof a1);;
     assign_loc_c ce (typeof a1) vp v'.
 
@@ -91,12 +91,12 @@ Section DECOMP.
             '(gsym, gd) <- (nth_error sk (pred (Pos.to_nat b)))?;;
             fd <- (match gd with Gfun fd => Some fd | _ => None end)?;;
             if type_eq (type_of_fundef fd) (Tfunction tyargs tyres cconv)
-            then 
+            then
               match fd with
               | Internal _
               (* malloc, free, capture's name in c level should equal to function name in ccr level *)
               | External EF_malloc _ _ _
-              | External EF_free _ _ _ 
+              | External EF_free _ _ _
               | External EF_capture _ _ _ => ccallU gsym vargs
               (* this is for builtin memcpy, uncallable in standard C *)
               (* | EF_memcpy al sz => ccallU "memcpy" (al, sz, vargs) *)
@@ -127,13 +127,13 @@ Section DECOMP.
       Ret (e', le', Some (Some retv))
     | None =>
         match obc with
-        | None => 
+        | None =>
         (* skip *)
         tau;;Ret (e', le', None)
-        | Some true => 
+        | Some true =>
         (* break, not return *)
         tau;;Ret (e', le', Some None)
-        | Some false => 
+        | Some false =>
         (* continue *)
         tau;;Ret (e', le', None)
         end
@@ -213,7 +213,7 @@ Section DECOMP.
            (retty: type)
            (stmt: statement)
     : env -> temp_env -> itr_t :=
-    @hide p _ 
+    @hide p _
     (fun (e: env) (le: temp_env) =>
     match stmt with
     | Sskip =>
@@ -284,7 +284,7 @@ Section DECOMP.
            (vargs: list val)
     : itree eff val :=
     '(e, le) <- function_entry_c ce (@hide (xO xH) _ f) vargs;;
-    '(e', le', c, ov) <- decomp_stmt xH (fn_return f) (fn_body f) e le;; 
+    '(e', le', c, ov) <- decomp_stmt xH (fn_return f) (fn_body f) e le;;
     '(_, _, _, v) <- (match ov with
     | Some v => free_list_aux (blocks_of_env ce e');;; Ret (e', le', c, Some v)
     | None => match c : option bool with
@@ -310,9 +310,9 @@ End Clight.
 (*     | nil => nil *)
 (*     | x :: l' => if f x then filter_dec_not f l' else x :: (filter_dec_not f l') *)
 (*     end. *)
-  
+
 (*   Definition in_public x := in_dec Pos.eq_dec x public_idents. *)
-  
+
 (*   Definition rest_names := filter_dec_not in_public defined_names. *)
 
 (*   Definition in_rest x := in_dec Pos.eq_dec x rest_names. *)
@@ -324,7 +324,7 @@ End Clight.
 (*   Definition rpl_pos pos := if in_rest pos then prefix_pos pos else pos. *)
 
 (*   Definition rpl_glob := List.map (fun x => (rpl_pos (fst x), snd x)) global_definitions. *)
-  
+
 (*   Fixpoint rpl_expr (e: expr) := *)
 (*     match e with *)
 (*     | Econst_int _ _ | Econst_float _ _ | Econst_single _ _ *)
@@ -337,7 +337,7 @@ End Clight.
 (*     | Ecast e' ty => Ecast (rpl_expr e') ty *)
 (*     | Efield e' id ty => Efield (rpl_expr e') id ty *)
 (*     end. *)
-  
+
 (*   Fixpoint rpl_body (s : statement) := *)
 (*     match s with *)
 (*     | Sskip | Sbreak | Scontinue | Sgoto _ => s *)
@@ -358,13 +358,13 @@ End Clight.
 (*     | Sswitch a ls => Sswitch (rpl_expr a) (rpl_labeled_stmt ls) *)
 (*     | Slabel l s => Slabel l (rpl_body s) *)
 (*     end *)
-      
+
 (*   with rpl_labeled_stmt (ls: labeled_statements) := *)
 (*          match ls with *)
 (*          | LSnil => LSnil *)
 (*          | LScons optz s ls' => LScons optz (rpl_body s) (rpl_labeled_stmt ls') *)
 (*          end. *)
-  
+
 (*   Definition trans_func (f: function) := *)
 (*     mkfunction f.(fn_return) f.(fn_callconv) f.(fn_params) f.(fn_vars) f.(fn_temps) (rpl_body f.(fn_body)). *)
 
@@ -440,7 +440,7 @@ End Clight.
 (*       exact (inr1 (inr1 (inr1 (Take X)))). *)
 (*       exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). } *)
 (*   Defined. *)
-  
+
 (*   Definition site_append_morph_2 (sn': sname) : Es ~> Es. (* for shared module *) *)
 (*   Proof. *)
 (*     intros. destruct X. *)
@@ -465,7 +465,7 @@ End Clight.
 (*       exact (inr1 (inr1 (inr1 (Take X)))). *)
 (*       exact (inr1 (inr1 (inr1 (Syscall fn args rvs)))). } *)
 (*   Defined. *)
-    
+
 
 (*   Definition site_appended_itree_1 : itree Es ~> itree Es := translate site_append_morph_1. *)
 (*   Definition site_appended_itree_2 (sn': sname) : itree Es ~> itree Es := translate (site_append_morph_2 sn'). *)
@@ -599,7 +599,7 @@ Section DECOMP_PROG.
     revert sk'. induction sk; i. { left. ss. }
     destruct (IHsk sk'); cycle 1.
     - right. ii. apply n. ii. red in H. hexploit H; et. ss. et.
-    - destruct a. destruct g. 
+    - destruct a. destruct g.
       + left. ii. red in m. ss. des; et. clarify.
       + destruct (init_data_list_aligned_dec (gvar_init v) 0); cycle 1.
         { right. ii. apply n. red in H. hexploit H; et. { ss. et. } i. des. et. }
@@ -650,7 +650,7 @@ Global Opaque mem_init_cond_dec.
 (*     fun '(sn, modlist) => *)
 (*       (append_site_1 sn (List.map fst shared_module.(ModL.enclose).(ModSemL.fnsems)) *)
 (*          (ModL.enclose (ModL.add (Mod.add_list modlist) (sk_padmod shared_module.(ModL.sk))))). *)
-  
+
 (*   (* turns exec_profile into one ModSemL *) *)
 (*   Definition sum_of_site_modules_view (exec_profile: list (sname * list Mod.t)) (shared_module: ModL.t) : ModSemL.t := *)
 (*     List.fold_left ModSemL.add (List.map (proc_gen shared_module) exec_profile) (ModSemL.mk [] []). *)
@@ -663,5 +663,5 @@ Global Opaque mem_init_cond_dec.
 (*   Definition view_shared_module (exec_profile: list (sname * list Mod.t)) (shared_module: ModL.t) : ModSemL.t := *)
 (*     append_site_2 (List.map fst shared_module.(ModL.enclose).(ModSemL.fnsems)) *)
 (*       (ModL.enclose (ModL.add shared_module (sk_padmod (sum_of_site_skeletons exec_profile)))). *)
-  
+
 (* End EXECUTION_STRUCTURE. *)

@@ -7,7 +7,7 @@ From compcert Require Import Linking.
 
 Definition _xor : option Clight.program := link main.prog xorlist.prog.
 
-Definition xor : Errors.res Mod.t := 
+Definition xor : Errors.res Mod.t :=
     match _xor with
     | Some xor => compile xor "xorlist"
     | None => Errors.Error [Errors.MSG "no link"]
@@ -26,8 +26,8 @@ Definition _msk : Errors.res Sk.t :=
     end.
 
 Theorem msk_xor: exists msk, _msk = Errors.OK msk.
-Proof. 
-  unfold _msk, _xor. 
+Proof.
+  unfold _msk, _xor.
   eassert (link prog xorlist.prog = _).
   { vm_compute (link _ _). eauto. }
   rewrite H. clear H. destruct Ctypes.link_build_composite_env. destruct a.

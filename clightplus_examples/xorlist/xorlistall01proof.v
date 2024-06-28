@@ -27,7 +27,7 @@ Section PROOF.
   Import ClightPlusMem1.
 
   Context `{@GRA.inG Mem.t Σ}.
-  
+
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).
   Hypothesis STBINCL : forall sk, stb_incl (to_stb xorStb) (GlobalStb sk).

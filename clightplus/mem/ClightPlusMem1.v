@@ -38,15 +38,15 @@ Section PRED.
        | Vptr b ofs' => ⌜Some b = m.(blk) /\ ofs = ofs' /\ m.(sz) ≤ Ptrofs.max_unsigned⌝
        | Vint i =>
           if Archi.ptr64 then ⌜False⌝
-          else ∃ a, OwnM (_has_base m.(blk) a) 
-               ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int i) a 
-                  /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None) 
+          else ∃ a, OwnM (_has_base m.(blk) a)
+               ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int i) a
+                  /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None)
                   /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
        | Vlong i =>
           if negb Archi.ptr64 then ⌜False⌝
-          else ∃ a, OwnM (_has_base m.(blk) a) 
-               ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int64 i) a 
-                  /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None) 
+          else ∃ a, OwnM (_has_base m.(blk) a)
+               ** ⌜ofs = Ptrofs.sub (Ptrofs.of_int64 i) a
+                  /\ (Ptrofs.unsigned a = 0%Z -> m.(blk) = None)
                   /\ Ptrofs.unsigned a + m.(sz) ≤ Ptrofs.max_unsigned⌝
        | _ => ⌜False⌝
        end
@@ -80,7 +80,7 @@ Section PRED.
 
   Definition disjoint (m m0: metadata) : Prop :=
     m.(blk) <> m0.(blk).
-  
+
   Definition valid (m: metadata) (ofs: ptrofs) : Prop :=
     Ptrofs.unsigned ofs < m.(sz).
 
@@ -211,7 +211,7 @@ Section RULES.
     set (_has_size _ _) as r at 1.
     replace r with ((_has_size b s) ⋅ (_has_size b s)).
     { iDestruct "A" as "[? ?]". iFrame. }
-    unfold r. ur. unfold _has_size, __has_size. rewrite ! URA.unit_id. repeat f_equal. 
+    unfold r. ur. unfold _has_size, __has_size. rewrite ! URA.unit_id. repeat f_equal.
     ur. extensionalities. des_ifs; ur; des_ifs; et.
   Qed.
 
@@ -235,7 +235,7 @@ Section RULES.
     set (_has_base _ _) as r at 1.
     replace r with ((_has_base b s) ⋅ (_has_base b s)).
     { iDestruct "A" as "[? ?]". iFrame. }
-    unfold r. ur. unfold _has_base, __has_base. rewrite ! URA.unit_id. repeat f_equal. 
+    unfold r. ur. unfold _has_base, __has_base. rewrite ! URA.unit_id. repeat f_equal.
     ur. extensionalities. des_ifs; ur; des_ifs; et.
   Qed.
 
@@ -260,7 +260,7 @@ Section RULES.
       clarify. rewrite <- Ptrofs.sub_add_l. f_equal. unfold Val.addl, Vptrofs in *.
       des_ifs. rewrite ptrofs_int64_add; et.
     - iDestruct "A" as "%". des. iPureIntro. unfold Val.addl, Vptrofs in *. des_ifs.
-      splits; et. f_equal. rewrite Ptrofs.of_int64_to_int64; et. 
+      splits; et. f_equal. rewrite Ptrofs.of_int64_to_int64; et.
   Qed.
 
   Lemma _has_offset_slide_rev
@@ -269,7 +269,7 @@ Section RULES.
   Proof.
     iIntros "[S A]". unfold _has_offset. iFrame. des_ifs.
     - iDestruct "A" as (a) "[A %]". des. iExists _. iFrame. iPureIntro. splits; et.
-      unfold Val.addl, Vptrofs in *. des_ifs. 
+      unfold Val.addl, Vptrofs in *. des_ifs.
       match goal with
       | H : Ptrofs.add _ _ = Ptrofs.sub _ _ |- _ => rename H into X
       end.
@@ -280,7 +280,7 @@ Section RULES.
     - iDestruct "A" as "%". des. unfold Val.addl, Vptrofs in *. des_ifs.
       iPureIntro. splits; et. rewrite Ptrofs.of_int64_to_int64 in *; et.
       assert (X: Ptrofs.add ofs k = Ptrofs.add i0 k).
-      { apply Ptrofs.same_if_eq. rewrite Heq0. rewrite Heq. unfold Ptrofs.eq. ss. des_ifs. } 
+      { apply Ptrofs.same_if_eq. rewrite Heq0. rewrite Heq. unfold Ptrofs.eq. ss. des_ifs. }
       apply (f_equal (fun x => Ptrofs.add x (Ptrofs.neg k))) in X.
       rewrite ! Ptrofs.add_assoc in X. rewrite ! Ptrofs.add_neg_zero in X.
       rewrite ! Ptrofs.add_zero in X. et.
@@ -390,13 +390,13 @@ Section RULES.
       b ofs mvs q0 q1 :
     _points_to b ofs mvs (q0 + q1) = (_points_to b ofs mvs q0) ⋅ (_points_to b ofs mvs q1).
   Proof.
-    unfold _points_to. ur. rewrite ! URA.unit_id. repeat f_equal. 
+    unfold _points_to. ur. rewrite ! URA.unit_id. repeat f_equal.
     unfold Auth.white. ur. f_equal. extensionalities. ur. ur.
     unfold __points_to. des_ifs; ur; des_ifs.
   Qed.
 
   Lemma points_to_ownership
-      vaddr mvs m q0 q1 : 
+      vaddr mvs m q0 q1 :
     ⊢ vaddr (↦_ m, q0 + q1) mvs ∗-∗ (vaddr (↦_ m, q0) mvs ** vaddr (↦_ m, q1) mvs).
   Proof.
     iIntros. iSplit.
@@ -410,7 +410,7 @@ Section RULES.
       iSplitL "A B"; iExists _; iFrame; et.
     - iIntros "A". unfold points_to.
       iDestruct "A" as "[B A]".
-      destruct (blk m); try solve [iDestruct "A" as "%"; clarify]. 
+      destruct (blk m); try solve [iDestruct "A" as "%"; clarify].
       iDestruct "A" as "[? A]". iDestruct "B" as "[? B]". iFrame.
       iDestruct "A" as (ofs) "[[A A'] %]". iDestruct "B" as (ofs0) "[[B B'] %]". iCombine "B A" as "C". iCombine "A' B'" as "C'".
       iPoseProof (_has_offset_unique with "C'") as "%". iDestruct "C'" as "[_ C']". clarify.
@@ -448,7 +448,7 @@ Section RULES.
 
   Lemma _points_to_nil : forall blk ofs q _b _ofs, __points_to blk ofs [] q _b _ofs = ε.
   Proof.
-    intros. unfold __points_to. destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss. 
+    intros. unfold __points_to. destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss.
     des_ifs. destruct (Z.to_nat _); ss.
   Qed.
 
@@ -476,7 +476,7 @@ Section RULES.
   Qed.
 
   Lemma points_to_split
-      vaddr mvs0 mvs1 m q : 
+      vaddr mvs0 mvs1 m q :
     vaddr (↦_m,q) (mvs0 ++ mvs1) ⊢ vaddr (↦_m,q) mvs0 ** (Val.addl vaddr (Vptrofs (Ptrofs.repr (length mvs0))) (↦_m,q) mvs1).
   Proof.
     iIntros "A". unfold points_to.
@@ -498,7 +498,7 @@ Section RULES.
   Qed.
 
   Lemma points_to_collect
-      vaddr mvs0 mvs1 m q : 
+      vaddr mvs0 mvs1 m q :
     vaddr (↦_m,q) mvs0 ** (Val.addl vaddr (Vptrofs (Ptrofs.repr (Z.of_nat (List.length mvs0)))) (↦_m,q) mvs1) ⊢ vaddr (↦_m,q) (mvs0 ++ mvs1).
   Proof.
     iIntros "[A B]". unfold points_to.
@@ -510,7 +510,7 @@ Section RULES.
     iPoseProof (_has_offset_slide with "A'") as "A'".
     iCombine "A' B'" as "C'". iCombine "A B" as "C".
     iPoseProof (_has_offset_unique with "C'") as "%". clarify.
-    iDestruct "C'" as "[A' B']". 
+    iDestruct "C'" as "[A' B']".
     assert (X: Ptrofs.unsigned ofs + length mvs0 = Ptrofs.unsigned (Ptrofs.add ofs (Ptrofs.repr (length mvs0)))); cycle 1.
     { rewrite <- X. rewrite <- _points_to_content. iExists _. iFrame. iPureIntro. rewrite app_length. nia. }
     unfold Ptrofs.add. destruct ofs. ss.
@@ -523,7 +523,7 @@ Section RULES.
     vaddr (↦_m0,q0) mvs0 ** vaddr (↦_m1,q1) mvs1 ** ⌜0 < length mvs0 /\ 0 < length mvs1⌝ ⊢ ⌜m0 = m1⌝.
   Proof.
     iIntros "[[A B] %]". rename H0 into X. unfold points_to. des_ifs.
-    iDestruct "A" as "[_ A]". iDestruct "B" as "[_ B]". 
+    iDestruct "A" as "[_ A]". iDestruct "B" as "[_ B]".
     iDestruct "A" as (ofs) "[[Ap [As A]] %]". iDestruct "B" as (ofs0) "[[Bp [Bs B]] %]".
     des_ifs; cycle 1.
     - iDestruct "A" as "%". iDestruct "B" as "%". des.
@@ -556,7 +556,7 @@ Section RULES.
         hexploit (paddr_no_overflow_cond_lt i); et; try nia.
   Qed.
 
-  Lemma equiv_refl_point 
+  Lemma equiv_refl_point
       m p q mvs :
     p (↦_m,q) mvs  ⊢  p (↦_m,q) mvs ** p (≃_m) p.
   Proof.
@@ -582,7 +582,7 @@ Section RULES.
 
   Lemma equiv_trivial_offset
       m p tg q ofs b
-      (BLK: blk m = Some b) : 
+      (BLK: blk m = Some b) :
     p (⊨_m,tg,q) ofs  ⊢ (Vptr b ofs) (⊨_m,tg,q) ofs ** p (≃_m) (Vptr b ofs).
   Proof.
     iIntros "A". unfold has_offset.
@@ -651,7 +651,7 @@ Section RULES.
       p q m k :
     p (≃_m) q ⊢ (Val.addl p (Vptrofs k)) (≃_m) (Val.addl q (Vptrofs k)).
   Proof.
-    iIntros "A". iDestruct "A" as (ofs) "[A A']". 
+    iIntros "A". iDestruct "A" as (ofs) "[A A']".
     iExists _. iSplitL "A"; iApply _has_offset_slide; et.
   Qed.
 
@@ -659,7 +659,7 @@ Section RULES.
       p q m k :
     (Val.addl p (Vptrofs k)) (≃_m) (Val.addl q (Vptrofs k)) ⊢ p (≃_m) q.
   Proof.
-    iIntros "A". iDestruct "A" as (ofs) "[A A']". 
+    iIntros "A". iDestruct "A" as (ofs) "[A A']".
     replace ofs with (Ptrofs.add (Ptrofs.add ofs (Ptrofs.neg k)) k).
     2:{ rewrite Ptrofs.add_assoc. rewrite (Ptrofs.add_commut (Ptrofs.neg _)).
         rewrite Ptrofs.add_neg_zero. rewrite Ptrofs.add_zero. et. }
@@ -735,7 +735,7 @@ Section RULES.
     iDestruct "A" as (ofs) "A".
     iApply _ii_offset_eq. et.
   Qed.
-  
+
   Lemma equiv_point_comm
       p q f m mvs :
     p (≃_m) q ** p (↦_m,f) mvs ⊢ q (↦_m,f) mvs.
@@ -768,7 +768,7 @@ Section RULES.
 
   Lemma null_equiv p : Vnullptr (≃_m_null) p ⊢ ⌜p = Vnullptr⌝.
   Proof.
-    iIntros "A". 
+    iIntros "A".
     destruct p;
       try solve [iDestruct "A" as (ofs) "[_ A]"; iDestruct "A" as "[? []]"].
     - change Vnullptr with (Vptrofs Ptrofs.zero).
@@ -778,18 +778,18 @@ Section RULES.
     - iDestruct "A" as (ofs) "[_ [_ %]]". des. clarify.
   Qed.
 
-  Lemma equiv_notundef 
-      p q m : 
+  Lemma equiv_notundef
+      p q m :
     p (≃_m) q ⊢ ⌜p <> Vundef⌝.
   Proof.
-    iIntros "A". 
+    iIntros "A".
     destruct p;
       try solve [iDestruct "A" as (ofs) "[A _]"; iDestruct "A" as "[? []]"].
     all : iPureIntro; ss.
   Qed.
 
-  Lemma point_notnull 
-      vaddr m q mvs : 
+  Lemma point_notnull
+      vaddr m q mvs :
     vaddr (↦_m,q) mvs ⊢ ⌜vaddr <> Vnullptr⌝.
   Proof.
     iIntros "A". unfold points_to. des_ifs.
@@ -810,7 +810,7 @@ Section RULES.
   Qed.
 
   Lemma point_notundef
-      p q m mvs : 
+      p q m mvs :
     p (↦_m, q) mvs ⊢ ⌜p <> Vundef⌝.
   Proof.
     iIntros "A". unfold points_to.
@@ -819,15 +819,15 @@ Section RULES.
   Qed.
 
   Lemma offset_notundef
-      p m tg q ofs : 
+      p m tg q ofs :
     p (⊨_m,tg,q) ofs ⊢ ⌜p <> Vundef⌝.
   Proof.
     iIntros "A". unfold has_offset, _has_offset.
     des_ifs. iDestruct "A" as "[_ [_ []]]".
   Qed.
 
-  Lemma _offset_ptr 
-      {eff} {K:eventE -< eff} v m ofs : 
+  Lemma _offset_ptr
+      {eff} {K:eventE -< eff} v m ofs :
     v ⊨m# ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
     iIntros "A". unfold has_offset.
@@ -835,8 +835,8 @@ Section RULES.
     iDestruct "A" as "[A %]"; clarify.
   Qed.
 
-  Lemma offset_cast_ptr 
-      {eff} {K:eventE -< eff} v m tg q ofs : 
+  Lemma offset_cast_ptr
+      {eff} {K:eventE -< eff} v m tg q ofs :
     v (⊨_m,tg,q) ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
     iIntros "A". unfold has_offset. des_ifs.
@@ -844,8 +844,8 @@ Section RULES.
     des_ifs; iDestruct "A" as "[_ [_ %]]"; clarify.
   Qed.
 
-  Lemma point_cast_ptr 
-      {eff} {K:eventE -< eff} v m q mvs : 
+  Lemma point_cast_ptr
+      {eff} {K:eventE -< eff} v m q mvs :
     v (↦_m,q) mvs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
     iIntros "A". unfold points_to.
@@ -855,13 +855,13 @@ Section RULES.
     iApply _offset_ptr. et.
   Qed.
 
-  Lemma ptrofs_cast_ptr 
-      {eff} {K:eventE -< eff} i : 
+  Lemma ptrofs_cast_ptr
+      {eff} {K:eventE -< eff} i :
     @cast_to_ptr eff K (Vptrofs i) = Ret (Vptrofs i).
   Proof. unfold cast_to_ptr. des_ifs. Qed.
 
   Lemma points_to_is_ptr
-      v m q mvs : 
+      v m q mvs :
     v (↦_m,q) mvs ⊢ ⌜is_ptr_val v = true⌝.
   Proof.
     iIntros "A". unfold points_to, _has_offset.
@@ -872,7 +872,7 @@ Section RULES.
   Qed.
 
   Lemma decode_encode_ptr_ofs
-      v m tg q ofs : 
+      v m tg q ofs :
     v (⊨_m,tg,q) ofs ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
   Proof.
     unfold Mptr. des_ifs.
@@ -885,7 +885,7 @@ Section RULES.
   Qed.
 
   Lemma decode_encode_ptr_equiv
-      p m q : 
+      p m q :
     p (≃_m) q ⊢ ⌜decode_val Mptr (encode_val Mptr p) = p⌝.
   Proof.
     unfold Mptr. des_ifs.
@@ -898,13 +898,13 @@ Section RULES.
   Qed.
 
   Lemma add_null_r
-      v m tg q ofs: 
+      v m tg q ofs:
     v (⊨_m,tg,q) ofs ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
   Proof.
     iIntros "A". unfold has_offset, _has_offset.
     des_ifs; try solve [iDestruct "A" as "[A [A' %]]"; clarify].
     - iPureIntro. ss. unfold Vptrofs. des_ifs.
-      change (Ptrofs.to_int64 _) with Int64.zero. 
+      change (Ptrofs.to_int64 _) with Int64.zero.
       rewrite Int64.add_zero. et.
     - iPureIntro. ss. unfold Vptrofs. des_ifs.
       rewrite Ptrofs.of_int64_to_int64; et.
@@ -962,7 +962,7 @@ Section SPEC.
   (* Definition loadbytes_spec: fspec :=
     (mk_simple (fun '(vaddr, sz, q, mvs) => (
                     (ord_pure 0%nat),
-                    (fun varg => ⌜varg = (vaddr, sz)↑ /\ Z.of_nat (List.length mvs) = sz⌝ 
+                    (fun varg => ⌜varg = (vaddr, sz)↑ /\ Z.of_nat (List.length mvs) = sz⌝
                                 ** vaddr ⊢q#> mvs),
                     (fun vret => ⌜vret = mvs↑⌝ ** vaddr ⊢q#> mvs)
     ))). *)
@@ -1022,7 +1022,7 @@ Section SPEC.
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Ceq, Vnullptr, vaddr)↑ /\ weak_valid m ofs⌝
                          ** vaddr (⊨_m,tg,q) ofs),
-            (fun vret => ⌜vret = false↑⌝ 
+            (fun vret => ⌜vret = false↑⌝
                          ** vaddr (⊨_m,tg,q) ofs)
           )%I.
 
@@ -1031,7 +1031,7 @@ Section SPEC.
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Cne, Vnullptr, vaddr)↑ /\ weak_valid m ofs⌝
                          ** vaddr (⊨_m,tg,q) ofs),
-            (fun vret => ⌜vret = true↑⌝ 
+            (fun vret => ⌜vret = true↑⌝
                          ** vaddr (⊨_m,tg,q) ofs)
           )%I.
 
@@ -1040,7 +1040,7 @@ Section SPEC.
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Ceq, vaddr, Vnullptr)↑ /\ weak_valid m ofs⌝
                          ** vaddr (⊨_m,tg,q) ofs),
-            (fun vret => ⌜vret = false↑⌝ 
+            (fun vret => ⌜vret = false↑⌝
                          ** vaddr (⊨_m,tg,q) ofs)
           )%I.
 
@@ -1049,7 +1049,7 @@ Section SPEC.
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Cne, vaddr, Vnullptr)↑ /\ weak_valid m ofs⌝
                          ** vaddr (⊨_m,tg,q) ofs),
-            (fun vret => ⌜vret = true↑⌝ 
+            (fun vret => ⌜vret = true↑⌝
                          ** vaddr (⊨_m,tg,q) ofs)
           )%I.
 
@@ -1071,7 +1071,7 @@ Section SPEC.
                          /\ valid m0 ofs0 /\ valid m1 ofs1⌝
                          ** vaddr0 (⊨_m0,tg0,q0) ofs0
                          ** vaddr1 (⊨_m1,tg1,q1) ofs1),
-            (fun vret => ⌜vret = false↑⌝ 
+            (fun vret => ⌜vret = false↑⌝
                          ** vaddr0 (⊨_m0,tg0,q0) ofs0
                          ** vaddr1 (⊨_m1,tg1,q1) ofs1)
           )%I.
@@ -1083,7 +1083,7 @@ Section SPEC.
                          /\ valid m0 ofs0 /\ valid m1 ofs1⌝
                          ** vaddr0 (⊨_m0,tg0,q0) ofs0
                          ** vaddr1 (⊨_m1,tg1,q1) ofs1),
-            (fun vret => ⌜vret = true↑⌝ 
+            (fun vret => ⌜vret = true↑⌝
                          ** vaddr0 (⊨_m0,tg0,q0) ofs0
                          ** vaddr1 (⊨_m1,tg1,q1) ofs1)
           )%I.
@@ -1215,7 +1215,7 @@ Section SPEC.
   (* sealed *)
   Definition MemStb: list (gname * fspec).
     eapply (Seal.sealing "stb").
-    apply [("salloc", salloc_spec); ("sfree", sfree_spec); 
+    apply [("salloc", salloc_spec); ("sfree", sfree_spec);
            ("load", load_spec);
            (* ("loadbytes", loadbytes_spec);  *)
            ("store", store_spec);
@@ -1241,7 +1241,7 @@ Section MRS.
 
   Definition store_init_data (res : ClightPlusMemRA.__pointstoRA) (b : block) (p : Z) (optq : option Qp) (id : init_data) : option ClightPlusMemRA.__pointstoRA :=
     match id with
-    | Init_int8 n => 
+    | Init_int8 n =>
       if Zdivide_dec (align_chunk Mint8unsigned) p
       then
         match optq with
@@ -1289,7 +1289,7 @@ Section MRS.
         | None => Some res
         end
       else None
-    | Init_space z => 
+    | Init_space z =>
       match optq with
       | Some q => Some (__points_to b p (repeat (Byte Byte.zero) (Z.to_nat z)) q ⋅ res)
       | None => Some res
@@ -1321,7 +1321,7 @@ Section MRS.
   Definition alloc_global (res : ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) (b: block) (gd : globdef fundef type) : option (ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) :=
     let '(p, a, s) := res in
     match gd with
-    | Gfun _ => Some (p, a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (__has_size (Some b) 1)) 
+    | Gfun _ => Some (p, a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (__has_size (Some b) 1))
     | Gvar v =>
       let optq := match Globalenvs.Genv.perm_globvar v with
                   | Freeable | Writable => Some 1%Qp
@@ -1338,7 +1338,7 @@ Section MRS.
   Fixpoint alloc_globals (res : ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) (b: block) (sk: Sk.t) : option (ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) :=
     match sk with
     | nil => Some res
-    | g :: gl' => 
+    | g :: gl' =>
       let (_, gd) := g in
       match alloc_global res b gd with
       | Some res' => alloc_globals res' (Pos.succ b) gl'
@@ -1348,7 +1348,7 @@ Section MRS.
 
   Definition res_init : Mem.t :=
     match alloc_globals (ε, ε, ε) xH sk with
-    | Some (p, a, s) => (Auth.black p, Auth.black a, 
+    | Some (p, a, s) => (Auth.black p, Auth.black a,
                           s ⋅ (fun ob =>
                                 match ob with
                                 | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
@@ -1358,8 +1358,8 @@ Section MRS.
                             match ob with
                             | Some _ => OneShot.black
                             | None => OneShot.white Ptrofs.zero
-                            end) 
-    | None => (Auth.black ε, Auth.black ε, 
+                            end)
+    | None => (Auth.black ε, Auth.black ε,
                 fun ob =>
                   match  ob with
                   | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
@@ -1369,7 +1369,7 @@ Section MRS.
                   match ob with
                   | Some _ => OneShot.black
                   | None => OneShot.white Ptrofs.zero
-                  end) 
+                  end)
     end.
 
 End MRS.
@@ -1395,7 +1395,7 @@ Section SMOD.
     ]
   .
 
-  Definition SMemSem sk : SModSem.t := 
+  Definition SMemSem sk : SModSem.t :=
     {|
       SModSem.fnsems := MemSbtb;
       SModSem.mn := "Mem";

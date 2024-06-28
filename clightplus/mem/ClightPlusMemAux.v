@@ -49,7 +49,7 @@ Proof.
     apply IHl0. i. specialize (H0 (S i)). ss.
 Qed.
 
-Lemma nth_error_getN n i m idx : 
+Lemma nth_error_getN n i m idx :
   (idx < n)%nat ->
   nth_error (Mem.getN n i m) idx = Some (Maps.ZMap.get (i + (Z.of_nat idx)) m).
 Proof.
@@ -172,7 +172,7 @@ Proof.
       bsimpl. assert (In Undef l). { clear -H. induction l; ss. bsimpl. des; et. destruct a; ss; et. }
       hexploit decode_val_undef; et. i. rewrite H2.
       apply in_map with (f:=Mem._decode_normalize_mv mem) in H1.
-      hexploit decode_val_undef; et. 
+      hexploit decode_val_undef; et.
     + unfold Mem.normalize_mvs. des_ifs; clear Heq0.
       unfold Mem.qarchi in Heq. des_ifs.
       unfold proj_value in Heq.

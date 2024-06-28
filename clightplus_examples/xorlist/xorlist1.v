@@ -28,7 +28,7 @@ Section PROP.
       then None
       else if Val.eq Vzero from_tail then Some (Z.to_nat (Int.unsigned i))
            else Some (List.length l - Z.to_nat (Int.unsigned i))
-    | Vlong i => 
+    | Vlong i =>
       if negb (Coqlib.zle 0 (Int64.unsigned i) && Coqlib.zlt (Int64.unsigned i) (Z.of_nat (List.length l)))
       then None
       else if Val.eq Vzero from_tail then Some (Z.to_nat (Int64.unsigned i))
@@ -171,7 +171,7 @@ Section PROP.
     iIntros "[[[d e] f] %]".
     unfold full_xorlist. simpl.
     destruct (Val.eq Vnullptr Vnullptr); clarify.
-    iExists _,_,_. 
+    iExists _,_,_.
     iPoseProof (offset_dup with "f") as "[f f']".
     iSplitR "f'". iSplitR "".
     iSplitR "". iSplitR "e". iSplitR "f".
@@ -182,13 +182,13 @@ Section PROP.
     { simpl. iPureIntro. ss. }
     { simpl. iPureIntro. ss. }
   Qed. *)
-    
+
   Lemma rev_xorlist q m_prev m_next hd_prev hd tl tl_next xs
     : frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs
       ⊢ frag_xorlist q m_next m_prev tl_next tl hd hd_prev (rev xs).
   Proof.
     ginduction xs; i; ss.
-    - iIntros "[A B]". 
+    - iIntros "[A B]".
       iPoseProof (equiv_sym with "A") as "A".
       iPoseProof (equiv_sym with "B") as "B". iFrame.
     - destruct a; try solve [iIntros "[]"].
@@ -208,13 +208,13 @@ Section PROP.
         iPoseProof (equiv_sym with "A") as "A".
         iPoseProof (equiv_sym with "E") as "E".
         rewrite Ptrofs.xor_commut.
-        iExists i_next,i_prev,_. iFrame. 
+        iExists i_next,i_prev,_. iFrame.
         et.
       + iIntros "[A [B [C D]]]".
         destruct a; try solve [iDestruct "D" as "[]"].
         iDestruct "D" as (i_prev0 i_next0 m_hd0) "[[[[% G] D] E] F]".
         iExists _,_,_. iFrame. iSplit; ss.
-        iApply IHl. { apply H0. } iFrame. 
+        iApply IHl. { apply H0. } iFrame.
   Qed.
 
   Lemma xorlist_hd_deen q m_prev m_next hd_prev hd tl tl_next xs
@@ -223,7 +223,7 @@ Section PROP.
     destruct xs.
     - ss. iIntros "[A B]". iApply decode_encode_ptr_equiv. et.
     - ss. iIntros "A". destruct v; clarify.
-      iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]". 
+      iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".
       iApply decode_encode_ptr_ofs. et.
   Qed.
 
@@ -232,8 +232,8 @@ Section PROP.
   Proof.
     destruct xs.
     - ss. iIntros "[A B]". iApply equiv_notundef. et.
-    - ss. des_ifs; et. iIntros "A". 
-      iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]". 
+    - ss. des_ifs; et. iIntros "A".
+      iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".
       iApply offset_notundef. et.
   Qed.
 
@@ -243,7 +243,7 @@ Section PROP.
     ginduction xs; i; ss.
     - iIntros "[A B]". iApply decode_encode_ptr_equiv. iApply equiv_sym. et.
     - ss. iIntros "A". destruct a; clarify.
-      iDestruct "A" as (i_prev i_next m_hd) "[_ A]". 
+      iDestruct "A" as (i_prev i_next m_hd) "[_ A]".
       iApply IHxs. et.
   Qed.
 
@@ -253,7 +253,7 @@ Section PROP.
     ginduction xs; i; ss.
     - ss. iIntros "[A B]". iApply equiv_notundef. iApply equiv_sym. et.
     - ss. iIntros "A". destruct a; clarify.
-      iDestruct "A" as (i_prev i_next m_hd) "[_ A]". 
+      iDestruct "A" as (i_prev i_next m_hd) "[_ A]".
       iApply IHxs. et.
   Qed.
 
@@ -263,7 +263,7 @@ Section PROP.
     destruct xs; i; ss.
     - ss. iIntros "[[A B] C]". iFrame. iApply equiv_trans. iFrame. iApply equiv_sym. et.
     - ss. iIntros "[A B]". destruct v; clarify.
-      iDestruct "A" as (i_prev i_next m_hd) "[[[[% F] D] E] A]". 
+      iDestruct "A" as (i_prev i_next m_hd) "[[[[% F] D] E] A]".
       iExists _,_,_. iFrame. iSplit; ss. iApply equiv_trans. iFrame. iApply equiv_sym. et.
   Qed.
 
@@ -316,7 +316,7 @@ Section SPEC.
             (ord_pure 1%nat),
             (fun varg => ⌜varg = [Vnullptr; Vnullptr]↑⌝),
             (fun vret => ⌜vret = Vnullptr↑⌝))%I.
-  
+
   Definition encrypt_spec :=
     mk_simple (
       encrypt_hoare1
@@ -333,13 +333,13 @@ Section SPEC.
         (fun vret => ∃ i_ptr, ⌜vret = (Vptrofs (Ptrofs.xor i_key i_ptr))↑⌝
                      ** ptr (⊨_m,tg,q) ofs
                      ** ptr (≃_m) (Vptrofs i_ptr)))%I.
-                     
+
   Definition decrypt_hoare2 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
       fun '(i_key) => (
         (ord_pure 1%nat),
         (fun varg => ⌜varg = [Vptrofs i_key; Vnullptr]↑⌝),
         (fun vret => ⌜vret = (Vptrofs i_key)↑⌝))%I.
-  
+
   Definition decrypt_spec : fspec :=
     mk_simple (
       decrypt_hoare1
@@ -432,5 +432,5 @@ Section SMOD.
      ("delete_hd", mk_pure delete_hd_spec);
      ("delete_tl", mk_pure delete_tl_spec)
      ].
-  
+
 End SMOD.

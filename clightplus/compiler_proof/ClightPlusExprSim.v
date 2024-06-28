@@ -28,7 +28,7 @@ Section PROOF.
   Ltac sim_tau := (try sim_red); try pfold; econs 3; ss; clarify; eexists; exists (step_tau _).
 
   Ltac solve_ub := des; irw in H; dependent destruction H; clarify.
-  Ltac sim_triggerUB := 
+  Ltac sim_triggerUB :=
     (try rename H into HH); ss; unfold triggerUB; try sim_red; try pfold; econs 5; i; ss; auto;
                         [solve_ub | irw in  STEP; dependent destruction STEP; clarify].
 
@@ -60,14 +60,14 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: p_state * val <- 
+      (`r0: p_state * val <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "load" (chunk, addr))) 
+          (transl_all mn (ccallU "load" (chunk, addr)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
-    unfold ccallU. sim_red. 
+    unfold ccallU. sim_red.
     sim_tau. ss. sim_red. unfold loadF. repeat (sim_red; sim_tau). sim_red.
     rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase. sim_tau. sim_red. rewrite Any.upcast_downcast.
     sim_red. eapplyf NEXT. unfold Mem.loadv in *. des_ifs_safe.
@@ -99,17 +99,17 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: p_state * () <- 
+      (`r0: p_state * () <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "store" (chunk, addr, v))) 
+          (transl_all mn (ccallU "store" (chunk, addr, v)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
     unfold ccallU. sim_red. sim_tau. ss. sim_red. unfold storeF. sim_red. repeat (sim_tau; sim_red).
     rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase. repeat (sim_tau; sim_red). rewrite Any.upcast_downcast.
     sim_red. unfold Mem.storev in Heq. des_ifs.
-    - hexploit match_mem_denormalize; et. i. 
+    - hexploit match_mem_denormalize; et. i.
       hexploit match_mem_store; et. i. des. eapplyf NEXT; et.
       unfold Mem.storev. ss. des_ifs.
     - hexploit match_mem_store; et. i. des. eapplyf NEXT; et.
@@ -134,10 +134,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: p_state * val <- 
+      (`r0: p_state * val <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "memcpy" (al, sz, [vp; v]))) 
+          (transl_all mn (ccallU "memcpy" (al, sz, [vp; v])))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -185,10 +185,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: p_state * list memval <- 
+      (`r0: p_state * list memval <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "loadbytes" (Vptr blk ofs, n))) 
+          (transl_all mn (ccallU "loadbytes" (Vptr blk ofs, n)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -216,10 +216,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: p_state * () <- 
+      (`r0: p_state * () <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "storebytes" (Vptr blk ofs, l))) 
+          (transl_all mn (ccallU "storebytes" (Vptr blk ofs, l)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -246,10 +246,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (load_bitfield_c ty sz sg pos width addr)) 
+          (transl_all mn (load_bitfield_c ty sz sg pos width addr))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -277,15 +277,15 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (store_bitfield_c ty sz sg pos width addr v)) 
+          (transl_all mn (store_bitfield_c ty sz sg pos width addr v))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
     unfold store_bitfield_c. remove_UBcase;
-      eapply step_load; et; i; remove_UBcase; 
+      eapply step_load; et; i; remove_UBcase;
         eapply step_store; et; i; sim_red;
           eapplyf NEXT; et; econs; et; try nia; des_ifs.
   Qed. *)
@@ -309,10 +309,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "sub_ptr" (sz, v1, v2))) 
+          (transl_all mn (ccallU "sub_ptr" (sz, v1, v2)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -348,7 +348,7 @@ Section PROOF.
         unfold Cop._sem_ptr_sub, IntPtrRel.to_ptr_val, IntPtrRel.option_to_val.
         rewrite H. des_ifs.
         all: try solve [ss; clarify].
-        simpl in Heq0. unfold IntPtrRel.to_int_val in Heq5. simpl in Heq5. clarify. 
+        simpl in Heq0. unfold IntPtrRel.to_int_val in Heq5. simpl in Heq5. clarify.
         clear - Heq6 H Heq4.
         unfold IntPtrRel.to_int_val, IntPtrRel.option_to_val in Heq6.
         des_ifs. unfold Mem.to_ptr, Mem.to_int, Mem.ptr2int_v, Mem.ptr2int in *.
@@ -454,7 +454,7 @@ Section PROOF.
         eapply Int64.eqm_trans.
         { apply Int64.eqm_sub. apply Int64.eqm_refl. apply Int64.eqm_sym. apply Int64.eqm_unsigned_repr. }
         eapply Int64.eqm_refl2. nia.
-    - destruct eq_block eqn:? in Heq0; clarify. 
+    - destruct eq_block eqn:? in Heq0; clarify.
       subst. destruct eq_block; clarify.
   Qed.
 
@@ -462,7 +462,7 @@ Section PROOF.
     (MM: match_mem sk tge m tm)
     (MGE: match_ge sk tge)
     (SVAL: IntPtrRel.to_ptr_val m v = Vptr b ofs)
-  : 
+  :
     IntPtrRel.to_ptr_val tm (map_val sk tge v) = Vptr (map_blk sk tge b) ofs.
   Proof.
     unfold IntPtrRel.to_ptr_val in *. destruct (Mem.to_ptr _ tm) eqn:?; destruct (Mem.to_ptr _ m) eqn:?; ss; clarify.
@@ -474,7 +474,7 @@ Section PROOF.
     (MM: match_mem sk tge m tm)
     (MGE: match_ge sk tge)
     (SVAL: IntPtrRel.to_int_val m v = Vlong i)
-  : 
+  :
     IntPtrRel.to_int_val tm (map_val sk tge v) = Vlong i.
   Proof.
     unfold IntPtrRel.to_int_val in *. destruct (Mem.to_int _ tm) eqn:?; destruct (Mem.to_int _ m) eqn:?; ss; clarify.
@@ -500,10 +500,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
-      (`r0: (p_state * bool) <- 
+      (`r0: (p_state * bool) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "cmp_ptr" (c, v1, v2))) 
+          (transl_all mn (ccallU "cmp_ptr" (c, v1, v2)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -759,7 +759,7 @@ Section PROOF.
         des_ifs. rewrite Heq2. ss.
   Qed.
 
-        
+
   Lemma step_non_null_ptr pstate f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
     (EQ: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
@@ -776,10 +776,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
-      (`r0: (p_state * bool) <- 
+      (`r0: (p_state * bool) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (ccallU "non_null?" (Vptr blk ofs))) 
+          (transl_all mn (ccallU "non_null?" (Vptr blk ofs)))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -803,7 +803,7 @@ Section PROOF.
     (MM: match_mem sk tge m tm)
     v ty
  r bflag tcode tf tcont mn ktr
-    (NEXT: forall b, 
+    (NEXT: forall b,
             Cop.bool_val (map_val sk tge v) ty tm = Some b ->
             paco4
               (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
@@ -812,12 +812,12 @@ Section PROOF.
   :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true bflag
-      (`r0: (p_state * bool) <- 
+      (`r0: (p_state * bool) <-
         (EventsL.interp_Es
           (prog f_table)
           (transl_all mn (bool_val_c v ty))
           pstate);; ktr r0)
-      (State tf tcode tcont te tle tm). 
+      (State tf tcode tcont te tle tm).
   Proof.
     unfold bool_val_c.
     remove_UBcase; try solve [eapply NEXT; unfold Cop.bool_val; rewrite Heq; et].
@@ -842,10 +842,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (sem_cast_c v ty1 ty2)) 
+          (transl_all mn (sem_cast_c v ty1 ty2))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -877,10 +877,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * ())<- 
+      (`r0: (p_state * ())<-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (assign_loc_c ce ty vp v)) 
+          (transl_all mn (assign_loc_c ce ty vp v))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -911,10 +911,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (deref_loc_c ty vp)) 
+          (transl_all mn (deref_loc_c ty vp))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -930,7 +930,7 @@ Section PROOF.
     (ME: match_e sk tge e te)
     (MLE: match_le sk tge le tle)
     (MM: match_mem sk tge m tm)
-    uop v ty 
+    uop v ty
     tf tcode tcont ktr b r mn
     (NEXT: forall v',
             Cop.sem_unary_operation uop (map_val sk tge v) ty tm = Some (map_val sk tge v') ->
@@ -941,10 +941,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (unary_op_c uop v ty)) 
+          (transl_all mn (unary_op_c uop v ty))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -985,10 +985,10 @@ Section PROOF.
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (binary_op_c ce biop v1 ty1 v2 ty2)) 
+          (transl_all mn (binary_op_c ce biop v1 ty1 v2 ty2))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof.
@@ -1035,10 +1035,10 @@ Section PROOF.
       eapply step_sem_cast; et. i. remove_UBcase.
       all: apply NEXT; unfold Cop.sem_binary_operation, Cop.sem_xor, Cop.sem_binarith; rewrite Heq; des_ifs.
     - unfold unwrapU. remove_UBcase.
-       eapplyf NEXT. i; clarify; unfold Cop.sem_binary_operation, Cop.sem_shl; unfold Cop.sem_binarith; 
+       eapplyf NEXT. i; clarify; unfold Cop.sem_binary_operation, Cop.sem_shl; unfold Cop.sem_binarith;
         unfold Cop.sem_shift in *; des_ifs; ss; clarify.
     - unfold unwrapU. remove_UBcase.
-      eapplyf NEXT; i; clarify; unfold Cop.sem_binary_operation, Cop.sem_shr; unfold Cop.sem_binarith; 
+      eapplyf NEXT; i; clarify; unfold Cop.sem_binary_operation, Cop.sem_shr; unfold Cop.sem_binarith;
         unfold Cop.sem_shift in *; des_ifs; ss; clarify.
     - destruct Cop.classify_cmp eqn:?; remove_UBcase.
       + eapply step_cmp_ptr; et. i. sim_red. eapply NEXT. ss. unfold Cop.sem_cmp. des_ifs.
@@ -1188,7 +1188,7 @@ Section PROOF.
 
   Lemma _step_eval pstate ge ce tce f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
-    (EQ1: tce = ge.(genv_cenv)) 
+    (EQ1: tce = ge.(genv_cenv))
     (EQ2: tge = ge.(genv_genv))
     (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
@@ -1199,44 +1199,44 @@ Section PROOF.
  r b tcode tf tcont mn a
  :
   (forall ktr1,
-    (forall vp, 
+    (forall vp,
       eval_lvalue ge te tle tm a (map_val sk tge vp) ->
       paco4
         (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
         (ktr1 (pstate, vp))
-        (State tf tcode tcont te tle tm)) 
+        (State tf tcode tcont te tle tm))
     ->
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (eval_lvalue_c sk ce e le a)) 
+          (transl_all mn (eval_lvalue_c sk ce e le a))
           pstate);; ktr1 r0)
-      (State tf tcode tcont te tle tm)) 
+      (State tf tcode tcont te tle tm))
   /\
   (forall ktr2,
-    (forall v, 
+    (forall v,
       eval_expr ge te tle tm a (map_val sk tge v) ->
       paco4
         (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
         (ktr2 (pstate, v))
-        (State tf tcode tcont te tle tm)) 
+        (State tf tcode tcont te tle tm))
     ->
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * Values.val) <- 
+      (`r0: (p_state * Values.val) <-
         (EventsL.interp_Es
           (prog f_table)
           (transl_all mn (eval_expr_c sk ce e le a))
           pstate);; ktr2 r0)
-      (State tf tcode tcont te tle tm)). 
+      (State tf tcode tcont te tle tm)).
   Proof.
     induction a.
     1,2,3,4 : split; i; remove_UBcase; eapply H; try econs.
     2,4,5,6,7 : des; split; i; remove_UBcase; ss.
     - split; i; ss.
-      + remove_UBcase; eapply H; et. 
+      + remove_UBcase; eapply H; et.
         * econs. eapply env_match_some in ME; et.
         * econs 2; try solve [eapply env_match_none; et]. inv MGE. unfold valid_check in Heq.
           destruct Pos.eq_dec; ss. rewrite e0. eapply MGE0; et.
@@ -1249,11 +1249,11 @@ Section PROOF.
     - eapply IHa0. i. eapply step_unary_op; et. i. eapply H; et. econs; et.
     - eapply IHa3. i. sim_red. eapply IHa0. i. eapply step_binary_op; et.
       i. eapply H; et. econs; et.
-    - eapply IHa0. i. eapply step_sem_cast; et. i. eapply H; et. econs; et. 
+    - eapply IHa0. i. eapply step_sem_cast; et. i. eapply H; et. econs; et.
     - des; split; i; ss; remove_UBcase; eapply IHa0; i; remove_UBcase.
       + eapply H. econs; et. destruct v; ss.
       + eapply step_deref_loc; et. i. sim_red. eapply H. econs; et. econs;et. destruct v; ss.
-    - des. split; i; ss; sim_red; eapply IHa0; i; subst. 
+    - des. split; i; ss; sim_red; eapply IHa0; i; subst.
       + remove_UBcase; unfold unwrapU; remove_UBcase; remove_UBcase; eapply H; et.
         * econs; et. { destruct v; ss. }
           { inv MCE. rewrite <- MCE0 in Heq2. apply Maps.PTree.elements_complete. et. }
@@ -1297,8 +1297,8 @@ Section PROOF.
 
   Lemma step_eval_lvalue pstate ge tce ce f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
-    (EQ1: tce = ge.(genv_cenv)) 
-    (EQ2: tge = ge.(genv_genv)) 
+    (EQ1: tce = ge.(genv_cenv))
+    (EQ2: tge = ge.(genv_genv))
     (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
     (ME: match_e sk tge e te)
@@ -1306,7 +1306,7 @@ Section PROOF.
     (MCE: match_ce ce tce)
     (MM: match_mem sk tge m tm)
  r b tcode tf tcont mn a ktr
-    (NEXT: forall vp, 
+    (NEXT: forall vp,
             eval_lvalue ge te tle tm a (map_val sk tge vp) ->
             paco4
               (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
@@ -1315,18 +1315,18 @@ Section PROOF.
   :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * val) <- 
+      (`r0: (p_state * val) <-
         (EventsL.interp_Es
           (prog f_table)
-          (transl_all mn (eval_lvalue_c sk ce e le a)) 
+          (transl_all mn (eval_lvalue_c sk ce e le a))
           pstate);; ktr r0)
       (State tf tcode tcont te tle tm).
   Proof. hexploit _step_eval; et. i. des. et. Qed.
 
   Lemma step_eval_expr pstate ge tce ce f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
-    (EQ1: tce = ge.(genv_cenv)) 
-    (EQ2: tge = ge.(genv_genv)) 
+    (EQ1: tce = ge.(genv_cenv))
+    (EQ2: tge = ge.(genv_genv))
     (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
     (ME: match_e sk tge e te)
@@ -1334,7 +1334,7 @@ Section PROOF.
     (MCE: match_ce ce tce)
     (MM: match_mem sk tge m tm)
  r b tcode tf tcont mn a ktr
-    (NEXT: forall v v', 
+    (NEXT: forall v v',
             eval_expr ge te tle tm a v ->
             v = map_val sk tge v' ->
             paco4
@@ -1344,19 +1344,19 @@ Section PROOF.
   :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * Values.val) <- 
+      (`r0: (p_state * Values.val) <-
         (EventsL.interp_Es
           (prog f_table)
           (transl_all mn (eval_expr_c sk ce e le a))
           pstate);; ktr r0)
-      (State tf tcode tcont te tle tm). 
+      (State tf tcode tcont te tle tm).
   Proof. hexploit _step_eval; et. i. des. et. Qed.
 
 
   Lemma step_eval_exprlist pstate ge tce ce f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
-    (EQ1: tce = ge.(genv_cenv)) 
-    (EQ2: tge = ge.(genv_genv)) 
+    (EQ1: tce = ge.(genv_cenv))
+    (EQ2: tge = ge.(genv_genv))
     (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
     (ME: match_e sk tge e te)
@@ -1365,7 +1365,7 @@ Section PROOF.
     (MM: match_mem sk tge m tm)
     al tyl
  r b tcode tf tcont mn ktr
-    (NEXT: forall vl, 
+    (NEXT: forall vl,
             eval_exprlist ge te tle tm al tyl (List.map (map_val sk tge) vl) ->
             paco4
               (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
@@ -1374,12 +1374,12 @@ Section PROOF.
   :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
-      (`r0: (p_state * list Values.val) <- 
+      (`r0: (p_state * list Values.val) <-
         (EventsL.interp_Es
           (prog f_table)
           (transl_all mn (eval_exprlist_c sk ce e le al tyl))
           pstate);; ktr r0)
-      (State tf tcode tcont te tle tm). 
+      (State tf tcode tcont te tle tm).
   Proof.
     depgen tyl. revert ktr. induction al; i.
     - ss. remove_UBcase. eapplyf NEXT. econs.

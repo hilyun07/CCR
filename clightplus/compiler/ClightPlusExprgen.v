@@ -148,26 +148,26 @@ Variable ce: comp_env.
 Section EVAL_EXPR_COMP.
 
   Local Open Scope Z.
-  
+
   Definition divide_c (n m: Z): bool :=
     let x := m / n in
     (x * n =? m).
 
-  (* Definition load_bitfield_c (ty: type) 
-            (sz: intsize) (sg: signedness) (pos: Z) (width: Z) 
+  (* Definition load_bitfield_c (ty: type)
+            (sz: intsize) (sg: signedness) (pos: Z) (width: Z)
             (addr: val) : itree eff val :=
-  let chk := (0 <=? pos) && (0 <? width) 
-            && (width <=? bitsize_intsize sz) 
+  let chk := (0 <=? pos) && (0 <? width)
+            && (width <=? bitsize_intsize sz)
             && (pos + width <=? Cop.bitsize_carrier sz) in
   match ty, chk with
   | Tint i sg1 attr, true =>
     if intsize_eq i sz then
       if signedness_eq sg1
-          (if Coqlib.zlt width (bitsize_intsize sz) 
-          then Signed else sg) 
+          (if Coqlib.zlt width (bitsize_intsize sz)
+          then Signed else sg)
       then v <- ccallU "load" (Cop.chunk_for_carrier sz, addr);;
         match v with
-        | Vint c => 
+        | Vint c =>
           Ret (Vint (Cop.bitfield_extract sz sg pos width c))
         | _ => triggerUB
         end
@@ -176,21 +176,21 @@ Section EVAL_EXPR_COMP.
   | _, _ => triggerUB
   end.
 
-  Definition store_bitfield_c (ty: type) 
-            (sz: intsize) (sg: signedness) (pos: Z) (width: Z) 
+  Definition store_bitfield_c (ty: type)
+            (sz: intsize) (sg: signedness) (pos: Z) (width: Z)
             (addr: val) (v: val) : itree eff val :=
-  let chk := (0 <=? pos) && (0 <? width) 
-            && (width <=? bitsize_intsize sz) 
+  let chk := (0 <=? pos) && (0 <? width)
+            && (width <=? bitsize_intsize sz)
             && (pos + width <=? Cop.bitsize_carrier sz) in
   match ty, v, chk with
   | Tint i sg1 attr, Vint n, true =>
     if intsize_eq i sz then
       if signedness_eq sg1
-        (if Coqlib.zlt width (bitsize_intsize sz) 
-        then Signed else sg) 
+        (if Coqlib.zlt width (bitsize_intsize sz)
+        then Signed else sg)
       then v <- ccallU "load" (Cop.chunk_for_carrier sz, addr);;
         match v with
-        | Vint c => 
+        | Vint c =>
           let stored_v := Vint (Int.bitfield_insert (Cop.first_bit sz pos width) width c n) in
           `_ : () <- ccallU "store" (Cop.chunk_for_carrier sz, addr, stored_v);;
           Ret (Vint (Cop.bitfield_normalize sz sg width n))
@@ -302,7 +302,7 @@ Section EVAL_EXPR_COMP.
     | Cop.bool_default => triggerUB
     end
   .
-  
+
   Definition unary_op_c op v ty: itree eff val :=
     match op with
     | Cop.Onotbool =>
@@ -369,7 +369,7 @@ Section EVAL_EXPR_COMP.
     | Cop.cast_case_s2i sz2 si2 =>
       match v with
       | Vsingle f =>
-        i <- (Cop.cast_single_int si2 f)?;; 
+        i <- (Cop.cast_single_int si2 f)?;;
         Ret (Vint (Cop.cast_int_int sz2 si2 i))
       | _ => triggerUB
       end
@@ -463,7 +463,7 @@ Section EVAL_EXPR_COMP.
     | Cop.cast_case_void => Ret v
     | Cop.cast_case_default => triggerUB
     end.
-  
+
   Definition sem_binarith_c sem_int sem_long sem_float sem_single
              v1 t1 v2 t2: itree eff val :=
     let c := Cop.classify_binarith t1 t2 in
@@ -509,7 +509,7 @@ Section EVAL_EXPR_COMP.
       end
     | Cop.bin_default => triggerUB
     end.
-  
+
   Definition sem_add_ptr_int_c cenv ty si v1 v2: itree eff val :=
     match v1, v2 with
     | Vint n1, Vint n2 =>
@@ -583,7 +583,7 @@ Section EVAL_EXPR_COMP.
         end
       | _ => triggerUB
       end
-    | Cop.sub_case_pp ty => 
+    | Cop.sub_case_pp ty =>
       let sz := sizeof cenv ty in
       ccallU "sub_ptr" (sz, v1, v2)
     | Cop.sub_case_pl ty =>
@@ -687,7 +687,7 @@ Section EVAL_EXPR_COMP.
            else Some (Vlong (Int64.modu n1 n2))
          end) (fun _ _ : Floats.float => None) (fun _ _ : Floats.float32 => None)
       v1 t1 v2 t2.
-  
+
   Definition sem_and_c v1 t1 v2 t2: itree eff val :=
     sem_binarith_c
       (fun (_ : signedness) (n1 n2 : int) => Some (Vint (Int.and n1 n2)))
@@ -836,7 +836,7 @@ Section EVAL_EXPR_COMP.
     | [], Ctypes.Tnil => Ret []
     | e::es', Ctypes.Tcons ty ts' =>
       v1 <- eval_expr_c e;;
-      vs <- eval_exprlist_c es' ts';; 
+      vs <- eval_exprlist_c es' ts';;
       v1' <- sem_cast_c v1 (typeof e) ty;;
       Ret (v1':: vs)
     | _, _ => triggerUB

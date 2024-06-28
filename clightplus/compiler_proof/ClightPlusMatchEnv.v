@@ -33,7 +33,7 @@ Section MATCH.
   Definition map_blk : positive -> block :=
     fun blk =>
       if (le_dec (Pos.of_succ_nat (length sk)) blk)%positive
-      then 
+      then
         match Zpos blk + (Z.pos tge.(Genv.genv_next) - Z.pos (Pos.of_succ_nat (length sk))) with
         | Zpos tblk => tblk
         | _ => dummy_blk (* unreachable *)
@@ -77,7 +77,7 @@ Section MATCH.
 
   Variant match_le : ClightPlusExprgen.temp_env -> temp_env -> Prop :=
   | match_le_intro
-      sle tle 
+      sle tle
       (ML: forall id sv, alist_find id sle = Some sv -> Maps.PTree.get id tle = Some (map_val sv))
     :
       match_le sle tle.
@@ -88,7 +88,7 @@ Section MATCH.
 
   Variant match_e : ClightPlusExprgen.env -> env -> Prop :=
   | match_e_intro
-      se te 
+      se te
       (ENVWF: NoDup (map fst se))
       (ME: forall a, In a (Maps.PTree.elements te) <-> In a (List.map map_env_entry se))
     :
@@ -108,8 +108,8 @@ Section MATCH.
     :
       alist_find i e = None -> te ! i = None.
   Proof.
-    i. destruct (te ! i) eqn:?; et. apply PTree.elements_correct in Heqo. 
-    inv ME. rewrite ME0 in Heqo. rewrite in_map_iff in Heqo.  des. 
+    i. destruct (te ! i) eqn:?; et. apply PTree.elements_correct in Heqo.
+    inv ME. rewrite ME0 in Heqo. rewrite in_map_iff in Heqo.  des.
     destruct x. ss. des_ifs_safe. exfalso. eapply alist_find_none in H. apply H. et.
   Qed.
 
@@ -134,7 +134,7 @@ Section MATCH.
     :
       alist_find i ce = None -> tce ! i = None.
   Proof.
-    i. destruct (tce ! i) eqn:?; et. apply PTree.elements_correct in Heqo. 
+    i. destruct (tce ! i) eqn:?; et. apply PTree.elements_correct in Heqo.
     inv MCE. rewrite MCE0 in Heqo. unfold ident in *. clarify.
   Qed.
 

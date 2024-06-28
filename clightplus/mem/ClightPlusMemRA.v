@@ -25,7 +25,7 @@ Section MEM.
   Let _add : car -> car -> car :=
     fun '(a0, b0, c0, d0) '(a1, b1, c1, d1) =>
       (URA.add a0 a1, URA.add b0 b1, URA.add c0 c1, URA.add d0 d1).
-  
+
   Let _wf : car -> Prop :=
     fun '(_p, _a, _s, _c) =>
       URA.wf _p /\ URA.wf _a /\ URA.wf _s /\ URA.wf _c /\
@@ -72,7 +72,7 @@ Section MEM.
 
   Next Obligation. subst _add. ss. des_ifs; et. rewrite (URA.add_comm c1). rewrite (URA.add_comm c2). rewrite (URA.add_comm c0). rewrite (URA.add_comm c). et. Qed.
   Next Obligation. subst _add. ss. des_ifs. rewrite URA.add_assoc. rewrite URA.add_assoc. rewrite URA.add_assoc. rewrite URA.add_assoc. et. Qed.
-  Next Obligation. subst _add. ss. des_ifs. unfold _unit in Heq. clarify. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. et. Qed. 
+  Next Obligation. subst _add. ss. des_ifs. unfold _unit in Heq. clarify. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. rewrite URA.unit_id. et. Qed.
   Next Obligation.
   Local Transparent URA.unit.
     unfold "ε" in Heq. ss. clarify. ur. ur. ur. ur. splits; et; i; clarify.
@@ -159,7 +159,7 @@ Lemma update_same_blk K `{Dec K} V
 Proof. unfold update. des_ifs. Qed.
 
 Lemma update_diff_blk K `{Dec K} V
-    m k k' (v: V) 
+    m k k' (v: V)
     (NEQ: k <> k'):
   update m k v k' = m k'
 .
@@ -170,7 +170,7 @@ Section POINTSTO.
   Definition __points_to (b: block) (ofs: Z) (mvs: list memval) (q: Qp): __pointstoRA :=
     fun _b _ofs =>
       if (Pos.eq_dec _b b) && (Coqlib.zle ofs _ofs) && (Coqlib.zlt _ofs (ofs + Z.of_nat (List.length mvs)))
-      then 
+      then
         match List.nth_error mvs (Z.to_nat (_ofs - ofs)) with
         | Some mv => Consent.just q mv
         | None => Consent.unit
@@ -279,7 +279,7 @@ Section PROPS.
   Proof.
     ur. i. ur in WF. destruct (Pos.eq_dec blk k); cycle 1.
     { rewrite allocated_with_diff_blk; et. rewrite URA.unit_id. et. }
-    clarify. rewrite UA. rewrite URA.unit_idl. ur. unfold __allocated_with. des_ifs. 
+    clarify. rewrite UA. rewrite URA.unit_idl. ur. unfold __allocated_with. des_ifs.
   Qed.
 
   Lemma alloc_update
@@ -291,8 +291,8 @@ Section PROPS.
       (UA: a blk = Consent.unit)
       (BS: s (Some blk) = OneShot.black)
       (BC: c (Some blk) = OneShot.black) :
-    URA.updatable (t:=Mem.t) (Auth.black p, Auth.black a, s, c) 
-      (Auth.black (p ⋅ __points_to blk z mvl qp) ⋅ Auth.white (__points_to blk z mvl qp), 
+    URA.updatable (t:=Mem.t) (Auth.black p, Auth.black a, s, c)
+      (Auth.black (p ⋅ __points_to blk z mvl qp) ⋅ Auth.white (__points_to blk z mvl qp),
         Auth.black (a ⋅ __allocated_with blk tg qa) ⋅ Auth.white (__allocated_with blk tg qa),
           update s (Some blk) (OneShot.white sz), c)
   .
@@ -322,17 +322,17 @@ Section PROPS.
       destruct (AList.dec blk b1); clarify. { rewrite BC in *. ur in H9. des_ifs. }
       rewrite update_diff_blk in H8. 2:{ ii. apply n0. clarify. }
       rewrite update_diff_blk in H5. 2:{ ii. apply n0. clarify. }
-      do 2 ur in H3. do 2 ur in H7. rewrite points_to_diff_blk in H3; et. rewrite points_to_diff_blk in H7; et. 
+      do 2 ur in H3. do 2 ur in H7. rewrite points_to_diff_blk in H3; et. rewrite points_to_diff_blk in H7; et.
       rewrite URA.unit_idl in H3. rewrite URA.unit_idl in H7. rewrite URA.unit_idl in H4. et.
   Qed.
 
   Lemma free_update
       (p: __pointstoRA) (a: __allocatedRA) (s: _blocksizeRA) (c: _blockaddressRA)
-      (blk: block) (z: Z) (mvl: list memval) (tg: tag) (qp qa: Qp) 
+      (blk: block) (z: Z) (mvl: list memval) (tg: tag) (qp qa: Qp)
       (UP: forall (ofs: Z) (RANGE: z ≤ ofs < z + length mvl), p blk ofs = __points_to blk z mvl qp blk ofs)
       (UA: a blk = Consent.just qa tg) :
-    URA.updatable (t:=Mem.t) 
-      (Auth.black p ⋅ Auth.white (__points_to blk z mvl qp), 
+    URA.updatable (t:=Mem.t)
+      (Auth.black p ⋅ Auth.white (__points_to blk z mvl qp),
         Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, c)
       (Auth.black (update p blk (fun _ofs => if Coqlib.zle z _ofs && Coqlib.zlt _ofs (z + length mvl) then Consent.unit else p blk _ofs) : __pointstoRA),
         (Auth.black (update a blk Consent.unit : __allocatedRA)), s, c)
@@ -340,7 +340,7 @@ Section PROPS.
   Proof.
     ii. destruct ctx as [[[p' a'] s'] c']. ur in H. des. ur. splits; eauto.
     - clear - H UP. pose proof (@Auth.auth_dealloc __pointstoRA). hexploit H0; cycle 1.
-      { i. do 2 red in H1. apply H1. instantiate (1:= __points_to blk z mvl qp). instantiate (1:= p). 
+      { i. do 2 red in H1. apply H1. instantiate (1:= __points_to blk z mvl qp). instantiate (1:= p).
         set (_ ⋅ _). eassert (c = _); cycle 1. rewrite H2; et. unfold c. ur. des_ifs. do 2 f_equal. extensionalities. ur. ur. ur. et. }
       clear -UP. rr. i. des. red in H, H0. clarify. rewrite URA.unit_idl. split.
       + ur. ur. i. ur in H. ur in H. destruct (AList.dec blk k); cycle 1. { rewrite update_diff_blk; et. }
@@ -355,7 +355,7 @@ Section PROPS.
         * do 2 ur. rewrite points_to_outbound; [|destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; nia].
           rewrite URA.unit_idl. et.
     - clear - H0 UA. pose proof (@Auth.auth_dealloc __allocatedRA). hexploit H; cycle 1.
-      { i. do 2 red in H1. apply H1. instantiate (1:= __allocated_with blk tg qa). instantiate (1:= a). 
+      { i. do 2 red in H1. apply H1. instantiate (1:= __allocated_with blk tg qa). instantiate (1:= a).
         set (_ ⋅ _). eassert (c = _); cycle 1. rewrite H2; et. unfold c. ur. des_ifs. do 2 f_equal. extensionalities. ur. ur. et. }
       clear -UA. rr. i. des. red in H, H0. clarify. rewrite URA.unit_idl. split.
       + ur. i. destruct (AList.dec blk k); clarify. { rewrite update_same_blk. ur. et. }
@@ -403,16 +403,16 @@ Section PROPS.
 
   Lemma store_update
       (p: __pointstoRA) (a: _allocatedRA) (s: _blocksizeRA) (c: _blockaddressRA)
-      (blk: block) (z: Z) (mvl mvl': list memval) (qp: Qp) 
+      (blk: block) (z: Z) (mvl mvl': list memval) (qp: Qp)
       (EQ: length mvl = length mvl')
       (UP: forall (ofs: Z) (RANGE: z ≤ ofs < z + length mvl), p blk ofs = __points_to blk z mvl qp blk ofs) :
-    URA.updatable (t:=Mem.t) 
+    URA.updatable (t:=Mem.t)
       (Auth.black p ⋅ Auth.white (__points_to blk z mvl qp), a, s, c)
-      (Auth.black 
-        (update p blk 
-          (fun _ofs => 
-            if Coqlib.zle z _ofs && Coqlib.zlt _ofs (z + length mvl') 
-            then 
+      (Auth.black
+        (update p blk
+          (fun _ofs =>
+            if Coqlib.zle z _ofs && Coqlib.zlt _ofs (z + length mvl')
+            then
               match nth_error mvl' (Z.to_nat (_ofs - z)) with
               | Some mv => Consent.just qp mv
               | None => Consent.unit
@@ -437,8 +437,8 @@ Section PROPS.
           apply URA.wf_mon in H. ur in H. et.
         * rr. extensionalities. destruct (AList.dec blk H0); cycle 1. { rewrite update_diff_blk; et. ur. ur. rewrite !points_to_diff_blk; et. }
           clarify. rewrite update_same_blk.
-          destruct (_ && _) eqn:?; cycle 1. { unfold __points_to. ur. ur. destruct Pos.eq_dec; clarify. ss. rewrite EQ in *. rewrite Heqb. et. } 
-          do 2 ur in UP. specialize (UP H1). 
+          destruct (_ && _) eqn:?; cycle 1. { unfold __points_to. ur. ur. destruct Pos.eq_dec; clarify. ss. rewrite EQ in *. rewrite Heqb. et. }
+          do 2 ur in UP. specialize (UP H1).
           hexploit UP; [destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify; nia|]. i.
           unfold __points_to in H2. destruct Pos.eq_dec; clarify. ss. rewrite EQ in *. rewrite Heqb in H2.
           destruct (nth_error_Some mvl (Z.to_nat (H1 - z))).
@@ -484,16 +484,16 @@ Section PROPS.
             a b' = Consent.just q' tg' ->
             s (Some b') = OneShot.white sz' ->
             c (Some b') = OneShot.white addr' ->
-            sz < Ptrofs.unsigned addr' - Ptrofs.unsigned addr \/ sz' < Ptrofs.unsigned addr - Ptrofs.unsigned addr') 
+            sz < Ptrofs.unsigned addr' - Ptrofs.unsigned addr \/ sz' < Ptrofs.unsigned addr - Ptrofs.unsigned addr')
       (Gs: forall k, s k <> OneShot.unit)
       (Gc: forall k, c k <> OneShot.unit) :
-    URA.updatable (t:=Mem.t) 
+    URA.updatable (t:=Mem.t)
       (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, c)
       (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, update c (Some blk) (OneShot.white addr))
   .
   Proof.
     ii. destruct ctx as [[[p' a'] s'] c']. ur in H. des. ur. splits; eauto.
-    - ur. i. ur in H2. destruct (AList.dec (Some blk) k); cycle 1. { rewrite update_diff_blk; et. } 
+    - ur. i. ur in H2. destruct (AList.dec (Some blk) k); cycle 1. { rewrite update_diff_blk; et. }
       clarify. rewrite update_same_blk. specialize (H2 (Some blk)). rewrite BC in H2.
       clear - H2. ur in H2. des_ifs. ur. et.
     - rewrite (@URA.unit_idl __allocatedRA) in *. clear - H0 H2 H3 BS BC Ga Gc Gs. ur in H3. ur. des_ifs.
@@ -504,7 +504,7 @@ Section PROPS.
         rewrite BS in H1. assert (sz = sz0); clarify. { ur in H1. des_ifs. }
         apply URA.pw_extends in H0. ur in H8. red in H0. specialize (H0 b1). specialize (H8 b1).
         rewrite H5 in H0. red in H0. des. ur in H0.
-        specialize (Gs (Some b1)). specialize (Gc (Some b1)). 
+        specialize (Gs (Some b1)). specialize (Gc (Some b1)).
         des_ifs; rewrite <- H0 in *; ur in H8; clarify.
         * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Ga; et.
         * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Ga; et.
@@ -514,7 +514,7 @@ Section PROPS.
         rewrite BS in H6. assert (sz = sz1); clarify. { ur in H6. des_ifs. }
         apply URA.pw_extends in H0. ur in H8. red in H0. specialize (H0 b0). specialize (H8 b0).
         rewrite H in H0. red in H0. des. ur in H0.
-        specialize (Gs (Some b0)). specialize (Gc (Some b0)). 
+        specialize (Gs (Some b0)). specialize (Gc (Some b0)).
         des_ifs; rewrite <- H0 in *; ur in H8; clarify.
         * ur in H1. ur in H4. des_ifs; eapply Ga; et.
         * ur in H1. ur in H4. des_ifs; eapply Ga; et.
@@ -532,7 +532,7 @@ Section PROPS.
         apply URA.pw_extends in H. do 2 ur in H8. red in H. specialize (H b1). specialize (H8 b1 z).
         apply URA.pw_extends in H. red in H. specialize (H z).
         rewrite H5 in H. red in H. des. ur in H.
-        specialize (Gs (Some b1)). specialize (Gc (Some b1)). 
+        specialize (Gs (Some b1)). specialize (Gc (Some b1)).
         des_ifs; rewrite <- H in *; ur in H8; clarify.
         * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Gp; et.
         * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Gp; et.
@@ -543,7 +543,7 @@ Section PROPS.
         apply URA.pw_extends in H. do 2 ur in H8. red in H. specialize (H b0). specialize (H8 b0 z0).
         apply URA.pw_extends in H. red in H. specialize (H z0).
         rewrite H0 in H. red in H. des. ur in H.
-        specialize (Gs (Some b0)). specialize (Gc (Some b0)). 
+        specialize (Gs (Some b0)). specialize (Gc (Some b0)).
         des_ifs; rewrite <- H in *; ur in H8; clarify.
         * ur in H1. ur in H3. des_ifs; eapply Gp; et.
         * ur in H1. ur in H3. des_ifs; eapply Gp; et.

@@ -9,7 +9,7 @@ Lemma in_get_fnsems_decomp clight_prog fn sk l i :
   exists f, i = cfunU (decomp_func sk (get_ce clight_prog) f) /\ alist_find fn l = Some (Gfun (Internal f)).
 Proof.
   ginduction l; i; ss. des_ifs_safe. inv H. destruct g as [[f|? ? ? ?]|v].
-  - ss. des_ifs; cycle 1. { apply IHl; et. } esplits; et. 
+  - ss. des_ifs; cycle 1. { apply IHl; et. } esplits; et.
   - hexploit IHl; et. i. des. esplits; et. des_ifs.
     unfold rel_dec in Heq; ss. destruct dec; clarify.
     apply alist_find_some in H1. eapply in_map with (f:=fst) in H1. ss.
@@ -36,7 +36,7 @@ Proof.
       assert (ident_of_string (string_of_ident (fst a)) = fst a).
       { unfold chk_ident in Heq4. des_ifs; ss; destruct Pos.eq_dec; clarify. }
       rewrite <- H0. rewrite <- H1. f_equal; et.
-    + right. bsimpl. des. apply IHl; et. 
+    + right. bsimpl. des. apply IHl; et.
   - hexploit IHl. { ss. bsimpl. des. unfold get_sk. des_ifs. bsimpl. destruct list_norepet_dec; clarify. }
     i. rewrite (List.map_map _ fst) in H.
     replace (_ ∘ _) with (string_of_ident ∘ (@fst ident (globdef Clight.fundef type))) in H.
@@ -51,7 +51,7 @@ Theorem in_tgt_prog_defs_decomp clight_prog mn md fn sk i :
 Proof.
   Local Opaque call_ban.
   unfold compile. i. des_ifs. ss.
-  hexploit in_get_fnsems_decomp; et. { eapply get_sk_nodup; et. } 
+  hexploit in_get_fnsems_decomp; et. { eapply get_sk_nodup; et. }
   i. des. clarify. esplits; et.
   clear -Heq H1. revert_until clight_prog.
   generalize (prog_defs clight_prog).
@@ -190,7 +190,7 @@ Proof.
     inv l0. des_ifs; et. ss. bsimpl. des. econs; et.
     ii. apply H1. destruct a. ss. unfold chk_ident in Heq1. destruct Pos.eq_dec; clarify.
     clear - H Heq3 e. induction l; i; ss. des_ifs; et. ss. bsimpl. des; et. destruct a. ss.
-    left. rewrite e. unfold chk_ident in Heq3. destruct Pos.eq_dec; clarify. rewrite e0. f_equal; et.  
+    left. rewrite e. unfold chk_ident in Heq3. destruct Pos.eq_dec; clarify. rewrite e0. f_equal; et.
   - ii. unfold compile, get_sk in H. des_ifs. ss. unfold mem_skel in H0. des_ifs.
     bsimpl. des. clear - Heq1 Heq3 H1 H2. revert_until clight_prog. generalize (prog_defs clight_prog).
     clear clight_prog. induction l; i; ss. bsimpl. des. des_ifs; et.
@@ -232,7 +232,7 @@ Proof.
       apply nth_error_None in H4. clarify. }
     clear H2.
     assert (Maps.PTree.get (ident_of_string s) (prog_defmap clight_prog) = Some gd).
-    { unfold prog_defmap. ss. apply Maps.PTree_Properties.of_list_norepet; et. 
+    { unfold prog_defmap. ss. apply Maps.PTree_Properties.of_list_norepet; et.
       { unfold compile, get_sk in H. des_ifs. destruct list_norepet_dec; clarify. }
       apply nth_error_in in H1. eapply compile_sk_incl; et. }
     rewrite Genv.find_def_symbol in H2. des. clarify.
@@ -313,19 +313,19 @@ Proof.
     des_ifs. generalize (init_data_size_pos a). i. generalize (init_data_list_size_pos l). i.
     hexploit IHl. 2: apply Heq. all: et; try nia. unfold store_init_data, Mem.store in *.
     des_ifs.
-Qed. 
+Qed.
 
 Lemma load_mem_exists sk
   (COND: forall id v, In (id, Gvar v) sk -> Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk) (string_of_ident symb) = Some idx)) :
   exists m, load_mem sk = Some m.
 Proof.
-  unfold load_mem. revert COND. generalize Mem.empty. generalize sk at 1 4. 
+  unfold load_mem. revert COND. generalize Mem.empty. generalize sk at 1 4.
   induction sk0; i; ss; et. destruct a. hexploit (alloc_global_exists sk m g); et.
   { des_ifs. et. } i. des. des_ifs. et.
 Qed.
 
 Lemma load_mem_inversion sk m (SUCC: load_mem sk = Some m):
-  forall id v, In (id, Gvar v) sk -> 
+  forall id v, In (id, Gvar v) sk ->
     Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk) (string_of_ident symb) = Some idx).
 Proof.
   unfold load_mem in SUCC. set (sk_forenv:=sk) in SUCC at 1. change sk with sk_forenv at 2.
@@ -345,7 +345,7 @@ Definition bytes_of_init_data sk (i : init_data) : list memval :=
   | Init_float32 n => inj_bytes (encode_int 4 (Int.unsigned (Float32.to_bits n)))
   | Init_float64 n => inj_bytes (encode_int 8 (Int64.unsigned (Float.to_bits n)))
   | Init_space n => repeat (Byte Byte.zero) (Z.to_nat n)
-  | Init_addrof symb ofs => 
+  | Init_addrof symb ofs =>
       match SkEnv.id2blk (load_skenv sk) (string_of_ident symb) with
       | Some idx => inj_value (if Archi.ptr64 then Q64 else Q32) (Vptr (Pos.of_succ_nat idx) ofs)
       | None => repeat Undef (if Archi.ptr64 then 8 else 4)
@@ -378,11 +378,11 @@ Proof.
   - des_ifs. nia.
 Qed.
 
-Lemma addrof_is_wf_in_global clight_prog sk_mem sk : 
-  mem_skel clight_prog = OK sk_mem -> 
+Lemma addrof_is_wf_in_global clight_prog sk_mem sk :
+  mem_skel clight_prog = OK sk_mem ->
   get_sk (prog_defs clight_prog) = OK sk ->
-  forall s v symb ofs, In (s, Gvar v) (Sk.canon (Sk.add sk_mem sk)) -> 
-    In (Init_addrof symb ofs) (gvar_init v) 
+  forall s v symb ofs, In (s, Gvar v) (Sk.canon (Sk.add sk_mem sk)) ->
+    In (Init_addrof symb ofs) (gvar_init v)
     -> SkEnv.id2blk (load_skenv (Sk.canon (Sk.add sk_mem sk))) (string_of_ident symb) <> None /\ chk_ident symb = true.
 Proof.
   i. unfold mem_skel in H. des_ifs. revert m H1. set (List.map _ _) as sk_mem.
@@ -421,7 +421,7 @@ Proof.
   set il as il'. assert (List.incl il' il) by refl. clearbody il'.
   induction il'; ss. rewrite map_app. f_equal; cycle 1.
   { apply IHil'. etrans; et. ii. ss. et. }
-  apply match_bytes_of_init_data; et. i. ss. 
+  apply match_bytes_of_init_data; et. i. ss.
   apply VALID with (ofs := ofs). apply H. clarify. ss. et.
 Qed.
 
@@ -433,7 +433,7 @@ Lemma match_bytes_of_gvar_init clight_prog tge sk_mem sk
   forall s v, In (s, Gvar v) (Sk.canon (Sk.add sk_mem sk)) ->
   List.map (map_memval (Sk.canon (Sk.add sk_mem sk)) tge) (bytes_of_init_data_list (Sk.canon (Sk.add sk_mem sk)) (gvar_init v)) = Genv.bytes_of_init_data_list tge (gvar_init v).
 Proof.
-  i. apply match_bytes_of_init_data_list; et. i. hexploit addrof_is_wf_in_global; et. 
+  i. apply match_bytes_of_init_data_list; et. i. hexploit addrof_is_wf_in_global; et.
 Qed.
 
 Lemma store_zero_cnt m0 b m1 p il:
@@ -464,7 +464,7 @@ Proof.
     i. ginduction H; i; ss; clarify.
     { generalize (init_data_list_size_pos il). ii. nia. }
     hexploit IHR_store_zeros; et. ii. unfold Mem.store in e0. des_ifs.
-    destruct (dec p ofs); cycle 1. { red in H0. unfold Mem.perm in *. ss. apply H0. nia. } 
+    destruct (dec p ofs); cycle 1. { red in H0. unfold Mem.perm in *. ss. apply H0. nia. }
     clarify. clear - v. red in v. des. apply v. ss. nia. }
   clear H. set 0%Z in *. clearbody z. ginduction il; i; ss; clarify.
   des_ifs.
@@ -499,12 +499,12 @@ Proof.
     { i. rewrite H1. destruct (zindex_surj ofs0). clarify.
       destruct ((x <? z) || (x >=? z + (Z.max z0 0) + (init_data_list_size il)))%Z eqn: e1.
       - generalize Mem.setN_outside. i. unfold ZMap.get in *. rewrite !H6. 2,3: rewrite repeat_length; nia.
-        rewrite H3. rewrite H6; et. rewrite repeat_length; nia. 
+        rewrite H3. rewrite H6; et. rewrite repeat_length; nia.
       - generalize setN_inside. i.
-        edestruct H6 as [x0 [X X']];[|unfold ZMap.get in *; rewrite X']. 
+        edestruct H6 as [x0 [X X']];[|unfold ZMap.get in *; rewrite X'].
         { rewrite repeat_length. nia. }
         destruct ((x <? z + (Z.max z0 0)) || (x >=? z + (Z.max z0 0) + (init_data_list_size il)))%Z eqn: e2.
-        + generalize Mem.setN_outside. i. unfold ZMap.get in *. rewrite !H7. 
+        + generalize Mem.setN_outside. i. unfold ZMap.get in *. rewrite !H7.
           2: rewrite repeat_length; nia. rewrite H3.
           edestruct H6 as [x1 [X'' X''']];[|unfold ZMap.get in *; rewrite X'''].
           { rewrite repeat_length. nia. } apply nth_error_in in X, X''. apply repeat_spec in X, X''.
@@ -589,7 +589,7 @@ Proof.
     i. ginduction H; i; ss; clarify.
     { generalize (init_data_list_size_pos il). ii. nia. }
     hexploit IHR_store_zeros; et. ii. unfold Mem.store in e0. des_ifs.
-    destruct (dec p ofs); cycle 1. { red in H0. unfold Mem.perm in *. ss. apply H0. nia. } 
+    destruct (dec p ofs); cycle 1. { red in H0. unfold Mem.perm in *. ss. apply H0. nia. }
     clarify. clear - v. red in v. des. apply v. ss. nia. }
   clear H. set 0%Z in *. clearbody z. ginduction il; i; ss; clarify.
   des_ifs.
@@ -624,12 +624,12 @@ Proof.
     { i. rewrite H1. destruct (zindex_surj ofs0). clarify.
       destruct ((x <? z) || (x >=? z + (Z.max z0 0) + (init_data_list_size il)))%Z eqn: e1.
       - generalize Mem.setN_outside. i. unfold ZMap.get in *. rewrite !H6. 2,3: rewrite repeat_length; nia.
-        rewrite H3. rewrite H6; et. rewrite repeat_length; nia. 
+        rewrite H3. rewrite H6; et. rewrite repeat_length; nia.
       - generalize setN_inside. i.
-        edestruct H6 as [x0 [X X']];[|unfold ZMap.get in *; rewrite X']. 
+        edestruct H6 as [x0 [X X']];[|unfold ZMap.get in *; rewrite X'].
         { rewrite repeat_length. nia. }
         destruct ((x <? z + (Z.max z0 0)) || (x >=? z + (Z.max z0 0) + (init_data_list_size il)))%Z eqn: e2.
-        + generalize Mem.setN_outside. i. unfold ZMap.get in *. rewrite !H7. 
+        + generalize Mem.setN_outside. i. unfold ZMap.get in *. rewrite !H7.
           2: rewrite repeat_length; nia. rewrite H3.
           edestruct H6 as [x1 [X'' X''']];[|unfold ZMap.get in *; rewrite X'''].
           { rewrite repeat_length. nia. } apply nth_error_in in X, X''. apply repeat_spec in X, X''.
@@ -701,7 +701,7 @@ Proof.
         rewrite !H1; rewrite !H0; et. des_ifs. rewrite repeat_length; nia.
 Qed.
 
-Lemma tgt_init_mem_cnt_inbound (clight_prog: Clight.program) tm : 
+Lemma tgt_init_mem_cnt_inbound (clight_prog: Clight.program) tm :
   Genv.init_mem clight_prog = Some tm ->
   forall b gd, Genv.find_def (Genv.globalenv clight_prog) b = Some gd ->
     match gd with
@@ -743,10 +743,10 @@ Proof.
         assert (b = Mem.nextblock mi). { unfold Mem.alloc in Heq. clarify. }
         clear Heq. clarify. i. erewrite tgt_store_zero_list; et.
     + hexploit Genv.genv_defs_range; et. unfold Plt. i. ss.
-      rewrite PTree.gso in H1; et. 
+      rewrite PTree.gso in H1; et.
       unfold Genv.alloc_global in Heqo. destruct a as [_ [?|?]].
       * unfold Mem.alloc, Mem.drop_perm in Heqo. des_ifs_safe. ss. rewrite H0 in n.
-        rewrite !PMap.gso; et. eapply H; et. 
+        rewrite !PMap.gso; et. eapply H; et.
       * des_ifs_safe. rewrite H0 in n. apply H in H1.
         replace ((Mem.mem_contents mi) !! b) with ((Mem.mem_contents m0) !! b) in H1. 2:{ unfold Mem.alloc in Heq. clarify. ss. rewrite PMap.gso; et. }
         replace ((Mem.mem_contents m) !! b) with ((Mem.mem_contents m2) !! b). 2:{ unfold Mem.drop_perm in Heqo. des_ifs. }
@@ -766,7 +766,7 @@ Proof.
         rewrite <- H4. et.
   Qed.
 
-Lemma tgt_init_mem_cnt_outbound (clight_prog: Clight.program) tm b: 
+Lemma tgt_init_mem_cnt_outbound (clight_prog: Clight.program) tm b:
   Genv.init_mem clight_prog = Some tm ->
   (Genv.genv_next (Genv.globalenv clight_prog) <= b)%positive ->
   tm.(Mem.mem_contents) !! b = ZMap.init Undef.
@@ -803,7 +803,7 @@ Proof.
     des_ifs. eapply IHl in Heq2; et. rewrite <- Heq2. unfold Genv.store_init_data, Mem.store in Heq. des_ifs.
 Qed.
 
-Lemma tgt_init_mem_access (clight_prog: Clight.program) tm : 
+Lemma tgt_init_mem_access (clight_prog: Clight.program) tm :
   Genv.init_mem clight_prog = Some tm ->
   forall b gd, Genv.find_def (Genv.globalenv clight_prog) b = Some gd ->
     match gd with
@@ -833,7 +833,7 @@ Proof.
   - clear - H Heqo H0. i. unfold Genv.find_def in *. ss. rewrite H0 in *.
     destruct (dec b (Mem.nextblock mi)).
     Local Opaque Mem.alloc.
-    + clarify. rewrite PTree.gss in H1. clarify. destruct a; ss. des_ifs. 
+    + clarify. rewrite PTree.gss in H1. clarify. destruct a; ss. des_ifs.
     Local Transparent Mem.alloc.
       * unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss. rewrite !PMap.gss. extensionalities. des_ifs.
       * unfold Mem.drop_perm in *. des_ifs. ss.
@@ -851,9 +851,9 @@ Proof.
           i. clearbody z. ginduction Heq0; i; ss; clarify. hexploit IHHeq0; et. i. rewrite H. unfold Mem.store in e0. des_ifs. }
         rewrite H4. unfold Mem.alloc in Heq. clarify. ss. rewrite PMap.gss.
         rewrite Heq2. et.
-    + rewrite PTree.gso in H1; et. 
+    + rewrite PTree.gso in H1; et.
       unfold Genv.alloc_global in Heqo. destruct a as [_ [?|?]].
-      * unfold Mem.alloc, Mem.drop_perm in Heqo. des_ifs_safe. ss. rewrite !PMap.gso; et. eapply H; et. 
+      * unfold Mem.alloc, Mem.drop_perm in Heqo. des_ifs_safe. ss. rewrite !PMap.gso; et. eapply H; et.
       * des_ifs_safe. apply H in H1.
         replace ((Mem.mem_access mi) !! b) with ((Mem.mem_access m0) !! b) in H1. 2:{ unfold Mem.alloc in Heq. clarify. ss. rewrite PMap.gso; et. }
         replace ((Mem.mem_access m) !! b) with ((Mem.mem_access m2) !! b). 2:{ clear H1. unfold Mem.drop_perm in Heqo. des_ifs. ss. rewrite PMap.gso; et. unfold Mem.alloc in Heq. clarify. }
@@ -877,8 +877,8 @@ Qed.
 (* tgt_init_mem_concrete = Genv.init_mem_logical *)
 
 Lemma src_alloc_global_cnt_invariant sk ski m m0 b:
-  alloc_globals sk m0 ski = Some m -> 
-    (b < m0.(Mem.nextblock))%positive -> 
+  alloc_globals sk m0 ski = Some m ->
+    (b < m0.(Mem.nextblock))%positive ->
       m.(Mem.mem_contents) !! b = m0.(Mem.mem_contents) !! b.
 Proof.
   ginduction ski; i; ss; clarify. des_ifs.
@@ -892,7 +892,7 @@ Proof.
       unfold Mem.store in e0. des_ifs. ss. rewrite PMap.gso; et. nia. }
     assert ((Mem.mem_contents m2) !! b = (Mem.mem_contents m3) !! b).
     { clear -Heq2 H0. set 0%Z in Heq2. clearbody z. set (gvar_init v) in Heq2.
-      ginduction l; i; ss; clarify. des_ifs. eapply IHl in Heq2; et. 
+      ginduction l; i; ss; clarify. des_ifs. eapply IHl in Heq2; et.
       unfold store_init_data, Mem.store in Heq. des_ifs; ss; rewrite PMap.gso in *; et; nia. }
     rewrite <- H1. rewrite <- H. unfold Mem.alloc in Heq0. des_ifs. ss. rewrite PMap.gso; et. nia.
   - etrans; et. unfold alloc_global in Heq. des_ifs. { unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss. nia. }
@@ -905,8 +905,8 @@ Proof.
 Qed.
 
 Lemma src_alloc_global_access_invariant sk ski m m0 b:
-  alloc_globals sk m0 ski = Some m -> 
-    (b < m0.(Mem.nextblock))%positive -> 
+  alloc_globals sk m0 ski = Some m ->
+    (b < m0.(Mem.nextblock))%positive ->
       m.(Mem.mem_access) !! b = m0.(Mem.mem_access) !! b.
 Proof.
   ginduction ski; i; ss; clarify. des_ifs.
@@ -921,7 +921,7 @@ Proof.
       unfold Mem.store in e0. des_ifs. }
     assert ((Mem.mem_access m2) !! b = (Mem.mem_access m3) !! b).
     { clear -Heq2 H0. set 0%Z in Heq2. clearbody z. set (gvar_init v) in Heq2.
-      ginduction l; i; ss; clarify. des_ifs. eapply IHl in Heq2; et. 
+      ginduction l; i; ss; clarify. des_ifs. eapply IHl in Heq2; et.
       unfold store_init_data, Mem.store in Heq. des_ifs; ss; rewrite PMap.gso in *; et; nia. }
     rewrite <- H1. rewrite <- H. unfold Mem.alloc in Heq0. des_ifs. ss. rewrite PMap.gso; et. nia.
   - etrans; et. unfold alloc_global in Heq. des_ifs. { unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss. nia. }
@@ -933,7 +933,7 @@ Proof.
     des_ifs. eapply IHl in Heq2. rewrite <- Heq2. clear -Heq. unfold store_init_data, Mem.store in Heq. des_ifs.
 Qed.
 
-Lemma src_init_mem_cnt_inbound sk m : 
+Lemma src_init_mem_cnt_inbound sk m :
   load_mem sk = Some m ->
   forall idx s gd, nth_error sk idx = Some (s, gd) ->
     match gd with
@@ -958,7 +958,7 @@ Proof.
   - i. erewrite src_alloc_global_cnt_invariant; et; cycle 1.
     { unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss. nia. }
     unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss.
-    rewrite Nat.add_0_r. rewrite Pos2Nat.id. rewrite PMap.gss. rewrite PMap.gi. et. 
+    rewrite Nat.add_0_r. rewrite Pos2Nat.id. rewrite PMap.gss. rewrite PMap.gi. et.
   - i. erewrite src_alloc_global_cnt_invariant; et; cycle 1.
     { replace (Mem.nextblock m0) with (Mem.nextblock m1). { unfold Mem.alloc in Heq0. clarify. ss. nia. }
       erewrite <- Genv.store_zeros_nextblock with (m:=m1);[|et].
@@ -971,8 +971,8 @@ Proof.
 Qed.
 
 Lemma src_init_mem_cnt_outbound sk m b:
-  load_mem sk = Some m -> 
-    (Pos.of_succ_nat (List.length sk) <= b)%positive -> 
+  load_mem sk = Some m ->
+    (Pos.of_succ_nat (List.length sk) <= b)%positive ->
       m.(Mem.mem_contents) !! b = ZMap.init Undef.
 Proof.
   i. unfold load_mem in H. revert H H0.
@@ -989,7 +989,7 @@ Proof.
     2:{ clear H2. unfold Mem.drop_perm in *. des_ifs. ss.
         replace (Mem.nextblock m2) with (Mem.nextblock m1). { erewrite Genv.store_zeros_nextblock; et. unfold Mem.alloc in Heq0. clarify. }
         clear - Heq2. revert Heq2. set 0%Z. set (gvar_init v). clearbody z. ginduction l; i; ss; clarify.
-        des_ifs. eapply IHl in Heq2; et. rewrite <- Heq2. unfold store_init_data, Mem.store in Heq. des_ifs. } 
+        des_ifs. eapply IHl in Heq2; et. rewrite <- Heq2. unfold store_init_data, Mem.store in Heq. des_ifs. }
     unfold Mem.drop_perm in Heq. des_ifs. ss.
     assert ((Mem.mem_contents m1) !! b0 = (Mem.mem_contents m2) !! b0).
     { clear - Heq2 H2. revert Heq2. set 0%Z. set (gvar_init v). clearbody z. ginduction l; i; ss; clarify.
@@ -1009,8 +1009,8 @@ Proof.
     clear - Heq2. revert Heq2. set 0%Z. set (gvar_init v). clearbody z. ginduction l; i; ss; clarify.
     des_ifs. eapply IHl in Heq2; et. rewrite <- Heq2. unfold store_init_data, Mem.store in Heq. des_ifs.
 Qed.
-    
-Lemma src_init_mem_access (sk: Sk.t) m : 
+
+Lemma src_init_mem_access (sk: Sk.t) m :
   load_mem sk = Some m ->
   forall idx s gd, nth_error sk idx = Some (s, gd) ->
     match gd with
@@ -1035,7 +1035,7 @@ Proof.
   - erewrite src_alloc_global_access_invariant; et; cycle 1.
     { unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss. nia. }
     unfold Mem.alloc, Mem.drop_perm in *. des_ifs. ss.
-    rewrite Nat.add_0_r. rewrite Pos2Nat.id. rewrite PMap.gss. 
+    rewrite Nat.add_0_r. rewrite Pos2Nat.id. rewrite PMap.gss.
     extensionalities. des_ifs. rewrite PMap.gss. des_ifs.
   - i. erewrite src_alloc_global_access_invariant; et; cycle 1.
     { replace (Mem.nextblock m0) with (Mem.nextblock m1). { unfold Mem.alloc in Heq0. clarify. ss. nia. }
@@ -1048,7 +1048,7 @@ Proof.
     rewrite PMap.gss. extensionalities. des_ifs.
     assert ((Mem.mem_access m2) !! (Mem.nextblock mi) = (Mem.mem_access m3) !! (Mem.nextblock mi)).
     { clear -Heq2 H0. set 0%Z in Heq2. clearbody z. set (gvar_init v) in Heq2.
-      ginduction l; i; ss; clarify. des_ifs. eapply IHl in Heq2; et. 
+      ginduction l; i; ss; clarify. des_ifs. eapply IHl in Heq2; et.
       unfold store_init_data, Mem.store in Heq. des_ifs; ss; rewrite PMap.gso in *; et; nia. }
     assert ((Mem.mem_access m1) !! (Mem.nextblock mi) = (Mem.mem_access m2) !! (Mem.nextblock mi)).
     { clear -Heq1 H0. symmetry in Heq1. apply R_store_zeros_correct in Heq1. remember (Some _) in Heq1.
@@ -1117,7 +1117,7 @@ Theorem compile_init_mem_success clight_prog mn md sk_mem:
   compile clight_prog mn = OK md ->
   mem_skel clight_prog = OK sk_mem ->
   exists m tm,
-  load_mem (Sk.canon (Sk.add sk_mem (Mod.sk md))) = Some m 
+  load_mem (Sk.canon (Sk.add sk_mem (Mod.sk md))) = Some m
   /\ Genv.init_mem clight_prog = Some tm
   /\ match_mem (Sk.canon (Sk.add sk_mem (Mod.sk md))) (globalenv clight_prog) m tm.
 Proof.
@@ -1126,9 +1126,9 @@ Proof.
   assert (exists tm, Genv.init_mem clight_prog = Some tm /\
           match_mem (sort (Sk.add sk_mem t)) (Genv.globalenv clight_prog) m0 tm); [|des;et].
   clear - Heq H1 m X.
-  assert (exists tm, Genv.init_mem clight_prog = Some tm). 
+  assert (exists tm, Genv.init_mem clight_prog = Some tm).
   { eapply match_mem_init_success; et.
-    - clear - Heq. unfold get_sk in Heq. des_ifs. i. generalize Sk.le_canon. i. ss. apply H0. 
+    - clear - Heq. unfold get_sk in Heq. des_ifs. i. generalize Sk.le_canon. i. ss. apply H0.
       unfold Sk.add. ss. rewrite in_app. right. rewrite in_map_iff. exists (id, Gvar v).
       split; et. apply filter_In. et.
     - clear - Heq. unfold get_sk in Heq. des_ifs. i. bsimpl. des.
@@ -1140,14 +1140,14 @@ Proof.
   - erewrite src_init_mem_nextblock; et. nia.
   - hexploit src_init_mem_nextblock; et. i. rewrite <- H0. unfold map_blk. des_ifs; try nia.
     rewrite Zplus_minus in Heq0. clarify. erewrite Genv.init_mem_genv_next; et.
-  - i. assert (exists idx, Pos.of_succ_nat idx = b). 
+  - i. assert (exists idx, Pos.of_succ_nat idx = b).
     { assert (0 < Pos.to_nat b) by nia.
       assert (exists n, Pos.to_nat b = S n). { destruct (Pos.to_nat b); try nia. et. }
       des. eexists. erewrite SuccNat2Pos.inv; et. }
     des. clarify. change (list _) with Sk.t in sk_mem.
     destruct (dec_le (List.length (sort (Sk.add sk_mem t))) idx).
     + erewrite src_init_mem_cnt_outbound with (m:=m0); et; try nia.
-      erewrite tgt_init_mem_cnt_outbound; et. 
+      erewrite tgt_init_mem_cnt_outbound; et.
       2:{ apply map_blk_local_region. nia. }
       rewrite !PMap.gi. ss.
     + edestruct (nth_error_Some (sort (Sk.add sk_mem t)) idx). hexploit H3; try nia.
@@ -1172,7 +1172,7 @@ Proof.
         i. clear - H5 H6 H10. unfold l0, l in *. unfold fundef in H10. rewrite <- H10 in H6.
         rewrite list_map_nth in H6. unfold option_map in H6. des_ifs.
         f_equal. ss. rewrite H5 in Heq. clarify.
-  - i. assert (exists idx, Pos.of_succ_nat idx = b). 
+  - i. assert (exists idx, Pos.of_succ_nat idx = b).
     { assert (0 < Pos.to_nat b) by nia.
       assert (exists n, Pos.to_nat b = S n). { destruct (Pos.to_nat b); try nia. et. }
       des. eexists. erewrite SuccNat2Pos.inv; et. }

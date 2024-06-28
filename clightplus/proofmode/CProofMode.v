@@ -36,9 +36,9 @@ Tactic Notation "unhide" constr(H) :=
   unhide H.
 
 Tactic Notation "unhide" :=
-    repeat (match goal with 
+    repeat (match goal with
             | |- context[ITree.bind (?H _ _) _] => unhide H
-            | |- context[{| _observe := TauF (ITree.bind (?H _ _) _) |}] => unhide H 
+            | |- context[{| _observe := TauF (ITree.bind (?H _ _) _) |}] => unhide H
             end).
 
 Ltac remove_tau :=
@@ -86,7 +86,7 @@ Ltac alist_composites ce cel :=
   end.
 
 Ltac get_composite ce e :=
-  let comp_env := fresh in 
+  let comp_env := fresh in
   match goal with
   | e: build_composite_env ?composites = Errors.OK _ |- _ =>
     pose (comp_env := unfold_build_composite_env composites);

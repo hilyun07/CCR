@@ -25,7 +25,7 @@ Section PROOF.
   Import ClightPlusMem1.
 
   Context `{@GRA.inG Mem.t Σ}.
-  
+
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).
   Hypothesis STBINCL : forall sk, stb_incl (to_stb xorStb) (GlobalStb sk).
@@ -218,7 +218,7 @@ Section PROOF.
     hred_r. unfold __Node, ident. des_ifs_safe.
 
     replace (pred _) with blk2 by nia. move SKINCL1 at bottom.
-    erewrite SKINCLGD. 
+    erewrite SKINCLGD.
     5:{ eapply SKINCL1. instantiate (1:=(snd p)). instantiate (1:=(fst p)). clearbody p. destruct p. do 4 right. ss. et. }
     all: et. 2:{ ss. }
     unfold p. ss.
@@ -264,7 +264,7 @@ Section PROOF.
       change (size_chunk Mptr) with 8%Z in *. splits; et. }
     iIntros (st_src9 st_tgt9) "INV".
     hred_r. hred_l.
-    iApply isim_ret. iFrame. iSplit; ss. 
+    iApply isim_ret. iFrame. iSplit; ss.
   Qed.
 
   End SIMFUNS.
