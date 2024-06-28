@@ -138,6 +138,43 @@ Section AUX.
     apply Int64.eqm_unsigned_repr.
   Qed.
 
+  Lemma weak_valid_nil_paddr_base a sz :
+    Ptrofs.unsigned (Ptrofs.repr (- Ptrofs.unsigned a)) ≤ sz ->
+    Ptrofs.unsigned a <> 0 ->
+    Ptrofs.unsigned a + sz ≤ Ptrofs.max_unsigned -> False.
+  Proof.
+    unfold Ptrofs.sub.
+    change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z.
+    rewrite Ptrofs.unsigned_repr_eq. i.
+    rewrite Z_mod_nz_opp_full in *.
+    2:{ rewrite Z.mod_small; et. destruct a; ss; nia. }
+    rewrite Z.mod_small in *. 2:{ destruct a; ss; nia. }
+    change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in *.
+    nia.
+  Qed.
+
+  Lemma paddr_no_overflow_cond i a sz:
+        Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a) ≤ sz ->
+        Ptrofs.unsigned a + sz ≤ Ptrofs.max_unsigned ->
+        0 ≤ Int64.unsigned i - Ptrofs.unsigned a ≤ sz.
+  Proof.
+    i. unfold Ptrofs.sub, Ptrofs.of_int64 in *.
+    rewrite (Ptrofs.unsigned_repr (_ i)) in H.
+    2:{ apply Int64.unsigned_range_2. }
+    rewrite Ptrofs.unsigned_repr_eq in *.
+    destruct (Coqlib.zle 0 (Ptrofs.unsigned a - Int64.unsigned i)).
+    { destruct (Coqlib.zeq 0 (Int64.unsigned i - Ptrofs.unsigned a)).
+      { rewrite <- e in *. ss. }
+      replace (Int64.unsigned i - Ptrofs.unsigned a) with (- (Ptrofs.unsigned a - Int64.unsigned i)) in H by nia.
+      rewrite Z_mod_nz_opp_full in *; [>rewrite Z.mod_small in *|rewrite Z.mod_small..]; et.
+      all: try apply Ptrofs.unsigned_range; try nia.
+      change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in H.
+      all: destruct a; destruct i; ss; nia. }
+    rewrite Z.mod_small in *.
+    2:{ destruct a; destruct i; ss. change Int64.modulus with Ptrofs.modulus in *. nia. }
+    nia.
+  Qed.
+
   Lemma paddr_no_overflow_cond_lt i a sz:
         Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a) < sz ->
         Ptrofs.unsigned a + sz ≤ Ptrofs.max_unsigned ->
