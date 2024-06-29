@@ -7,8 +7,6 @@ Inductive tag :=
 | Local
 | Unfreeable.
 
-Record metadata := { blk : option block; sz : Z }.
-
 Let __pointstoRA: URA.t := (block ==> Z ==> (Consent.t memval))%ra.
 Let __allocatedRA: URA.t := (block ==> (Consent.t tag))%ra.
 Let _pointstoRA: URA.t := Auth.t __pointstoRA.

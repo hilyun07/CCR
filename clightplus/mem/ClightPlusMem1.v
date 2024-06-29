@@ -17,11 +17,15 @@ From stdpp Require Import base.
 
 Set Implicit Arguments.
 
+Local Open Scope Z.
+
+(* zero size allocation is not allowed because there's no guarentee to base address *)
+Record metadata := { blk : option block; sz : Z; SZPOS: blk <> None -> 0 < sz }.
+
 Section PRED.
 
   Context `{@GRA.inG Mem.t Σ}.
 
-  Local Open Scope Z.
   Local Open Scope bi_scope.
 
   Definition get_align (sz: nat) : Z :=
@@ -75,7 +79,7 @@ Section PRED.
 
   Definition m_null : metadata.
   Proof.
-    eapply Build_metadata. apply None. apply 0.
+    eapply (@Build_metadata None 0). i. clarify.
   Defined.
 
   Definition disjoint (m m0: metadata) : Prop :=
@@ -96,8 +100,6 @@ Notation "m #^ m0" := (disjoint m m0) (at level 20).
 Notation "vaddr '(≃_' m ) vaddr'" := (equiv_prov vaddr vaddr' m) (at level 20).
 
 Section AUX.
-
-  Local Open Scope Z.
 
   Lemma ptrofs_int64_neg i :
     Archi.ptr64 = true -> Ptrofs.neg (Ptrofs.of_int64 i) = Ptrofs.of_int64 (Int64.neg i).
@@ -200,8 +202,6 @@ End AUX.
 Section RULES.
 
   Context `{@GRA.inG Mem.t Σ}.
-
-  Local Open Scope Z.
 
   Lemma _has_size_dup
       b s :
@@ -366,11 +366,13 @@ Section RULES.
     - iDestruct "A" as "%". iDestruct "B" as "%". des.
       rewrite <- H0. rewrite <- H1. iCombine "As Bs" as "C".
       iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+      rewrite (proof_irr SZPOS0 SZPOS1). et.
     - iDestruct "A" as (a) "[Ac %]". iDestruct "B" as (a0) "[Bc %]". des.
       rewrite Heq. rewrite Heq0.
       destruct (Pos.eq_dec b b0).
       + clarify. iCombine "As Bs" as "C".
         iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+        rewrite (proof_irr SZPOS0 SZPOS1). et.
       + unfold _allocated_with, _has_size, _has_base, __allocated_with.
         iCombine "Aa As Ac Ba Bs Bc" as "C". ur. rewrite ! URA.unit_idl.
         ur. des_ifs. assert (f0 = fun _ => Consent.unit). { inv Heq3. extensionalities. ss. }
@@ -529,11 +531,13 @@ Section RULES.
     - iDestruct "A" as "%". iDestruct "B" as "%". des.
       rewrite <- H2. rewrite <- H3. iCombine "As Bs" as "C".
       iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+      rewrite (proof_irr SZPOS0 SZPOS1). et.
     - iDestruct "A" as (a) "[Ac %]". iDestruct "B" as (a0) "[Bc %]". des.
       rewrite Heq. rewrite Heq0.
       destruct (Pos.eq_dec b b0).
       + clarify. iCombine "As Bs" as "C".
         iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
+        rewrite (proof_irr SZPOS0 SZPOS1). et.
       + unfold _points_to, _has_size, _has_base, __points_to.
         assert (exists x0, hd_error mvs0 = Some x0). { destruct mvs0; ss; et. }
         assert (exists x1, hd_error mvs1 = Some x1). { destruct mvs1; ss; et. }
@@ -917,8 +921,6 @@ Section SPEC.
 
   Context `{@GRA.inG Mem.t Σ}.
 
-  Local Open Scope Z.
-
   (* input: Z, output: block *)
   Definition salloc_spec: fspec :=
     (mk_simple (fun n => (
@@ -1233,8 +1235,6 @@ End SPEC.
 Section MRS.
 
   Context `{@GRA.inG Mem.t Σ}.
-
-  Local Open Scope Z.
 
   Variable sk: Sk.t.
   Let skenv: SkEnv.t := load_skenv sk.
