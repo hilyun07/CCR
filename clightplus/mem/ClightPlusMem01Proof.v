@@ -314,6 +314,7 @@ Section STATE_INTERP.
                                     (Maps.PMap.get b mem_tgt.(Mem.mem_access))
                                     (Maps.PMap.get b mem_tgt.(Mem.mem_contents))
                                   /\ ((mem_tgt.(Mem.nextblock) ≤ b)%positive -> memsz_src (Some b) = OneShot.black)
+                                  /\ (memsz_src (Some b) <> OneShot.unit)
                       | None => memsz_src None = OneShot.white 0
                       end) :
       sim_mem (Auth.black memcnt_src, Auth.black memalloc_src, memsz_src, memconc_src) mem_tgt
@@ -753,13 +754,15 @@ Section INITSIM.
     assert (conc_empty: Mem.mem_concrete mem = Maps.PTree.empty Z) by ss.
     assert (sres_none: si None = OneShot.unit) by ss.
     assert (sres_next: forall b: block, (Mem.nextblock mem ≤ b)%positive -> si (Some b) = OneShot.unit) by ss.
+    assert (sres_nounit: forall b: block, (b < Mem.nextblock mem)%positive -> si (Some b) <> OneShot.unit) by now unfold mem; ss; nia.
     clearbody pi ai si mem. set sk as l in RESWF at 2. change sk with l in MEMWF at 2. clearbody l.
-    revert m mem pi ai si p a s RESWF MEMWF INV conc_empty sres_none sres_next.
+    revert m mem pi ai si p a s RESWF MEMWF INV conc_empty sres_none sres_next sres_nounit.
     induction l; i; ss; clarify.
     { des. econs; et.
       { i. des_ifs. rewrite conc_empty. rewrite Maps.PTree.gempty. econs. et. }
       { i. ur. rewrite sres_none. destruct ob; ss. 2:{ ur. et. }
-        split; et. i. rewrite sres_next; et. ur. des_ifs. unfold Coqlib.Plt in *. nia. } }
+        split; et. split; cycle 1. { des_ifs; ur; des_ifs. unfold Coqlib.Plt in *. hexploit sres_nounit; et. }
+        i. rewrite sres_next; et. ur. des_ifs. unfold Coqlib.Plt in *. nia. } }
     des_ifs_safe. destruct p0 as [[p' a'] s']. eapply IHl.
     { erewrite alloc_gl_nextblock; et. } { et. }
     all: cycle 1.
@@ -767,6 +770,9 @@ Section INITSIM.
     { intros b R. erewrite alloc_gl_nextblock in R; et.
       destruct (dec b (mem.(Mem.nextblock))). { subst. nia. }
       des_ifs; ur; rewrite sres_next; try nia; destruct Pos.eq_dec; try nia; ur; et. }
+    { intros b R. erewrite alloc_gl_nextblock in R; et.
+      destruct (dec b (mem.(Mem.nextblock))). { clarify. des_ifs; ur; des_ifs; ur; des_ifs. }
+      des_ifs; ur; des_ifs; intro contra; ur in contra; des_ifs; eapply sres_nounit; et; nia. }
 
     (* prove main invariant : INV *)
     des. rename z into cnt_init, z0 into alloc_init, Heq into tgt_step.
@@ -861,6 +867,62 @@ Section INITSIM.
   Qed.
 
 End INITSIM.
+
+Section CAPTURESIM.
+
+  Local Open Scope Z.
+
+  Context `{@GRA.inG Mem.t Σ}.
+
+  Local Hint Constructors sim_cnt: core.
+  Local Hint Constructors sim_allocated: core.
+  Local Hint Constructors sim_concrete: core.
+
+  Lemma capture_backsimulation
+      p (a : ClightPlusMemRA.__allocatedRA) s c mem_tgt mem_tgt' blk addr tg qa sz
+      (PERM: a blk <> Consent.unit)
+      (SZ: s (Some blk) = OneShot.white sz /\ 0 < sz)
+      (SIM: sim_mem (Auth.black p, Auth.black a, s, c) mem_tgt)
+      (TGTCAP: Mem.capture mem_tgt blk addr mem_tgt') :
+    URA.updatable (t:=Mem.t)
+      (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, c)
+      (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, update c (Some blk) (OneShot.white (Ptrofs.repr addr)))
+    /\ sim_mem (Auth.black p, Auth.black a, s, update c (Some blk) (OneShot.white (Ptrofs.repr addr))) mem_tgt'.
+  Proof.
+    split; cycle 1.
+    - inv SIM. inv TGTCAP. rewrite CONTENTS in *. rewrite ACCESS in *. rewrite NEXTBLOCK in *.
+      econs; et. i. spc SIM_CONC. spc SIM_ALLOC. des_ifs. destruct (Pos.eq_dec b blk); clarify; cycle 1.
+      { rewrite update_diff_blk. 2:{ ii. clarify. } erewrite <- Mem.concrete_other; et. econs; et. }
+      rewrite update_same_blk. inv SIM_CONC.
+      + rename H2 into old. hexploit PREVADDR; et. intros [T1 T2].
+        rewrite T2 in *. rewrite <- old. econs; et. rewrite <- T1.
+        rewrite Ptrofs.repr_unsigned. et.
+      + rename H2 into NEX. hexploit CAPTURED; et. intro CONC. rewrite CONC.
+        rewrite Maps.PTree.gss. replace addr with (Ptrofs.unsigned (Ptrofs.repr addr)) at 2. econs; et.
+        rewrite Ptrofs.unsigned_repr; et. hexploit (Mem.weak_valid_address_range mem_tgt' blk addr 0); ss; cycle 2.
+        { intro R. inv R. ss. change Ptrofs.max_unsigned with (Ptrofs.modulus - 1). nia. }
+        { rewrite CONC. rewrite Maps.PTree.gss. et. }
+        rr. des. left. inv SIM_ALLOC; clarify. 2:{ rewrite <- H1 in *. ss; clarify. }
+        unfold Mem._valid_pointer. pose proof (Mem.access_max mem_tgt' blk 0).
+        unfold Mem.perm_order'. des_ifs; [econs|].
+        ss. des_ifs. hexploit (PERMinrange 0); cycle 1. i. des. clarify.
+        rewrite SZ in *. clarify. destruct tag. { hexploit DYNAMIC; et. i. des. nia. }
+        all: hexploit COMMON; et; nia.
+    - des. inv SIM. destruct (c (Some blk)) eqn:?; cycle 2.
+      { specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify. }
+      { specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify. }
+      { specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify.
+        inv TGTCAP. hexploit PREVADDR; et. i. des. clarify. rewrite Ptrofs.repr_unsigned.
+        replace (update c (Some blk) (OneShot.white x)) with c. refl. extensionalities. unfold update. des_ifs. }
+
+      (* key main thm of capture *)
+      eapply capture_update; et; cycle 2. all: swap 3 4.
+      { i. spc SIM_ALLOC. des_ifs. des; et. rewrite SIM_ALLOC. et. }
+      { i. spc SIM_CONC. des_ifs. inv SIM_CONC; rewrite RES; et. rewrite SIM_CONC; et. }
+      + i.
+  Admitted.
+
+End CAPTURESIM.
 
 Require Import HTactics ProofMode.
 Require Import HSim IProofMode.
