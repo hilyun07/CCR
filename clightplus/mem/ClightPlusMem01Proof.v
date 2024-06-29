@@ -686,8 +686,6 @@ Section INITSIM.
       + rewrite alloc_gl_iff in STEP. rewrite AL in STEP. clarify.
   Qed.
 
-  (* TODO: real refactoring starts here *)
-
   Lemma _start_wf :
           << _ : ∀ (b : block) (ofs : Z),
                     0 ≤ ofs
