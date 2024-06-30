@@ -279,6 +279,18 @@ Section PROPS.
     clarify. rewrite UA. rewrite URA.unit_idl. ur. unfold __allocated_with. des_ifs.
   Qed.
 
+  Lemma mem_split
+      blk z mvl qp tg qa sz :
+    (Auth.white (__points_to blk z mvl qp), Auth.white (__allocated_with blk tg qa), __has_size (Some blk) sz, ε)
+    = _points_to blk z mvl qp ⋅ _allocated_with blk tg qa ⋅ _has_size (Some blk) sz.
+  Proof. unfold _points_to, _allocated_with, _has_size. ur. r_solve. Qed.
+
+  Lemma mem_split_capture
+      p a s c blk tg qa addr :
+    (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, update c (Some blk) (OneShot.white addr))
+    = ((Auth.black p, Auth.black a, s, update c (Some blk) (OneShot.white addr)) : Mem.t) ⋅ _allocated_with blk tg qa ⋅ _has_base (Some blk) addr.
+  Proof. unfold _allocated_with. unfold _has_base. ur. r_solve. repeat f_equal. ur. r_solve. extensionalities. ur. unfold update. des_ifs; ur; des_ifs. Qed.
+
   Lemma alloc_update
       (p: __pointstoRA) (a: __allocatedRA) (s: _blocksizeRA) (c: _blockaddressRA)
       (blk: block) (z: Z) (mvl: list memval) (tg: tag) (qp qa: Qp) (sz: Z)
@@ -289,11 +301,16 @@ Section PROPS.
       (BS: s (Some blk) = OneShot.black)
       (BC: c (Some blk) = OneShot.black) :
     URA.updatable (t:=Mem.t) (Auth.black p, Auth.black a, s, c)
-      (Auth.black (p ⋅ __points_to blk z mvl qp) ⋅ Auth.white (__points_to blk z mvl qp),
+      (* (Auth.black (p ⋅ __points_to blk z mvl qp) ⋅ Auth.white (__points_to blk z mvl qp),
         Auth.black (a ⋅ __allocated_with blk tg qa) ⋅ Auth.white (__allocated_with blk tg qa),
-          update s (Some blk) (OneShot.white sz), c)
+          update s (Some blk) (OneShot.white sz), c) *)
+      (((Auth.black (p ⋅ __points_to blk z mvl qp), Auth.black (a ⋅ __allocated_with blk tg qa), update s (Some blk) (OneShot.white sz), c) : Mem.t) ⋅
+       ((Auth.white (__points_to blk z mvl qp), Auth.white (__allocated_with blk tg qa), __has_size (Some blk) sz, ε) : Mem.t))
   .
   Proof.
+    ur. r_solve. set (@URA.add _blocksizeRA _ _) as st.
+    replace st with (update s (Some blk) (OneShot.white sz) : _blocksizeRA).
+    2:{ unfold st. extensionalities. unfold update. ur. des_ifs; ur; des_ifs. }
     ii. destruct ctx as [[[p' a'] s'] c']. ur in H. des. ur. splits; eauto.
     - rewrite URA.unit_idl. pose proof @Auth.auth_alloc2. move Qprange at bottom.
       hexploit points_to_wf; et. { eapply URA.wf_mon in H. ur in H. des. et. }
@@ -410,7 +427,7 @@ Section PROPS.
       (UP: forall (ofs: Z) (RANGE: z ≤ ofs < z + length mvl), p blk ofs = __points_to blk z mvl qp blk ofs) :
     URA.updatable (t:=Mem.t)
       (Auth.black p ⋅ Auth.white (__points_to blk z mvl qp), a, s, c)
-      (Auth.black
+      (((Auth.black
         (update p blk
           (fun _ofs =>
             if Coqlib.zle z _ofs && Coqlib.zlt _ofs (z + length mvl')
@@ -419,9 +436,12 @@ Section PROPS.
               | Some mv => Consent.just qp mv
               | None => Consent.unit
               end
-            else p blk _ofs) : __pointstoRA) ⋅ Auth.white (__points_to blk z mvl' qp), a, s, c)
+            else p blk _ofs) : __pointstoRA), a, s, c) : Mem.t)⋅
+        (Auth.white (__points_to blk z mvl' qp), ε, ε, ε))
   .
   Proof.
+    set (@URA.add Mem.t _ _) as st. eassert (TEMP: st = _). { unfold st. ur. r_solve. }
+    rewrite TEMP. clear st TEMP.
     ii. destruct ctx as [[[p' a'] s'] c']. ur in H. des. ur. splits; eauto.
     - clear - H UP EQ. pose proof (@Auth.auth_update __pointstoRA). hexploit H0; cycle 1.
       + i. do 2 red in H1. specialize (H1 p').
@@ -447,8 +467,7 @@ Section PROPS.
           ur. ur. unfold __points_to. destruct Pos.eq_dec; clarify. ss. rewrite Heqb.
           replace (ctx H0 H1) with (ε : Consent.t memval). rewrite URA.unit_id; et.
           des_ifs; ur in H2; des_ifs. apply Qp_add_id_free in H2. clarify.
-    - clear -H H4 EQ UP. revert H H4. r_solve. i.
-      rename H into pwf, H4 into ch.
+    - clear -H H4 EQ UP. revert H H4. r_solve. i. rename H into pwf, H4 into ch.
       ur in ch. ur. des_ifs. i. des.
       rename H into resp, H0 into ress, H1 into resc, H2 into resp', H3 into ress', H4 into resc'.
       do 2 ur in resp. do 2 ur in resp'. ur in pwf. des. eapply URA.wf_extends in pwf; et. do 2 ur in pwf.
