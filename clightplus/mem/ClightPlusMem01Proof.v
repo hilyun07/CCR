@@ -316,7 +316,8 @@ Section STATE_INTERP.
                                   /\ ((mem_tgt.(Mem.nextblock) ≤ b)%positive -> memsz_src (Some b) = OneShot.black)
                                   /\ (memsz_src (Some b) <> OneShot.unit)
                       | None => memsz_src None = OneShot.white 0
-                      end) :
+                      end)
+        (SIM_CA: forall b ofs q mv, memcnt_src b ofs = Consent.just q mv -> exists q2 tg, memalloc_src b = Consent.just q2 tg) :
       sim_mem (Auth.black memcnt_src, Auth.black memalloc_src, memsz_src, memconc_src) mem_tgt
   .
 
@@ -566,6 +567,18 @@ Section INITSIM.
     c1 = c2.
   Proof. ginduction l; ss; i; clarify. des_ifs. unfold store_init_data in *. des_ifs; et. Qed.
 
+  Lemma store_init_data_list_diff_blk
+      sk b b' i l c1 c2 o
+      (DIF: b <> b')
+      (MS: store_init_data_list sk c1 b i o l = Some c2):
+    forall z, c1 b' z = c2 b' z.
+  Proof.
+    ginduction l; ss; i; clarify. des_ifs. etrans; cycle 1.
+    - eapply IHl; et.
+    - unfold store_init_data in *. des_ifs; et; do 2 ur; rewrite points_to_diff_blk; et; r_solve.
+  Qed.
+
+
   Lemma store_init_data_list_content
       sk b q l c2
       (MS: store_init_data_list sk ε b 0 (Some q) l = Some c2) :
@@ -755,8 +768,9 @@ Section INITSIM.
     assert (sres_none: si None = OneShot.unit) by ss.
     assert (sres_next: forall b: block, (Mem.nextblock mem ≤ b)%positive -> si (Some b) = OneShot.unit) by ss.
     assert (sres_nounit: forall b: block, (b < Mem.nextblock mem)%positive -> si (Some b) <> OneShot.unit) by now unfold mem; ss; nia.
+    assert (sim_ca: forall b ofs q mv, pi b ofs = Consent.just q mv -> exists q' tg, ai b = Consent.just q' tg) by now i; ss.
     clearbody pi ai si mem. set sk as l in RESWF at 2. change sk with l in MEMWF at 2. clearbody l.
-    revert m mem pi ai si p a s RESWF MEMWF INV conc_empty sres_none sres_next sres_nounit.
+    revert m mem pi ai si p a s RESWF MEMWF INV conc_empty sres_none sres_next sres_nounit sim_ca.
     induction l; i; ss; clarify.
     { des. econs; et.
       { i. des_ifs. rewrite conc_empty. rewrite Maps.PTree.gempty. econs. et. }
@@ -773,6 +787,20 @@ Section INITSIM.
     { intros b R. erewrite alloc_gl_nextblock in R; et.
       destruct (dec b (mem.(Mem.nextblock))). { clarify. des_ifs; ur; des_ifs; ur; des_ifs. }
       des_ifs; ur; des_ifs; intro contra; ur in contra; des_ifs; eapply sres_nounit; et; nia. }
+    { intros b ofs q mv P. destruct g; clarify.
+      { apply sim_ca in P. des. specialize (z0 b). destruct (Pos.eq_dec b (Mem.nextblock mem)); cycle 1.
+        { ur. rewrite allocated_with_diff_blk; et. r_solve. et. }
+        clarify. ur. unfold __allocated_with. destruct Pos.eq_dec; clarify.
+        destruct Coqlib.plt. { unfold Coqlib.Plt in *. nia. }
+        rewrite P in z0. inv z0. ur in SRES. des_ifs. }
+      destruct store_init_data_list eqn:?; clarify.
+      destruct (Pos.eq_dec b (Mem.nextblock mem)); cycle 1.
+      { ur. rewrite allocated_with_diff_blk; et. r_solve.
+        eapply store_init_data_list_diff_blk in Heqo; et. do 2 ur in P. rewrite <- Heqo in P.
+        eapply sim_ca. rewrite <- P. instantiate (1:=ofs). ur. des_ifs. }
+      clarify. ur. unfold __allocated_with. destruct Pos.eq_dec; clarify.
+      des. specialize (z0 (Mem.nextblock mem)). destruct Coqlib.plt. { unfold Coqlib.Plt in *. nia. }
+      inv z0. 2:{ r_solve. et. } ur in SRES. des_ifs. }
 
     (* prove main invariant : INV *)
     des. rename z into cnt_init, z0 into alloc_init, Heq into tgt_step.
@@ -878,7 +906,36 @@ Section CAPTURESIM.
   Local Hint Constructors sim_allocated: core.
   Local Hint Constructors sim_concrete: core.
 
-  Lemma capture_backsimulation
+  Lemma capture_match
+      p (a : ClightPlusMemRA.__allocatedRA) s c mem_tgt mem_tgt' blk addr sz
+      (PERM: a blk <> Consent.unit)
+      (SZ: s (Some blk) = OneShot.white sz /\ 0 < sz)
+      (SIM: sim_mem (Auth.black p, Auth.black a, s, c) mem_tgt)
+      (TGTCAP: Mem.capture mem_tgt blk addr mem_tgt') :
+    sim_mem (Auth.black p, Auth.black a, s, update c (Some blk) (OneShot.white (Ptrofs.repr addr))) mem_tgt'.
+  Proof.
+    inv SIM. inv TGTCAP. rewrite CONTENTS in *. rewrite ACCESS in *. rewrite NEXTBLOCK in *.
+    econs; et. i. spc SIM_CONC. spc SIM_ALLOC. des_ifs. destruct (Pos.eq_dec b blk); clarify; cycle 1.
+    { rewrite update_diff_blk. 2:{ ii. clarify. } erewrite <- Mem.concrete_other; et. econs; et. }
+    rewrite update_same_blk. inv SIM_CONC.
+    - rename H2 into old. hexploit PREVADDR; et. intros [T1 T2].
+      rewrite T2 in *. rewrite <- old. econs; et. rewrite <- T1.
+      rewrite Ptrofs.repr_unsigned. et.
+    - rename H2 into NEX. hexploit CAPTURED; et. intro CONC. rewrite CONC.
+      rewrite Maps.PTree.gss. replace addr with (Ptrofs.unsigned (Ptrofs.repr addr)) at 2. econs; et.
+      rewrite Ptrofs.unsigned_repr; et. hexploit (Mem.weak_valid_address_range mem_tgt' blk addr 0); ss; cycle 2.
+      { intro R. inv R. ss. change Ptrofs.max_unsigned with (Ptrofs.modulus - 1). nia. }
+      { rewrite CONC. rewrite Maps.PTree.gss. et. }
+      rr. des. left. inv SIM_ALLOC; clarify. 2:{ rewrite <- H1 in *. ss; clarify. }
+      unfold Mem._valid_pointer. pose proof (Mem.access_max mem_tgt' blk 0).
+      unfold Mem.perm_order'. des_ifs; [econs|].
+      ss. des_ifs. hexploit (PERMinrange 0); cycle 1. i. des. clarify.
+      rewrite SZ in *. clarify. destruct tag. { hexploit DYNAMIC; et. i. des. nia. }
+      all: hexploit COMMON; et; nia.
+  Qed.
+
+  (* key main thm of capture *)
+  Lemma capture_progress
       p (a : ClightPlusMemRA.__allocatedRA) s c mem_tgt mem_tgt' blk addr tg qa sz
       (PERM: a blk <> Consent.unit)
       (SZ: s (Some blk) = OneShot.white sz /\ 0 < sz)
@@ -886,41 +943,92 @@ Section CAPTURESIM.
       (TGTCAP: Mem.capture mem_tgt blk addr mem_tgt') :
     URA.updatable (t:=Mem.t)
       (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, c)
-      (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, update c (Some blk) (OneShot.white (Ptrofs.repr addr)))
-    /\ sim_mem (Auth.black p, Auth.black a, s, update c (Some blk) (OneShot.white (Ptrofs.repr addr))) mem_tgt'.
+      (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, update c (Some blk) (OneShot.white (Ptrofs.repr addr))).
   Proof.
-    split; cycle 1.
-    - inv SIM. inv TGTCAP. rewrite CONTENTS in *. rewrite ACCESS in *. rewrite NEXTBLOCK in *.
-      econs; et. i. spc SIM_CONC. spc SIM_ALLOC. des_ifs. destruct (Pos.eq_dec b blk); clarify; cycle 1.
-      { rewrite update_diff_blk. 2:{ ii. clarify. } erewrite <- Mem.concrete_other; et. econs; et. }
-      rewrite update_same_blk. inv SIM_CONC.
-      + rename H2 into old. hexploit PREVADDR; et. intros [T1 T2].
-        rewrite T2 in *. rewrite <- old. econs; et. rewrite <- T1.
-        rewrite Ptrofs.repr_unsigned. et.
-      + rename H2 into NEX. hexploit CAPTURED; et. intro CONC. rewrite CONC.
-        rewrite Maps.PTree.gss. replace addr with (Ptrofs.unsigned (Ptrofs.repr addr)) at 2. econs; et.
-        rewrite Ptrofs.unsigned_repr; et. hexploit (Mem.weak_valid_address_range mem_tgt' blk addr 0); ss; cycle 2.
-        { intro R. inv R. ss. change Ptrofs.max_unsigned with (Ptrofs.modulus - 1). nia. }
-        { rewrite CONC. rewrite Maps.PTree.gss. et. }
-        rr. des. left. inv SIM_ALLOC; clarify. 2:{ rewrite <- H1 in *. ss; clarify. }
-        unfold Mem._valid_pointer. pose proof (Mem.access_max mem_tgt' blk 0).
-        unfold Mem.perm_order'. des_ifs; [econs|].
-        ss. des_ifs. hexploit (PERMinrange 0); cycle 1. i. des. clarify.
-        rewrite SZ in *. clarify. destruct tag. { hexploit DYNAMIC; et. i. des. nia. }
-        all: hexploit COMMON; et; nia.
-    - des. inv SIM. destruct (c (Some blk)) eqn:?; cycle 2.
-      { specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify. }
-      { specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify. }
-      { specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify.
-        inv TGTCAP. hexploit PREVADDR; et. i. des. clarify. rewrite Ptrofs.repr_unsigned.
-        replace (update c (Some blk) (OneShot.white x)) with c. refl. extensionalities. unfold update. des_ifs. }
-
-      (* key main thm of capture *)
-      eapply capture_update; et; cycle 2. all: swap 3 4.
-      { i. spc SIM_ALLOC. des_ifs. des; et. rewrite SIM_ALLOC. et. }
-      { i. spc SIM_CONC. des_ifs. inv SIM_CONC; rewrite RES; et. rewrite SIM_CONC; et. }
-      + i.
-  Admitted.
+    exploit capture_match; et. intro SIM'.
+    des. destruct (c (Some blk)) eqn:?; cycle 2.
+    { inv SIM. specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify. }
+    { inv SIM. specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify. }
+    { inv SIM. specialize (SIM_CONC (Some blk)). ss. inv SIM_CONC; rewrite RES in *; clarify.
+      inv TGTCAP. hexploit PREVADDR; et. i. des. clarify. rewrite Ptrofs.repr_unsigned.
+      replace (update c (Some blk) (OneShot.white x)) with c. refl. extensionalities. unfold update. des_ifs. }
+    eapply capture_update; et; cycle 2. all: swap 3 4.
+    { inv SIM. i. spc SIM_ALLOC. des_ifs. des; et. rewrite SIM_ALLOC. et. }
+    { inv SIM. i. spc SIM_CONC. des_ifs. inv SIM_CONC; rewrite RES; et. rewrite SIM_CONC; et. }
+    - i. inv SIM'. pose proof (SIM_ALLOC (Some b')). ss.
+      pose proof (SIM_ALLOC (Some blk)). ss. des.
+      pose proof (SIM_CONC (Some b')). ss.
+      pose proof (SIM_CONC (Some blk)). ss.
+      rename H0 into SZPOS', H1 into SZPOS, H2 into DIF, H3 into RESa, H4 into RESs, H5 into RESc, H6 into A, H7 into A', H10 into NB, H8 into NB', H11 into NU, H9 into NU', H12 into C, H13 into C'.
+      rewrite RESa in *. inv A. inv A'. 2:{ rewrite <- H1 in *. clarify. }
+      rewrite SZ in *. clarify. i. des. rewrite RESs in *. clarify.
+      rewrite update_same_blk in C'. rewrite update_diff_blk in C. 2:{ ii. clarify. }
+      rewrite RESc in *. inv C; clarify. inv C'; clarify.
+      destruct (Coqlib.zlt (Ptrofs.unsigned (Ptrofs.repr addr) - Ptrofs.unsigned base) sz0); [|nia].
+      destruct (Coqlib.zlt (Ptrofs.unsigned base - Ptrofs.unsigned (Ptrofs.repr addr)) sz1); [|nia].
+      exfalso. destruct (Coqlib.zle (Ptrofs.unsigned base) (Ptrofs.unsigned (Ptrofs.repr addr))).
+      + hexploit (PERMinrange0 0).
+        { destruct tag0. { hexploit DYNAMIC0; et. i. des. ss. nia. } all: hexploit COMMON0; et; nia. }
+        hexploit (PERMinrange (Ptrofs.unsigned (Ptrofs.repr addr)- Ptrofs.unsigned base)).
+        { destruct tag. { hexploit DYNAMIC; et. i. des. ss. nia. } all: hexploit COMMON; et; nia. }
+        i. des. pose proof (Mem.no_concrete_overlap mem_tgt' (Ptrofs.unsigned (Ptrofs.repr addr))) as X.
+        red in X. hexploit (X b' blk); clarify.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr), base in *. ss. nia. }
+          hexploit (Mem.access_max mem_tgt' b'). rewrite H0.
+          unfold Mem.perm_order''. des_ifs. et.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr). ss. nia. }
+          rewrite Z.sub_diag. hexploit (Mem.access_max mem_tgt' blk). rewrite H1.
+          unfold Mem.perm_order''. des_ifs. et.
+      + hexploit (PERMinrange 0).
+        { destruct tag. { hexploit DYNAMIC; et. i. des. ss. nia. } all: hexploit COMMON; et; nia. }
+        hexploit (PERMinrange0 (Ptrofs.unsigned base - Ptrofs.unsigned (Ptrofs.repr addr))).
+        { destruct tag0. { hexploit DYNAMIC0; et. i. des. ss. nia. } all: hexploit COMMON0; et; nia. }
+        i. des. pose proof (Mem.no_concrete_overlap mem_tgt' (Ptrofs.unsigned base)) as X.
+        red in X. hexploit (X b' blk); clarify.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr) in *. ss. nia. }
+          rewrite Z.sub_diag. hexploit (Mem.access_max mem_tgt' b'). rewrite H1.
+          unfold Mem.perm_order''. des_ifs. et.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr), base in *. ss. nia. }
+          hexploit (Mem.access_max mem_tgt' blk). rewrite H0.
+          unfold Mem.perm_order''. des_ifs. et.
+    - i. inv SIM'. pose proof (SIM_ALLOC (Some b')). ss.
+      pose proof (SIM_ALLOC (Some blk)). ss. des.
+      pose proof (SIM_CONC (Some b')). ss.
+      pose proof (SIM_CONC (Some blk)). ss.
+      rename H0 into SZPOS', H1 into SZPOS, H2 into RESp', H3 into RESp, H4 into RESs, H5 into RESc, H6 into A, H7 into A', H10 into NB, H8 into NB', H11 into NU, H9 into NU', H12 into C, H13 into C'.
+      hexploit SIM_CA; et. intro RESa. des. hexploit (SIM_CA blk); et. intro RESa'. des.
+      rewrite RESa in *. inv A. inv A'. 2:{ rewrite <- H1 in *. clarify. }
+      rewrite SZ in *. clarify. i. des. rewrite RESs in *. clarify.
+      rewrite update_same_blk in C'. rewrite update_diff_blk in C. 2:{ ii. clarify. }
+      rewrite RESc in *. inv C; clarify. inv C'; clarify.
+      destruct (Coqlib.zlt (Ptrofs.unsigned (Ptrofs.repr addr) - Ptrofs.unsigned base) sz0); [|nia].
+      destruct (Coqlib.zlt (Ptrofs.unsigned base - Ptrofs.unsigned (Ptrofs.repr addr)) sz1); [|nia].
+      exfalso. destruct (Coqlib.zle (Ptrofs.unsigned base) (Ptrofs.unsigned (Ptrofs.repr addr))).
+      + hexploit (PERMinrange0 0).
+        { destruct tag0. { hexploit DYNAMIC0; et. i. des. ss. nia. } all: hexploit COMMON0; et; nia. }
+        hexploit (PERMinrange (Ptrofs.unsigned (Ptrofs.repr addr)- Ptrofs.unsigned base)).
+        { destruct tag. { hexploit DYNAMIC; et. i. des. ss. nia. } all: hexploit COMMON; et; nia. }
+        i. des. pose proof (Mem.no_concrete_overlap mem_tgt' (Ptrofs.unsigned (Ptrofs.repr addr))) as X.
+        red in X. hexploit (X b' blk); i; clarify.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr), base in *. ss. nia. }
+          hexploit (Mem.access_max mem_tgt' b'). rewrite H0.
+          unfold Mem.perm_order''. des_ifs. et.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr). ss. nia. }
+          rewrite Z.sub_diag. hexploit (Mem.access_max mem_tgt' blk). rewrite H1.
+          unfold Mem.perm_order''. des_ifs. et.
+      + hexploit (PERMinrange 0).
+        { destruct tag. { hexploit DYNAMIC; et. i. des. ss. nia. } all: hexploit COMMON; et; nia. }
+        hexploit (PERMinrange0 (Ptrofs.unsigned base - Ptrofs.unsigned (Ptrofs.repr addr))).
+        { destruct tag0. { hexploit DYNAMIC0; et. i. des. ss. nia. } all: hexploit COMMON0; et; nia. }
+        i. des. pose proof (Mem.no_concrete_overlap mem_tgt' (Ptrofs.unsigned base)) as X.
+        red in X. hexploit (X b' blk); i; clarify.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr) in *. ss. nia. }
+          rewrite Z.sub_diag. hexploit (Mem.access_max mem_tgt' b'). rewrite H1.
+          unfold Mem.perm_order''. des_ifs. et.
+        * econs; et; cycle 1. { destruct (Ptrofs.repr addr), base in *. ss. nia. }
+          hexploit (Mem.access_max mem_tgt' blk). rewrite H0.
+          unfold Mem.perm_order''. des_ifs. et.
+  Qed.
 
 End CAPTURESIM.
 

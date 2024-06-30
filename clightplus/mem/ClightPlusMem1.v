@@ -378,11 +378,13 @@ Section RULES.
         ur. des_ifs. assert (f0 = fun _ => Consent.unit). { inv Heq3. extensionalities. ss. }
         clarify. iOwnWf "C" as wf. des. ur in wf. des.
         clear wf wf0 wf1 wf2 wf4. hexploit wf3; et.
+        { instantiate (1:= sz m0). destruct m0. ss. hexploit SZPOS0; try nia. clarify. }
+        { instantiate (1:= sz m1). destruct m1. ss. hexploit SZPOS0; try nia. clarify. }
         { des_ifs. ur. et. }
-        { clear wf3. instantiate (1:= sz m0). des_ifs. }
+        { clear wf3. des_ifs. }
         { clear wf3. instantiate (1:= a). des_ifs. }
         { des_ifs. ur. et. }
-        { clear wf3. instantiate (1:= sz m1). des_ifs. }
+        { clear wf3. des_ifs. }
         { clear wf3. instantiate (1:= a0). des_ifs. }
         i. clear wf3. exfalso. unfold valid in *. clear - X X0 H0 H5 H3.
         apply paddr_no_overflow_cond_lt in X; et. apply paddr_no_overflow_cond_lt in X0; et. nia.
@@ -544,18 +546,20 @@ Section RULES.
         iCombine "Ap As Ac Bp Bs Bc" as "C". ur. rewrite ! URA.unit_idl. rewrite ! URA.unit_id.
         ur. clarify. iOwnWf "C" as wf. des. ur in wf. des.
         clear wf wf0 wf1 wf2 wf3. hexploit wf4; et; clear wf4.
-        { ur. exists (Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)).
+        { instantiate (1:=sz m0). destruct m0. ss. hexploit SZPOS0; clarify. nia. }
+        { instantiate (1:=sz m1). destruct m1. ss. hexploit SZPOS0; clarify. nia. }
+        { ur. instantiate (3:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)).
           destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; try nia.
           destruct Pos.eq_dec; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs0; ss.
           ur. clarify. }
-        { instantiate (1:= sz m0). des_ifs. }
-        { instantiate (1:= a). des_ifs. }
-        { ur. exists (Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)).
-          destruct Pos.eq_dec; destruct Coqlib.zle at 2; destruct Coqlib.zlt at 2; ss; try nia.
-          destruct Pos.eq_dec; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs1; ss.
+        { des_ifs. }
+        { instantiate (1:=a). des_ifs. }
+        { ur. instantiate (3:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)).
+          destruct Pos.eq_dec at 2; destruct Coqlib.zle at 2; destruct Coqlib.zlt at 2; ss; try nia.
+          destruct Pos.eq_dec; clarify; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs1; ss.
           ur. clarify. }
-        { instantiate (1:= sz m1). des_ifs. }
-        { instantiate (1:= a0). des_ifs. }
+        { des_ifs. }
+        { instantiate (1:=a0). des_ifs. }
         i. exfalso. hexploit (paddr_no_overflow_cond_lt i); et; try nia. move H7 at bottom.
         hexploit (paddr_no_overflow_cond_lt i); et; try nia.
   Qed.

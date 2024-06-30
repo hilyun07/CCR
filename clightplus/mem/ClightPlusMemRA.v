@@ -29,28 +29,28 @@ Section MEM.
       URA.wf _p /\ URA.wf _a /\ URA.wf _s /\ URA.wf _c /\
       match _a with
       | Auth.frag al | Auth.excl _ al =>
-        forall b0 b1 q0 q1 tg0 tg1 sz0 sz1 a0 a1 (DIF: b0 <> b1),
+        forall b0 b1 q0 q1 tg0 tg1 sz0 sz1 a0 a1 (SP0: sz0 > 0) (SP1: sz1 > 0) (DIF: b0 <> b1),
           al b0 = Consent.just q0 tg0 ->
           _s (Some b0) = OneShot.white sz0 ->
           _c (Some b0) = OneShot.white a0 ->
           al b1 = Consent.just q1 tg1 ->
           _s (Some b1) = OneShot.white sz1 ->
           _c (Some b1) = OneShot.white a1 ->
-          sz1 < Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
-          sz0 < Ptrofs.unsigned a1 - Ptrofs.unsigned a0
+          sz1 <= Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
+          sz0 <= Ptrofs.unsigned a1 - Ptrofs.unsigned a0
       | _ => True
       end /\
       match _p with
       | Auth.frag p | Auth.excl _ p =>
-        forall b0 b1 q0 q1 mv0 mv1 sz0 sz1 a0 a1 (DIF: b0 <> b1),
-          (exists z, p b0 z = Consent.just q0 mv0) ->
+        forall b0 b1 q0 q1 mv0 mv1 z0 z1 sz0 sz1 a0 a1 (SP0: sz0 > 0) (SP1: sz1 > 0) (DIF: b0 <> b1),
+          p b0 z0 = Consent.just q0 mv0 ->
           _s (Some b0) = OneShot.white sz0 ->
           _c (Some b0) = OneShot.white a0 ->
-          (exists z, p b1 z = Consent.just q1 mv1) ->
+          p b1 z1 = Consent.just q1 mv1 ->
           _s (Some b1) = OneShot.white sz1 ->
           _c (Some b1) = OneShot.white a1 ->
-          sz1 < Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
-          sz0 < Ptrofs.unsigned a1 - Ptrofs.unsigned a0
+          sz1 <= Ptrofs.unsigned a0 - Ptrofs.unsigned a1 \/
+          sz0 <= Ptrofs.unsigned a1 - Ptrofs.unsigned a0
       | _ => True
       end.
 
@@ -109,23 +109,22 @@ Section MEM.
         apply Consent.consent_wf in H14, H15.
         des; eapply (H3 b0 b1); ur; des_ifs; clarify.
         all: try rewrite H4; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
-    - clear H3. ur in H1. ur in H2. ur in H4.
-      des_ifs; i; des. all: try solve [ur in H; clarify].
-      all: pose proof (H1 (Some b0)); pose proof (H1 (Some b1)).
-      all: pose proof (H2 (Some b0)); pose proof (H2 (Some b1)).
-      all: rewrite URA.add_comm in H10; rewrite URA.add_comm in H11.
-      all: rewrite URA.add_comm in H12; rewrite URA.add_comm in H13.
-      all: rewrite H5 in *; rewrite H6 in *.
-      all: rewrite H8 in *; rewrite H9 in *.
-      all: apply OneShot.oneshot_initialized in H10, H11, H12, H13.
-      all: ur in H. 2,3: destruct H as [H X]; eapply URA.wf_extends in H; et.
-      all: do 2 ur in H.
-      all: pose proof (H b0 z0); pose proof (H b1 z).
-      all: rewrite H3 in *; rewrite H7 in *.
-      all: rewrite URA.add_comm in H14; rewrite URA.add_comm in H15.
-      all: apply Consent.consent_wf in H14, H15.
-      all: des; eapply (H4 b0 b1); ur; des_ifs; clarify.
-      all: eexists; ur; try rewrite H3; try rewrite H7; try rewrite H14; try rewrite H15; ur; des_ifs.
+    - clear H3.
+      rename H into pwf, H0 into awf, H1 into swf, H2 into cwf, H4 into mono.
+      ur in swf. ur in cwf. ur in mono.
+      des_ifs; i; des. all: try solve [ur in pwf; clarify].
+      all: rename H into resp, H0 into ress, H1 into resc, H2 into resp', H3 into ress', H4 into resc'.
+      all: pose proof (swf (Some b0)) as X; pose proof (swf (Some b1)) as X'.
+      all: pose proof (cwf (Some b0)) as Y; pose proof (cwf (Some b1)) as Y'.
+      all: rewrite URA.add_comm in X; rewrite URA.add_comm in X'; rewrite URA.add_comm in Y; rewrite URA.add_comm in Y'.
+      all: rewrite ress in *; rewrite ress' in *; apply OneShot.oneshot_initialized in X, X'.
+      all: rewrite resc in *; rewrite resc' in *; apply OneShot.oneshot_initialized in Y, Y'.
+      all: ur in pwf. 2,3: destruct pwf as [pwf ?]; eapply URA.wf_extends in pwf; et.
+      all: do 2 ur in pwf; pose proof (pwf b0 z0) as Z; pose proof (pwf b1 z1) as Z'.
+      all: rewrite resp in *; rewrite resp' in *.
+      all: rewrite URA.add_comm in Z; rewrite URA.add_comm in Z'; apply Consent.consent_wf in Z, Z'.
+      all: des; eapply (mono b0 b1); ur; des_ifs; clarify.
+      all: ur; try rewrite Z; try rewrite Z'; try rewrite resp; try rewrite resp'; ur; des_ifs.
   Qed.
   Next Obligation.
     subst _core _add. ss. des_ifs_safe.
@@ -315,13 +314,18 @@ Section PROPS.
       rewrite update_diff_blk in H5. 2:{ ii. apply n0. clarify. }
       ur in H4. ur in H7. rewrite allocated_with_diff_blk in H4; et. rewrite allocated_with_diff_blk in H7; et.
       rewrite URA.unit_idl in H4. rewrite URA.unit_idl in H7. rewrite URA.unit_idl in H3. et.
-    - rewrite URA.unit_idl. clear H3. ur in H4. ur. destruct p'; et.
-      i. des. destruct (AList.dec blk b0); clarify. { rewrite BC in *. ur in H6. des_ifs. }
-      destruct (AList.dec blk b1); clarify. { rewrite BC in *. ur in H9. des_ifs. }
-      rewrite update_diff_blk in H8. 2:{ ii. apply n0. clarify. }
-      rewrite update_diff_blk in H5. 2:{ ii. apply n0. clarify. }
-      do 2 ur in H3. do 2 ur in H7. rewrite points_to_diff_blk in H3; et. rewrite points_to_diff_blk in H7; et.
-      rewrite URA.unit_idl in H3. rewrite URA.unit_idl in H7. rewrite URA.unit_idl in H4. et.
+    - r_solve. clear H3.
+      rename H into wfp, H0 into wfa, H1 into wfs, H2 into wfc, H4 into mono.
+      ur in mono. ur. destruct p'; et.
+      i. des.
+      rename H into resp, H0 into ress, H1 into resc, H2 into resp', H3 into ress', H4 into resc'.
+      destruct (AList.dec blk b0); clarify. { rewrite BC in *. ur in resc. des_ifs. }
+      destruct (AList.dec blk b1); clarify. { rewrite BC in *. ur in resc'. des_ifs. }
+      do 2 ur in resp. do 2 ur in resp'. rewrite points_to_diff_blk in resp; et. rewrite points_to_diff_blk in resp'; et.
+      rewrite update_diff_blk in ress. 2:{ ii. clarify. }
+      rewrite update_diff_blk in ress'. 2:{ ii. clarify. }
+      rewrite URA.unit_idl in resp. rewrite URA.unit_idl in resp'. rewrite URA.unit_idl in mono.
+      eapply mono. 3: apply DIF. all: et.
   Qed.
 
   Lemma free_update
@@ -375,28 +379,28 @@ Section PROPS.
           des_ifs. rewrite H in *. ur. ur in H0. des_ifs.
         * ur. specialize (H0 b1). unfold __allocated_with. unfold __allocated_with in H0.
           des_ifs. rewrite H4 in *. ur. ur in H0. des_ifs.
-      + eapply H3. apply DIF. all: et.
+      + eapply H3. 3: apply DIF. all: et.
         * ur. specialize (H0 b0). unfold __allocated_with. unfold __allocated_with in H0.
           des_ifs. rewrite H in *. ur. ur in H0. des_ifs.
         * ur. specialize (H0 b1). unfold __allocated_with. unfold __allocated_with in H0.
           des_ifs. rewrite H4 in *. ur. ur in H0. des_ifs.
     - clear -H H4. ur in H4. ur. des_ifs. i. rewrite (@URA.unit_idl __pointstoRA) in *.
       ur in H. des. eapply URA.wf_extends in H; et. do 2 ur in H.
-      destruct (__points_to blk z mvl qp b0 z1) eqn:?;
-        destruct (__points_to blk z mvl qp b1 z0) eqn:?;
+      destruct (__points_to blk z mvl qp b0 z0) eqn:?;
+        destruct (__points_to blk z mvl qp b1 z1) eqn:?;
           try solve [hexploit H; match goal with H: _ = Consent.boom |- _ => rewrite H end; intro X; ur in X; des_ifs].
       + eapply H4; et.
-        * do 2 ur. specialize (H b0 z1). eexists. rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
-        * do 2 ur. specialize (H b1 z0). eexists. rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b0 z0). rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b1 z1). rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
       + eapply H4; et.
-        * do 2 ur. specialize (H b0 z1). eexists. rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
-        * do 2 ur. specialize (H b1 z0). eexists. rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b0 z0). rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b1 z1). rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
       + eapply H4; et.
-        * do 2 ur. specialize (H b0 z1). eexists. rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
-        * do 2 ur. specialize (H b1 z0). eexists. rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b0 z0). rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b1 z1). rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
       + eapply H4; et.
-        * do 2 ur. specialize (H b0 z1). eexists. rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
-        * do 2 ur. specialize (H b1 z0). eexists. rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b0 z0). rewrite H0 in *. rewrite Heqc0 in *. des_ifs. ur. ur in H. des_ifs.
+        * do 2 ur. specialize (H b1 z1). rewrite H3 in *. rewrite Heqc1 in *. des_ifs. ur. ur in H. des_ifs.
   Qed.
 
   Lemma store_update
@@ -443,27 +447,26 @@ Section PROPS.
           ur. ur. unfold __points_to. destruct Pos.eq_dec; clarify. ss. rewrite Heqb.
           replace (ctx H0 H1) with (ε : Consent.t memval). rewrite URA.unit_id; et.
           des_ifs; ur in H2; des_ifs. apply Qp_add_id_free in H2. clarify.
-    - clear -H H4 EQ UP. rewrite (@URA.unit_idl __pointstoRA) in *.
-      ur in H4. ur. des_ifs. i. des. do 2 ur in H0. do 2 ur in H3. ur in H. des. eapply URA.wf_extends in H; et. do 2 ur in H.
-      assert (exists q mv, (__points_to blk z mvl qp ⋅ f0) b0 z1 = Consent.just q mv); cycle 1.
-      assert (exists q mv, (__points_to blk z mvl qp ⋅ f0) b1 z0 = Consent.just q mv); cycle 1.
-      { des. eapply H4. 1,2,3,5,6: et. all: et. }
-      + clear - H H3 EQ UP. do 2 ur in H3. do 2 ur. specialize (H b1 z0). des_ifs; try solve [unfold __points_to in *; des_ifs].
-        * unfold __points_to in Heq. des_ifs. unfold __points_to. unfold __points_to in H.
-          rewrite EQ in *. rewrite Heq1 in *. des_ifs; ur; et. ur in H. des_ifs. et.
-        * unfold __points_to in Heq. unfold __points_to. rewrite EQ in *.
-          des_ifs; ur; et. rewrite nth_error_None in Heq2. rewrite EQ in Heq2.
-          rewrite <- nth_error_None in Heq2. clarify.
-        * unfold __points_to. unfold __points_to in H.
-          rewrite EQ in *. des_ifs; ur; et. ur in H. des_ifs. et.
-      + clear - H H0 EQ UP. do 2 ur in H0. do 2 ur. specialize (H b0 z1). des_ifs; try solve [unfold __points_to in *; des_ifs].
-        * unfold __points_to in Heq. des_ifs. unfold __points_to. unfold __points_to in H.
-          rewrite EQ in *. rewrite Heq1 in *. des_ifs; ur; et. ur in H. des_ifs. et.
-        * unfold __points_to in Heq. unfold __points_to. rewrite EQ in *.
-          des_ifs; ur; et. rewrite nth_error_None in Heq2. rewrite EQ in Heq2.
-          rewrite <- nth_error_None in Heq2. clarify.
-        * unfold __points_to. unfold __points_to in H.
-          rewrite EQ in *. des_ifs; ur; et. ur in H. des_ifs. et.
+    - clear -H H4 EQ UP. revert H H4. r_solve. i.
+      rename H into pwf, H4 into ch.
+      ur in ch. ur. des_ifs. i. des.
+      rename H into resp, H0 into ress, H1 into resc, H2 into resp', H3 into ress', H4 into resc'.
+      do 2 ur in resp. do 2 ur in resp'. ur in pwf. des. eapply URA.wf_extends in pwf; et. do 2 ur in pwf.
+      assert (exists q mv, (__points_to blk z mvl qp ⋅ f0) b0 z0 = Consent.just q mv); cycle 1.
+      assert (exists q mv, (__points_to blk z mvl qp ⋅ f0) b1 z1 = Consent.just q mv); cycle 1.
+      { des. eapply ch; et. }
+      + clear - pwf resp' EQ. do 2 ur. specialize (pwf b1 z1).
+        unfold __points_to in *. destruct Pos.eq_dec; ss. 2:{ rewrite resp'. et. }
+        rewrite EQ in *. destruct (_ && _) eqn:? in *. 2:{ rewrite resp'. et. }
+        destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify.
+        destruct (nth_error mvl) eqn:?. 2:{ rewrite nth_error_None in Heqo. nia. }
+        ur in pwf. des_ifs; ur in resp'; ur; des_ifs; et.
+      + clear - pwf resp EQ. do 2 ur. specialize (pwf b0 z0).
+        unfold __points_to in *. destruct Pos.eq_dec; ss. 2:{ rewrite resp. et. }
+        rewrite EQ in *. destruct (_ && _) eqn:? in *. 2:{ rewrite resp. et. }
+        destruct Coqlib.zle; destruct Coqlib.zlt; ss; clarify.
+        destruct (nth_error mvl) eqn:?. 2:{ rewrite nth_error_None in Heqo. nia. }
+        ur in pwf. des_ifs; ur in resp; ur; des_ifs; et.
   Qed.
 
   Lemma capture_update
@@ -471,18 +474,23 @@ Section PROPS.
       (blk: block) (tg: tag) (qa: Qp) (addr: ptrofs) (sz: Z)
       (BS: s (Some blk) = OneShot.white sz)
       (BC: c (Some blk) = OneShot.black)
-      (Gp: forall b' q' mv' sz' addr',
-            b' <> blk ->
-            (exists z', p b' z' = Consent.just q' mv') ->
-            s (Some b') = OneShot.white sz' ->
-            c (Some b') = OneShot.white addr' ->
-            sz < Ptrofs.unsigned addr' - Ptrofs.unsigned addr \/ sz' < Ptrofs.unsigned addr - Ptrofs.unsigned addr')
+      (Gp: forall b' q0 q1 mv0 mv1 z z' sz' addr' (DIF: blk <> b'),
+              0 < sz ->
+              0 < sz' ->
+              p blk z = Consent.just q0 mv0 ->
+              p b' z' = Consent.just q1 mv1 ->
+              s (Some b') = OneShot.white sz' ->
+              c (Some b') = OneShot.white addr' ->
+              sz' <= Ptrofs.unsigned addr - Ptrofs.unsigned addr' \/
+              sz <= Ptrofs.unsigned addr' - Ptrofs.unsigned addr)
       (Ga: forall b' q' tg' sz' addr',
+            0 < sz ->
+            0 < sz' ->
             b' <> blk ->
             a b' = Consent.just q' tg' ->
             s (Some b') = OneShot.white sz' ->
             c (Some b') = OneShot.white addr' ->
-            sz < Ptrofs.unsigned addr' - Ptrofs.unsigned addr \/ sz' < Ptrofs.unsigned addr - Ptrofs.unsigned addr')
+            sz <= Ptrofs.unsigned addr' - Ptrofs.unsigned addr \/ sz' <= Ptrofs.unsigned addr - Ptrofs.unsigned addr')
       (Gs: forall k, s k <> OneShot.unit)
       (Gc: forall k, c k <> OneShot.unit) :
     URA.updatable (t:=Mem.t)
@@ -504,8 +512,8 @@ Section PROPS.
         rewrite H5 in H0. red in H0. des. ur in H0.
         specialize (Gs (Some b1)). specialize (Gc (Some b1)).
         des_ifs; rewrite <- H0 in *; ur in H8; clarify.
-        * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Ga; et.
-        * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Ga; et.
+        * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Ga; et; nia.
+        * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Ga; et; nia.
       + rewrite update_same_blk in H7. ur in H2. specialize (H2 (Some b1)).
         rewrite update_diff_blk in H4. 2:{ ii. apply n. clarify. }
         rewrite BC in H2. ur in H2. des_ifs. ur in H7. clarify.
@@ -514,41 +522,50 @@ Section PROPS.
         rewrite H in H0. red in H0. des. ur in H0.
         specialize (Gs (Some b0)). specialize (Gc (Some b0)).
         des_ifs; rewrite <- H0 in *; ur in H8; clarify.
-        * ur in H1. ur in H4. des_ifs; eapply Ga; et.
-        * ur in H1. ur in H4. des_ifs; eapply Ga; et.
+        * ur in H1. ur in H4. des_ifs; eapply Ga; et; nia.
+        * ur in H1. ur in H4. des_ifs; eapply Ga; et; nia.
       + rewrite update_diff_blk in H4. 2:{ ii. apply n. clarify. }
         rewrite update_diff_blk in H7. 2:{ ii. apply n0. clarify. }
-        eapply H3. apply DIF. all: et.
-    - clear - H H2 H4 BS BC Gp Gc Gs. ur in H4. ur. des_ifs.
-      i. rewrite URA.unit_idl in H0. rewrite URA.unit_idl in H5.
-      des. ur in H. des. rewrite URA.unit_idl in H.
+        eapply H3. 3: apply DIF. all: et.
+    - clear - H H2 H4 BS BC Gp Gc Gs.
+      rename H into pwf, H2 into cwf, H4 into before.
+      ur in before. ur. des_ifs. i.
+      rename H into resp, H0 into ress, H1 into resc, H2 into resp', H3 into ress', H4 into resc'.
+      rewrite URA.unit_idl in resp. rewrite URA.unit_idl in resp'.
+      ur in pwf. destruct pwf as [pwf X]. rewrite URA.unit_idl in pwf.
       destruct (AList.dec blk b0); destruct (AList.dec blk b1); clarify.
-      + rewrite update_diff_blk in H7. 2:{ ii. apply n. clarify. }
-        rewrite update_same_blk in H3. ur in H2. specialize (H2 (Some b0)).
-        rewrite BC in H2. ur in H2. des_ifs. ur in H3. clarify.
-        rewrite BS in H1. assert (sz = sz0); clarify. { ur in H1. des_ifs. }
-        apply URA.pw_extends in H. do 2 ur in H8. red in H. specialize (H b1). specialize (H8 b1 z).
-        apply URA.pw_extends in H. red in H. specialize (H z).
-        rewrite H5 in H. red in H. des. ur in H.
-        specialize (Gs (Some b1)). specialize (Gc (Some b1)).
-        des_ifs; rewrite <- H in *; ur in H8; clarify.
-        * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Gp; et.
-        * ur in H6. ur in H7. apply or_comm. des_ifs; eapply Gp; et.
-      + rewrite update_same_blk in H7. ur in H2. specialize (H2 (Some b1)).
-        rewrite update_diff_blk in H3. 2:{ ii. apply n. clarify. }
-        rewrite BC in H2. ur in H2. des_ifs. ur in H7. clarify.
-        rewrite BS in H6. assert (sz = sz1); clarify. { ur in H6. des_ifs. }
-        apply URA.pw_extends in H. do 2 ur in H8. red in H. specialize (H b0). specialize (H8 b0 z0).
-        apply URA.pw_extends in H. red in H. specialize (H z0).
-        rewrite H0 in H. red in H. des. ur in H.
+      + rewrite update_diff_blk in resc'. 2:{ ii. apply n. clarify. }
+        rewrite update_same_blk in resc. ur in cwf. specialize (cwf (Some b0)).
+        rewrite BC in cwf. ur in cwf. des_ifs.
+        rewrite BS in ress.
+        apply URA.pw_extends in pwf. do 2 ur in X. red in pwf.
+        pose proof (pwf b1) as Y. pose proof (X b1 z1) as Y'.
+        apply URA.pw_extends in Y. red in Y. specialize (Y z1).
+        pose proof (pwf b0) as Z. pose proof (X b0 z0) as Z'.
+        apply URA.pw_extends in Z. red in Z. specialize (Z z0).
+        rewrite resp' in Y. red in Y. des. ur in Y.
+        rewrite resp in Z. red in Z. des. ur in Z.
+        specialize (Gs (Some b1)). specialize (Gc (Some b1)). ur in ress. ur in ress'.
+        des_ifs; rewrite <- Y in *; ur in Y'; clarify; rewrite <- Z in *; ur in Z'; clarify.
+        all: ur in resc; clarify; ur in resc'; des_ifs; eapply Gp; et; nia.
+      + rewrite update_diff_blk in resc. 2:{ ii. apply n. clarify. }
+        rewrite update_same_blk in resc'. ur in cwf. specialize (cwf (Some b1)).
+        rewrite BC in cwf. ur in cwf. des_ifs.
+        rewrite BS in ress'.
+        apply URA.pw_extends in pwf. do 2 ur in X. red in pwf.
+        pose proof (pwf b1) as Y. pose proof (X b1 z1) as Y'.
+        apply URA.pw_extends in Y. red in Y. specialize (Y z1).
+        pose proof (pwf b0) as Z. pose proof (X b0 z0) as Z'.
+        apply URA.pw_extends in Z. red in Z. specialize (Z z0).
+        rewrite resp' in Y. red in Y. des. ur in Y.
+        rewrite resp in Z. red in Z. des. ur in Z.
+        ur in resc'. clarify. ur in ress. ur in ress'.
         specialize (Gs (Some b0)). specialize (Gc (Some b0)).
-        des_ifs; rewrite <- H in *; ur in H8; clarify.
-        * ur in H1. ur in H3. des_ifs; eapply Gp; et.
-        * ur in H1. ur in H3. des_ifs; eapply Gp; et.
-      + rewrite update_diff_blk in H3. 2:{ ii. apply n. clarify. }
-        rewrite update_diff_blk in H7. 2:{ ii. apply n0. clarify. }
-        rewrite URA.unit_idl in H4.
-        eapply H4. apply DIF. all: et.
+        des_ifs; rewrite <- Y in *; ur in Y'; clarify; rewrite <- Z in *; ur in Z'; clarify.
+        all: ur in resc; des_ifs; apply or_comm; eapply Gp; et; nia.
+      + rewrite update_diff_blk in resc. 2:{ ii. apply n. clarify. }
+        rewrite update_diff_blk in resc'. 2:{ ii. apply n0. clarify. }
+        revert before. r_solve. i. eapply before. 3:apply DIF. all: et.
   Qed.
 
 End PROPS.
