@@ -42,7 +42,7 @@ Section MEM.
       end /\
       match _p with
       | Auth.frag p | Auth.excl _ p =>
-        forall b0 b1 q0 q1 mv0 mv1 z0 z1 sz0 sz1 a0 a1 (SP0: sz0 > 0) (SP1: sz1 > 0) (DIF: b0 <> b1),
+        forall b0 b1 q0 q1 mv0 mv1 z0 z1 sz0 sz1 a0 a1 (SP0: 0 <= z0 < sz0) (SP1: 0 <= z1 < sz1) (DIF: b0 <> b1),
           p b0 z0 = Consent.just q0 mv0 ->
           _s (Some b0) = OneShot.white sz0 ->
           _c (Some b0) = OneShot.white a0 ->
@@ -494,8 +494,8 @@ Section PROPS.
       (BS: s (Some blk) = OneShot.white sz)
       (BC: c (Some blk) = OneShot.black)
       (Gp: forall b' q0 q1 mv0 mv1 z z' sz' addr' (DIF: blk <> b'),
-              0 < sz ->
-              0 < sz' ->
+              0 <= z < sz ->
+              0 <= z' < sz' ->
               p blk z = Consent.just q0 mv0 ->
               p b' z' = Consent.just q1 mv1 ->
               s (Some b') = OneShot.white sz' ->

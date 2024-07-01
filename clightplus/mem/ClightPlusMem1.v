@@ -546,16 +546,14 @@ Section RULES.
         iCombine "Ap As Ac Bp Bs Bc" as "C". ur. rewrite ! URA.unit_idl. rewrite ! URA.unit_id.
         ur. clarify. iOwnWf "C" as wf. des. ur in wf. des.
         clear wf wf0 wf1 wf2 wf3. hexploit wf4; et; clear wf4.
-        { instantiate (1:=sz m0). destruct m0. ss. hexploit SZPOS0; clarify. nia. }
-        { instantiate (1:=sz m1). destruct m1. ss. hexploit SZPOS0; clarify. nia. }
-        { ur. instantiate (3:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)).
-          destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; try nia.
+        { instantiate (1:=sz m0). instantiate (1:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)). destruct m0, Ptrofs.sub. ss. hexploit SZPOS0; clarify. nia. }
+        { instantiate (1:=sz m1). instantiate (1:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)). destruct m1, (Ptrofs.sub _ a0). ss. hexploit SZPOS0; clarify. nia. }
+        { ur. destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; try nia.
           destruct Pos.eq_dec; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs0; ss.
           ur. clarify. }
         { des_ifs. }
         { instantiate (1:=a). des_ifs. }
-        { ur. instantiate (3:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)).
-          destruct Pos.eq_dec at 2; destruct Coqlib.zle at 2; destruct Coqlib.zlt at 2; ss; try nia.
+        { ur. destruct Pos.eq_dec at 2; destruct Coqlib.zle at 2; destruct Coqlib.zlt at 2; ss; try nia.
           destruct Pos.eq_dec; clarify; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs1; ss.
           ur. clarify. }
         { des_ifs. }
