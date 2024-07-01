@@ -1716,255 +1716,203 @@ Section SIMMODSEM.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
     i. unfold "@".
     iIntros "[INV PRE]".
-    iDestruct "INV" as (tt) "[INV %]".
-    iDestruct "INV" as (mem_tgt memcnt_src memalloc_src memsz_src memconc_src) "[[[[% CNT] ALLOC] CONC] SZ]".
-    des; clarify. unfold cmp_ptrF. do 8 (try destruct x as [?|x]).
+    iDestruct "INV" as (tt) "[INV %]". cleartrue.
+    iDestruct "INV" as (mem_tgt mem_src) "[% MEM]".
+    des; clarify. inv H1. unfold cmp_ptrF. do 8 (try destruct x as [?|x]).
+    (* rule 1 : null vs null *)
     - ss. iDestruct "PRE" as "%". des. clarify. hred_r.
-      iApply isim_pget_tgt. hred_r. destruct Vnullptr eqn:?; clarify.
-      rewrite <- Heqv. unfold cmp_ptr. des_ifs_safe.
-      unfold Val.cmplu_bool. destruct Vnullptr eqn:?; clarify.
-      hred_r.
-      iApply isim_apc. iExists None.
+      iApply isim_pget_tgt. hred_r. iApply isim_apc. iExists None.
       hred_l. iApply isim_choose_src. iExists _.
-      iApply isim_ret. iSplitL "CNT ALLOC CONC SZ".
-      { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-      iSplit; ss. iPureIntro. unfold Vnullptr in Heqv0. des_ifs.
+      iApply isim_ret. iSplitL "MEM"; cycle 1. { iSplit; ss. iPureIntro. des_ifs. }
+      iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et.
+    (* rule 2 : eq, null vs val *)
     - unfold cmp_ptr_hoare1. des_ifs_safe. ss. clarify.
       iDestruct "PRE" as "[[% P] %]".
       do 2 unfold has_offset, _has_offset.
-      destruct blk eqn:?; clarify.
-      iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
-      des; clarify. hred_r.
-      iApply isim_pget_tgt. hred_r. destruct Vnullptr eqn:?; clarify.
+      destruct blk eqn:?; clarify. iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
+      des; clarify. hred_r. iApply isim_pget_tgt. hred_r.
       destruct v; clarify; des_ifs_safe.
+      (* case: null vs i *)
       + iDestruct "P" as (a) "[CONC_PRE %]". des. clarify.
         unfold cmp_ptr. des_ifs_safe. ss. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iApply isim_ret. iSplitL "CNT ALLOC CONC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. destruct (Int64.eq i0 i1) eqn: ?.
-        { apply Int64.same_if_eq in Heqb0. subst.
-          unfold Vnullptr in Heqv0. des_ifs. exfalso.
-          eapply weak_valid_nil_paddr_base; et. ii.
-          hexploit H6; clarify. }
+        iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+        iApply isim_ret. iSplitL "MEM".
+        { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        iSplit; ss. iFrame. destruct (Int64.eq Int64.zero i0) eqn: ?.
+        { apply Int64.same_if_eq in Heqb0. subst. exfalso.
+          eapply weak_valid_nil_paddr_base; et. ii. hexploit H2; clarify. }
         iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
-      + iDestruct "P" as "%". des. clarify.
-        unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
-        rewrite Int64.eq_true. ss. des_ifs_safe. rewrite Int64.eq_true. ss.
-        iCombine "ALLOC ALLOC_PRE0" as "ALLOC".
-        iCombine "SZ SZ_PRE" as "SZ".
-        iOwnWf "ALLOC" as wfalloc.
-        iOwnWf "SZ" as wfsz. dup SIM_ALLOC.
+      (* case: null vs p *)
+      + iDestruct "P" as "%". des. clarify. ss.
+        iCombine "MEM ALLOC_PRE0 SZ_PRE" as "MEM".
+        iOwnWf "MEM" as wfmem. ur in wfmem. des.
+        clear wfmem wfmem2 wfmem3 wfmem4. rename wfmem0 into wfalloc. rename wfmem1 into wfsz.
+        revert wfalloc wfsz. r_solve. i. dup SIM_ALLOC.
         ur in wfalloc. des. rewrite URA.unit_idl in wfalloc.
         ur in wfalloc0. apply pw_extends in wfalloc. spc wfalloc.
         ur in wfsz. specialize (wfsz (Some b)). specialize (SIM_ALLOC (Some b)).
         unfold __allocated_with in *. ss.
-        destruct dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
+        destruct Pos.eq_dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
         rewrite wfalloc1 in *. apply OneShot.oneshot_initialized in wfsz.
         des; rewrite wfsz in *; inv SIM_ALLOC; clarify.
         unfold weak_valid in *. destruct m. ss. rewrite Heqo in *.
         hexploit SZPOS; et. i.
-        assert (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1)
-                || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1 - 1) = true).
-        { bsimpl. unfold Mem.valid_pointer.
-          do 2 destruct Mem.perm_dec; ss; et.
-          exfalso. dup PERMinrange.
-          specialize (PERMinrange (Ptrofs.unsigned i1)).
-          specialize (PERMinrange0 (Ptrofs.unsigned i1 - 1)).
-          unfold size_chunk in *. des_ifs.
-          assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
-          unfold Mem.perm in *.
-          assert (init ≤ Ptrofs.unsigned i1 < sz \/ init ≤ Ptrofs.unsigned i1 - 1 < sz) by now destruct i1; ss; nia.
-          destruct H8.
-          { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
-          { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. } }
-        rewrite H6. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iDestruct "ALLOC" as "[ALLOC ?]".
-        iDestruct "SZ" as "[SZ ?]".
-        iApply isim_ret. iSplitL "CNT CONC ALLOC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. ss.
+        replace (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0)
+                    || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0 - 1)) with true.
+        { hred_r. iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+          iDestruct "MEM" as "[[MEM ALLOC_PRE] SZ_PRE]".
+          iApply isim_ret. iSplitL "MEM"; cycle 1. { iSplit; ss. iFrame. ss. }
+          iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        bsimpl. unfold Mem.valid_pointer. do 2 destruct Mem.perm_dec; ss; et.
+        exfalso. dup PERMinrange. specialize (PERMinrange (Ptrofs.unsigned i0)).
+        specialize (PERMinrange0 (Ptrofs.unsigned i0 - 1)). unfold size_chunk in *. des_ifs.
+        assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
+        unfold Mem.perm in *.
+        assert (X: init ≤ Ptrofs.unsigned i0 < sz \/ init ≤ Ptrofs.unsigned i0 - 1 < sz) by now destruct i0; ss; nia.
+        destruct X.
+        { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
+        { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. }
+    (* rule 3 : neq, null vs val *)
     - unfold cmp_ptr_hoare2. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[[% P] %]".
-      do 2 unfold has_offset, _has_offset.
-      destruct blk eqn:?; clarify.
-      iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
-      des; clarify. hred_r.
-      iApply isim_pget_tgt. hred_r. destruct Vnullptr eqn:?; clarify.
+      iDestruct "PRE" as "[[% P] %]". do 2 unfold has_offset, _has_offset.
+      destruct blk eqn:?; clarify. iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
+      des; clarify. hred_r. iApply isim_pget_tgt. hred_r.
       destruct v; clarify; des_ifs_safe.
+      (* case: null vs i *)
       + iDestruct "P" as (a) "[CONC_PRE %]". des. clarify.
         unfold cmp_ptr. des_ifs_safe. ss. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iApply isim_ret. iSplitL "CNT ALLOC CONC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. destruct (Int64.eq i0 i1) eqn: ?.
-        { apply Int64.same_if_eq in Heqb0. subst.
-          unfold Vnullptr in Heqv0. des_ifs.
-          unfold Ptrofs.sub in H5. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H5.
-          exfalso. eapply weak_valid_nil_paddr_base; et. ii.
-          hexploit H6; clarify. }
-        iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
+        iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+        iApply isim_ret. iSplitL "MEM".
+        { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        iSplit; ss. iFrame. destruct (Int64.eq Int64.zero i0) eqn: ?; cycle 1.
+        { iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss. }
+        apply Int64.same_if_eq in Heqb0. subst.
+        unfold Ptrofs.sub in H1. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H1.
+        exfalso. eapply weak_valid_nil_paddr_base; et. ii. hexploit H2; clarify.
+      (* case: null vs p *)
       + iDestruct "P" as "%". des. clarify.
-        unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
-        rewrite Int64.eq_true. ss. des_ifs_safe. rewrite Int64.eq_true. ss.
-        iCombine "ALLOC ALLOC_PRE0" as "ALLOC".
-        iCombine "SZ SZ_PRE" as "SZ".
-        iOwnWf "ALLOC" as wfalloc.
-        iOwnWf "SZ" as wfsz. dup SIM_ALLOC.
+        iCombine "MEM ALLOC_PRE0 SZ_PRE" as "MEM".
+        iOwnWf "MEM" as wfmem. ur in wfmem. des.
+        clear wfmem wfmem2 wfmem3 wfmem4. rename wfmem0 into wfalloc. rename wfmem1 into wfsz.
+        revert wfalloc wfsz. r_solve. i. dup SIM_ALLOC.
         ur in wfalloc. des. rewrite URA.unit_idl in wfalloc.
         ur in wfalloc0. apply pw_extends in wfalloc. spc wfalloc.
         ur in wfsz. specialize (wfsz (Some b)). specialize (SIM_ALLOC (Some b)).
         unfold __allocated_with in *. ss.
-        destruct dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
+        destruct Pos.eq_dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
         rewrite wfalloc1 in *. apply OneShot.oneshot_initialized in wfsz.
         des; rewrite wfsz in *; inv SIM_ALLOC; clarify.
         unfold weak_valid in *. destruct m. ss. rewrite Heqo in *.
         hexploit SZPOS; et. i.
-        assert (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1)
-                || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1 - 1) = true).
-        { bsimpl. unfold Mem.valid_pointer.
-          do 2 destruct Mem.perm_dec; ss; et.
-          exfalso. dup PERMinrange.
-          specialize (PERMinrange (Ptrofs.unsigned i1)).
-          specialize (PERMinrange0 (Ptrofs.unsigned i1 - 1)).
-          unfold size_chunk in *. des_ifs.
-          assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
-          unfold Mem.perm in *.
-          assert (init ≤ Ptrofs.unsigned i1 < sz \/ init ≤ Ptrofs.unsigned i1 - 1 < sz) by now destruct i1; ss; nia.
-          destruct H8.
-          { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
-          { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. } }
-        rewrite H6. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iDestruct "ALLOC" as "[ALLOC ?]".
-        iDestruct "SZ" as "[SZ ?]".
-        iApply isim_ret. iSplitL "CNT CONC ALLOC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. ss.
+        replace (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0)
+                    || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0 - 1)) with true.
+        { hred_r. iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+          iDestruct "MEM" as "[[MEM ALLOC_PRE] SZ_PRE]".
+          iApply isim_ret. iSplitL "MEM"; cycle 1. { iSplit; ss. iFrame. ss. }
+          iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        bsimpl. unfold Mem.valid_pointer. do 2 destruct Mem.perm_dec; ss; et.
+        exfalso. dup PERMinrange. specialize (PERMinrange (Ptrofs.unsigned i0)).
+        specialize (PERMinrange0 (Ptrofs.unsigned i0 - 1)). unfold size_chunk in *. des_ifs.
+        assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
+        unfold Mem.perm in *.
+        assert (X: init ≤ Ptrofs.unsigned i0 < sz \/ init ≤ Ptrofs.unsigned i0 - 1 < sz) by now destruct i0; ss; nia.
+        destruct X.
+        { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
+        { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. }
+    (* rule 4 : eq, val vs null *)
     - unfold cmp_ptr_hoare3. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[[% P] %]".
-      do 2 unfold has_offset, _has_offset.
-      destruct blk eqn:?; clarify.
-      iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
-      des; clarify. hred_r.
-      iApply isim_pget_tgt. hred_r. destruct Vnullptr eqn:?; clarify.
+      iDestruct "PRE" as "[[% P] %]". do 2 unfold has_offset, _has_offset.
+      destruct blk eqn:?; clarify. iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
+      des; clarify. hred_r. iApply isim_pget_tgt. hred_r.
       destruct v; clarify; des_ifs_safe.
+      (* case: null vs i *)
       + iDestruct "P" as (a) "[CONC_PRE %]". des. clarify.
-        unfold cmp_ptr. des_ifs_safe. ss. hred_r.
-        iApply isim_apc. iExists None.
+        unfold cmp_ptr. des_ifs_safe. ss. hred_r. iApply isim_apc. iExists None.
         hred_l. iApply isim_choose_src. iExists _.
-        iApply isim_ret. iSplitL "CNT ALLOC CONC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. destruct (Int64.eq i1 i0) eqn: ?.
-        { apply Int64.same_if_eq in Heqb0. subst.
-          unfold Vnullptr in Heqv0. des_ifs.
-          unfold Ptrofs.sub in H5. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H5.
-          exfalso. eapply weak_valid_nil_paddr_base; et. ii.
-          hexploit H6; clarify. }
-        iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
+        iApply isim_ret. iSplitL "MEM".
+        { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        iSplit; ss. iFrame. destruct (Int64.eq i0 Int64.zero) eqn: ?; cycle 1.
+        { iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss. }
+        apply Int64.same_if_eq in Heqb0. subst. exfalso. eapply weak_valid_nil_paddr_base; et. ii.
+        hexploit H2; clarify.
+      (* case: null vs p *)
       + iDestruct "P" as "%". des. clarify.
-        unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
-        rewrite Int64.eq_true. ss. des_ifs_safe. rewrite Int64.eq_true. ss.
-        iCombine "ALLOC ALLOC_PRE0" as "ALLOC".
-        iCombine "SZ SZ_PRE" as "SZ".
-        iOwnWf "ALLOC" as wfalloc.
-        iOwnWf "SZ" as wfsz. dup SIM_ALLOC.
+        iCombine "MEM ALLOC_PRE0 SZ_PRE" as "MEM".
+        iOwnWf "MEM" as wfmem. ur in wfmem. des.
+        clear wfmem wfmem2 wfmem3 wfmem4. rename wfmem0 into wfalloc. rename wfmem1 into wfsz.
+        revert wfalloc wfsz. r_solve. i. dup SIM_ALLOC.
         ur in wfalloc. des. rewrite URA.unit_idl in wfalloc.
         ur in wfalloc0. apply pw_extends in wfalloc. spc wfalloc.
         ur in wfsz. specialize (wfsz (Some b)). specialize (SIM_ALLOC (Some b)).
         unfold __allocated_with in *. ss.
-        destruct dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
+        destruct Pos.eq_dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
         rewrite wfalloc1 in *. apply OneShot.oneshot_initialized in wfsz.
         des; rewrite wfsz in *; inv SIM_ALLOC; clarify.
         unfold weak_valid in *. destruct m. ss. rewrite Heqo in *.
         hexploit SZPOS; et. i.
-        assert (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1)
-                || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1 - 1) = true).
-        { bsimpl. unfold Mem.valid_pointer.
-          do 2 destruct Mem.perm_dec; ss; et.
-          exfalso. dup PERMinrange.
-          specialize (PERMinrange (Ptrofs.unsigned i1)).
-          specialize (PERMinrange0 (Ptrofs.unsigned i1 - 1)).
-          unfold size_chunk in *. des_ifs.
-          assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
-          unfold Mem.perm in *.
-          assert (init ≤ Ptrofs.unsigned i1 < sz \/ init ≤ Ptrofs.unsigned i1 - 1 < sz) by now destruct i1; ss; nia.
-          destruct H8.
-          { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
-          { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. } }
-        rewrite H6. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iDestruct "ALLOC" as "[ALLOC ?]".
-        iDestruct "SZ" as "[SZ ?]".
-        iApply isim_ret. iSplitL "CNT CONC ALLOC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. ss.
+        replace (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0)
+                || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0 - 1)) with true.
+        { hred_r. iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+          iDestruct "MEM" as "[[MEM ALLOC_PRE] SZ_PRE]".
+          iApply isim_ret. iSplitL "MEM"; cycle 1. { iSplit; ss. iFrame. ss. }
+          iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        bsimpl. unfold Mem.valid_pointer. do 2 destruct Mem.perm_dec; ss; et.
+        exfalso. dup PERMinrange. specialize (PERMinrange (Ptrofs.unsigned i0)).
+        specialize (PERMinrange0 (Ptrofs.unsigned i0 - 1)). unfold size_chunk in *. des_ifs.
+        assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
+        unfold Mem.perm in *.
+        assert (X: init ≤ Ptrofs.unsigned i0 < sz \/ init ≤ Ptrofs.unsigned i0 - 1 < sz) by now destruct i0; ss; nia.
+        destruct X.
+        { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
+        { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. }
+    (* rule 5 : neq, val vs null *)
     - unfold cmp_ptr_hoare4. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[[% P] %]".
-      do 2 unfold has_offset, _has_offset.
-      destruct blk eqn:?; clarify.
-      iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
-      des; clarify. hred_r.
-      iApply isim_pget_tgt. hred_r. destruct Vnullptr eqn:?; clarify.
+      iDestruct "PRE" as "[[% P] %]". do 2 unfold has_offset, _has_offset.
+      destruct blk eqn:?; clarify. iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
+      des; clarify. hred_r. iApply isim_pget_tgt. hred_r.
       destruct v; clarify; des_ifs_safe.
-      + iDestruct "P" as (a) "[CONC_PRE %]". des. clarify.
-        unfold cmp_ptr. des_ifs_safe. ss. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iApply isim_ret. iSplitL "CNT ALLOC CONC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. destruct (Int64.eq i1 i0) eqn: ?.
-        { apply Int64.same_if_eq in Heqb0. subst.
-          unfold Vnullptr in Heqv0. des_ifs.
-          unfold Ptrofs.sub in H5. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0%Z in H5.
-          exfalso. eapply weak_valid_nil_paddr_base; et. ii.
-          hexploit H6; clarify. }
-        iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss.
+      (* case: null vs i *)
+      + iDestruct "P" as (a) "[CONC_PRE %]". des. clarify. hred_r.
+        iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+        iApply isim_ret. iSplitL "MEM".
+        { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        iSplit; ss. iFrame. destruct (Int64.eq i0 Int64.zero) eqn: ?; cycle 1.
+        { iSplit; ss. iExists _. iFrame. iPureIntro. splits; ss. }
+        apply Int64.same_if_eq in Heqb0. subst.
+        exfalso. eapply weak_valid_nil_paddr_base; et. ii. hexploit H2; clarify.
+      (* case: null vs p *)
       + iDestruct "P" as "%". des. clarify.
-        unfold cmp_ptr. des_ifs_safe. unfold Vnullptr in Heqv0. clarify.
-        rewrite Int64.eq_true. ss. des_ifs_safe. rewrite Int64.eq_true. ss.
-        iCombine "ALLOC ALLOC_PRE0" as "ALLOC".
-        iCombine "SZ SZ_PRE" as "SZ".
-        iOwnWf "ALLOC" as wfalloc.
-        iOwnWf "SZ" as wfsz. dup SIM_ALLOC.
+        iCombine "MEM ALLOC_PRE0 SZ_PRE" as "MEM".
+        iOwnWf "MEM" as wfmem. ur in wfmem. des.
+        clear wfmem wfmem2 wfmem3 wfmem4. rename wfmem0 into wfalloc. rename wfmem1 into wfsz.
+        revert wfalloc wfsz. r_solve. i. dup SIM_ALLOC.
         ur in wfalloc. des. rewrite URA.unit_idl in wfalloc.
         ur in wfalloc0. apply pw_extends in wfalloc. spc wfalloc.
         ur in wfsz. specialize (wfsz (Some b)). specialize (SIM_ALLOC (Some b)).
         unfold __allocated_with in *. ss.
-        destruct dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
+        destruct Pos.eq_dec; clarify. apply Consent.extends in wfalloc; et. red in wfalloc. des.
         rewrite wfalloc1 in *. apply OneShot.oneshot_initialized in wfsz.
         des; rewrite wfsz in *; inv SIM_ALLOC; clarify.
         unfold weak_valid in *. destruct m. ss. rewrite Heqo in *.
         hexploit SZPOS; et. i.
-        assert (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1)
-                || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i1 - 1) = true).
-        { bsimpl. unfold Mem.valid_pointer.
-          do 2 destruct Mem.perm_dec; ss; et.
-          exfalso. dup PERMinrange.
-          specialize (PERMinrange (Ptrofs.unsigned i1)).
-          specialize (PERMinrange0 (Ptrofs.unsigned i1 - 1)).
-          unfold size_chunk in *. des_ifs.
-          assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
-          unfold Mem.perm in *.
-          assert (init ≤ Ptrofs.unsigned i1 < sz \/ init ≤ Ptrofs.unsigned i1 - 1 < sz) by now destruct i1; ss; nia.
-          destruct H8.
-          { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
-          { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. } }
-        rewrite H6. hred_r.
-        iApply isim_apc. iExists None.
-        hred_l. iApply isim_choose_src. iExists _.
-        iDestruct "ALLOC" as "[ALLOC ?]".
-        iDestruct "SZ" as "[SZ ?]".
-        iApply isim_ret. iSplitL "CNT CONC ALLOC SZ".
-        { iExists _. iSplit; ss. iExists _,_,_,_,_. iFrame. iPureIntro. et. }
-        iSplit; ss. iFrame. ss.
-    (* non-trivial cases *)
+        replace (Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0)
+                || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0 - 1)) with true.
+        { hred_r. iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
+          iDestruct "MEM" as "[[MEM ALLOC_PRE] SZ_PRE]".
+          iApply isim_ret. iSplitL "MEM"; cycle 1. { iSplit; ss. iFrame. ss. }
+          iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
+        bsimpl. unfold Mem.valid_pointer. do 2 destruct Mem.perm_dec; ss; et.
+        exfalso. dup PERMinrange. specialize (PERMinrange (Ptrofs.unsigned i0)).
+        specialize (PERMinrange0 (Ptrofs.unsigned i0 - 1)).
+        unfold size_chunk in *. des_ifs.
+        assert (init ≤ 0) by now destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia].
+        unfold Mem.perm in *.
+        assert (X: init ≤ Ptrofs.unsigned i0 < sz \/ init ≤ Ptrofs.unsigned i0 - 1 < sz) by now destruct i0; ss; nia.
+        destruct X.
+        { spc PERMinrange. des. rewrite PERMinrange in *. apply n. econs. }
+        { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. }
+    (* TODO: non-trivial cases *)
+    (* rule 6 : weak valid pointers in the same block *)
     - unfold cmp_ptr_hoare5. des_ifs_safe. ss. clarify.
       iDestruct "PRE" as "[[[% P] A] %]".
       do 2 unfold has_offset, _has_offset.
