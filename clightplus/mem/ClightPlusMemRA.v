@@ -514,9 +514,18 @@ Section PROPS.
       (Gc: forall k, c k <> OneShot.unit) :
     URA.updatable (t:=Mem.t)
       (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, c)
-      (Auth.black p, Auth.black a ⋅ Auth.white (__allocated_with blk tg qa), s, update c (Some blk) (OneShot.white addr))
+      (((Auth.black p, Auth.black a, s, update c (Some blk) (OneShot.white addr)) : Mem.t) ⋅
+       (((ε, Auth.white (__allocated_with blk tg qa), ε, ε) : Mem.t) ⋅ (ε, ε, ε, __has_base (Some blk) addr)))
   .
   Proof.
+    set (@URA.add Mem.t _ _) as st. eassert (TEMP: st = _). { unfold st. ur. r_solve. }
+    rewrite TEMP. clear st TEMP.
+    set (@URA.add _blockaddressRA (update c (Some blk) (OneShot.white addr)) (__has_base (Some blk) addr)) as st.
+    assert (TEMP: st = (update c (Some blk) (OneShot.white addr))).
+    { unfold st. extensionalities. ur. destruct H. 2:{ ur; des_ifs. }
+      des_ifs. 2:{ rewrite update_diff_blk. ur; des_ifs. ii. clarify. }
+      rewrite update_same_blk. ur. des_ifs. }
+    unfold st in TEMP. ss. rewrite TEMP. clear st TEMP.
     ii. destruct ctx as [[[p' a'] s'] c']. ur in H. des. ur. splits; eauto.
     - ur. i. ur in H2. destruct (AList.dec (Some blk) k); cycle 1. { rewrite update_diff_blk; et. }
       clarify. rewrite update_same_blk. specialize (H2 (Some blk)). rewrite BC in H2.
