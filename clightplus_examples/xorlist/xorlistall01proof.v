@@ -18,7 +18,7 @@ Require Import PtrofsArith.
 From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
-(* Require Import ClightPlusMem01Proof. *)
+Require Import ClightPlusMem01Proof.
 Require Import xorlist01proof.
 Require Import main01proof.
 
@@ -47,22 +47,22 @@ Section PROOF.
     { simpl map. econs; [econs; refl|].
       unfold xor_sk, xor. rewrite VALID_link. rewrite VALID_comp. et. }
     i. econs.
-    { apply correct_mod; et. inv SKINCL. inv H6. ss. }
+    { apply correct_mod; et. inv SKINCL. inv H3. ss. }
     econs; [|ss].
-    hexploit sim_delete_tl; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_delete_tl.
-    hexploit sim_delete_hd; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_delete_hd.
-    hexploit sim_add_hd; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_add_hd.
-    hexploit sim_add_tl; et. { inv SKINCL. inv H6. et. } i. rename H3 into sim_add_tl.
-    hexploit sim_main; et. { inv SKINCL. inv H6. et. } { inv SKINCL. et. }  i. rename H3 into sim_main.
+    hexploit sim_delete_tl; et. { inv SKINCL. inv H3. et. } i. rename H0 into sim_delete_tl.
+    hexploit sim_delete_hd; et. { inv SKINCL. inv H3. et. } i. rename H0 into sim_delete_hd.
+    hexploit sim_add_hd; et. { inv SKINCL. inv H3. et. } i. rename H0 into sim_add_hd.
+    hexploit sim_add_tl; et. { inv SKINCL. inv H3. et. } i. rename H0 into sim_add_tl.
+    hexploit sim_main; et. { inv SKINCL. inv H3. et. } { inv SKINCL. et. }  i. rename H0 into sim_main.
     eassert (_xor = _).
     { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
-    rewrite H3 in *. clear H3. destruct Ctypes.link_build_composite_env. destruct a.
+    rewrite H0 in *. clear H0. destruct Ctypes.link_build_composite_env. destruct a.
     inversion VALID_link. clear VALID_link. subst.
     clear a.
     set (compile _ _) in VALID_comp.
     eassert (r = Errors.OK _).
     { reflexivity. }
-    rewrite H3 in *. clear r H3.
+    rewrite H0 in *. clear r H0.
     inversion VALID_comp. clear VALID_comp. subst. ss.
     econstructor 1 with (wf := xorlist01proof.wf) (le := top2); et; ss; cycle 1.
     { eexists. econs. apply to_semantic. iIntros. et. }

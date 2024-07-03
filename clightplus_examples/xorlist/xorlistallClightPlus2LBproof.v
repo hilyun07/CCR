@@ -94,43 +94,37 @@ Section PROOF.
       rewrite H2 in PR. apply PR.
     - etrans.
       { apply refines_close. rewrite <- refines2_eq.
-        apply refines2_cons; [|refl]. eapply Weakening.adequacy_weaken. ss. }
+        apply refines2_cons; [|refl]. unfold Mem. eapply Weakening.adequacy_weaken. ss. }
       set (_ :: _).
       assert (l = map (SMod.to_tgt GlobalStb) mds).
       { unfold l, mds. clear LINK H H0. ss. }
       rewrite H1. eapply adequacy_type.
-      + instantiate (1:= GRA.embed (_has_size None 0%Z : blocksizeRA) ⋅ GRA.embed (_has_base None Ptrofs.zero : blockaddressRA)).
+      + instantiate (1:= GRA.embed (_has_size None 0%Z) ⋅ GRA.embed (_has_base None Ptrofs.zero)).
         clear. ss. unfold SMod.get_initial_mrs. ss. rewrite URA.unit_idl.
         rewrite URA.unit_id.
         unfold res_init.
         destruct alloc_globals eqn:?.
-        2:{ rewrite wf_iff in Heqo. pose proof _wf_sk. rewrite Heqo in H. exfalso. apply H. et. }
+        2:{ rewrite init_fail_iff in Heqo. pose proof _wf_sk. rewrite Heqo in H. exfalso. apply H. et. }
         destruct p as [[p a] s].
+        Local Transparent _has_base _has_size.
+        unfold _has_size, _has_base. 
         apply GRA.point_wise_wf_lift.
-        simpl. splits.
-        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
-          clear. r_solve.
-          Local Transparent _has_base.
-          unfold _has_base. ur. i. des_ifs; r_solve; ur; et.
-          des_ifs. }
-        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
-          hexploit valid_size. et. i.
-          clear - H. r_solve. rewrite (URA.add_comm _ s). rewrite <- URA.add_assoc.
-          set (_ ⋅ _) at 2.
-          eassert (c = _).
-          { Local Transparent _has_size.
-            unfold c. unfold _has_size. ur.
-            instantiate (1:= fun k => match k with Some b => if Coqlib.plt b (Pos.of_succ_nat (length (sort (Sk.add mfsk (Sk.add xor_sk Sk.unit))))) then OneShot.unit else OneShot.black | None => OneShot.white 0%Z end).
-            extensionalities. destruct H0.
-            { ur. des_ifs. } ur. des_ifs. }
-          rewrite H0. clear c H0. apply H. }
-        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
-          apply valid_alloc in Heqo.
-          clear -Heqo. r_solve. ur. split; [|eapply Heqo]. exists a. r_solve. }
-        { repeat rewrite GRA.point_add. unfold GRA.embed. simpl.
-          apply valid_point in Heqo.
-          clear -Heqo. r_solve. ur. split; [|eapply Heqo]. exists p. r_solve. }
-        et.
+        simpl. splits; et.
+        repeat rewrite GRA.point_add. unfold GRA.embed. simpl. ur. r_solve.
+        splits.
+        * ur. split. { exists p. r_solve. } eapply valid_point; et.
+        * ur. split. { exists a. r_solve. } eapply valid_alloc; et.
+        * hexploit valid_size; et. i. clear - H.
+          set (_ ⋅ _). 
+          eassert (c = _). 2:{ rewrite H0. apply H. }
+          unfold c. unfold __has_size. ur.
+          clearbody mfsk. 
+          extensionalities. destruct H0. 
+          { des_ifs; ur; des_ifs. }
+          ur. des_ifs.
+        * clear. unfold __has_base. ur. i. des_ifs; r_solve; ur; et. des_ifs.
+        * ss.
+        * ss.
       + i. simpl in MAIN. inv MAIN. exists tt.
         clear. splits; et.
         2:{ i. ss. iIntros "%"; des; clarify. }
