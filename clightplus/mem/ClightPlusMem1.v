@@ -1362,11 +1362,7 @@ Section MRS.
                             | None => OneShot.white Ptrofs.zero
                             end)
     | None => (Auth.black ε, Auth.black ε,
-                fun ob =>
-                  match  ob with
-                  | Some b => if Coqlib.plt b (Pos.of_succ_nat (List.length sk)) then OneShot.unit else OneShot.black
-                  | None => OneShot.white 0
-                  end,
+                fun ob => OneShot.black,
                 fun ob =>
                   match ob with
                   | Some _ => OneShot.black

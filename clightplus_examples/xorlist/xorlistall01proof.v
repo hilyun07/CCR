@@ -18,7 +18,7 @@ Require Import PtrofsArith.
 From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
-Require Import ClightPlusMem01Proof.
+(* Require Import ClightPlusMem01Proof. *)
 Require Import xorlist01proof.
 Require Import main01proof.
 

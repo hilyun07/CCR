@@ -1070,7 +1070,7 @@ Section SIMMODSEM.
 
   Local Transparent _points_to _allocated_with _has_offset _has_size _has_base.
 
-  (* Lemma sim_salloc :
+  Lemma sim_salloc :
     sim_fnsem wf top2
       ("salloc", fun_to_tgt "Mem" (to_stb []) (mk_pure salloc_spec))
       ("salloc", cfunU sallocF).
@@ -3077,9 +3077,9 @@ Section SIMMODSEM.
       destruct tag; try solve [hexploit COMMON; et; nia|hexploit DYNAMIC; et; des; nia]. }
     i. des. exfalso. apply n. rewrite H0. econs.
   Unshelve. all: et.
-  Qed. *)
+  Qed.
 
-  (* Lemma sim_memcpy :
+  Lemma sim_memcpy :
     sim_fnsem wf top2
       ("memcpy", fun_to_tgt "Mem" (to_stb []) (mk_pure memcpy_spec))
       ("memcpy", cfunU memcpyF).
@@ -3486,7 +3486,7 @@ Section SIMMODSEM.
             apply Consent.extends in wfcnt; et. red in wfcnt. des.
             specialize (SIM_CNT ofs0 POSOFS). rewrite wfcnt0 in SIM_CNT. inv SIM_CNT; clarify. }
     Unshelve. all: et. all: try apply Eqsth; try apply Qp_le_po.
-  Qed. *)
+  Qed.
 
   Lemma sim_capture :
     sim_fnsem wf top2
@@ -3729,18 +3729,17 @@ Section SIMMODSEM.
     iDestruct "PRE" as "[PRE %]"; clarify.
     iDestruct "PRE" as (m mvs vaddr) "[[% P] A]"; des; clarify.
     iPoseProof (point_notnull with "P") as "%".
-    do 2 unfold has_offset, _has_offset, points_to, _points_to.
-    destruct blk eqn:?; clarify.
+    do 2 unfold has_offset, _has_offset, points_to. rename H1 into LEN, H0 into notnull.
+    destruct blk eqn:?; clarify. rename Heqo into B.
     iDestruct "A" as "[ALLOC_PRE [_ A]]".
     iDestruct "P" as "[_ P]".
-    iDestruct "P" as (ofs) "[[[CNT_PRE [SZ_PRE A0]] %] LEN]".
-    iDestruct "INV" as (tt) "[INV %]".
-    iDestruct "INV" as (mem_tgt memcnt_src memalloc_src memsz_src memconc_src) "[[[[% CNT] ALLOC] CONC] SZ]".
-    des; clarify.
+    iDestruct "P" as (ofs) "[[CNT_PRE [SZ_PRE A0]] %]". rename H0 into R.
+    iDestruct "INV" as (tt) "[INV %]". cleartrue.
+    iDestruct "INV" as (mem_tgt mem_src) "[% MEM]".
+    des; clarify. inv H1. des; clarify.
 
     unfold mfreeF. hred_r.
-    iApply isim_pget_tgt. hred_r.
-    destruct Archi.ptr64 eqn:?; ss; clarify.
+    iApply isim_pget_tgt. hred_r. ss.
     iAssert ⌜ofs = Ptrofs.zero⌝%I as "%".
     { des_ifs.
       - iDestruct "A" as (a) "[CONC_PRE %]".
@@ -3760,69 +3759,68 @@ Section SIMMODSEM.
       destruct (Int64.eq i Int64.zero); clarify.
       iDestruct "A" as (a) "[A %]".
       iDestruct "A0" as (a0) "[A0 %]".
-      hexploit (SIM_CONC (Some b)). i.
+      hexploit (SIM_CONC (Some b)). intro conc.
       iCombine "A A0" as "CONC_PRE".
       iPoseProof (_has_base_unique with "CONC_PRE") as "%".
-      subst. iDestruct "CONC_PRE" as "[_ CONC_PRE]".
-      des.
-      iCombine "CONC CONC_PRE" as "CONC".
-      iOwnWf "CONC" as wfconc.
-      ur in wfconc. specialize (wfconc (Some b)). ss. destruct dec; clarify.
+      subst. iDestruct "CONC_PRE" as "[_ CONC_PRE]". ss. des.
+      rename H0 into NZ1, H1 into Z, H5 into NZ, H6 into R0, H2 into Z0, H3 into NZ0, H4 into R1.
+      iCombine "MEM CNT_PRE CONC_PRE" as "MEM".
+      iOwnWf "MEM" as wfmem. ur in wfmem. des.
+      clear wfmem0 wfmem1 wfmem3 wfmem4. rename wfmem into wfcnt, wfmem2 into wfconc.
+      revert wfcnt wfconc. r_solve. i.
+      ur in wfconc. specialize (wfconc (Some b)). ss. destruct Pos.eq_dec; clarify.
       apply OneShot.oneshot_initialized in wfconc.
-      des; rewrite wfconc in *; inv H10; clarify.
+      des; rewrite wfconc in *; inv conc; clarify. rename H2 into conc.
       unfold Mem.denormalize.
-      hexploit (paddr_no_overflow_cond i); et.
-      { rewrite <- H9. nia. } i.
+      hexploit (paddr_no_overflow_cond i); et. { rewrite <- Z0. nia. } intro R2.
       unfold Ptrofs.sub, Ptrofs.of_int64 in *.
       rewrite (Ptrofs.unsigned_repr (Int64.unsigned i)) in *; try apply Int64.unsigned_range_2.
-      hexploit (SIM_CNT b 0); try nia. i.
-      iCombine "CNT CNT_PRE" as "CNT".
-      iOwnWf "CNT" as wfcnt. ur in wfcnt. rewrite URA.unit_idl in wfcnt.
+      hexploit (SIM_CNT b 0); try nia. intro sim.
+      ur in wfcnt. rewrite URA.unit_idl in wfcnt.
       des. do 2 ur in wfcnt0. apply pw_extends in wfcnt. red in wfcnt. spc wfcnt.
       apply pw_extends in wfcnt. red in wfcnt. specialize (wfcnt 0).
       unfold __points_to in wfcnt. case_points_to; ss; clarify.
-      2:{ destruct mvs; ss. destruct m; ss. hexploit SZPOS. rewrite Heqo. et. i. nia. }
-      destruct nth_error eqn:?; cycle 1. { apply nth_error_None in Heqo0. nia. }
+      2:{ destruct mvs; ss. destruct m; ss. hexploit SZPOS. rewrite B. et. i. nia. }
+      destruct nth_error eqn:?; cycle 1. { apply nth_error_None in Heqo. nia. }
       apply Consent.extends in wfcnt; et. red in wfcnt. des.
-      rewrite wfcnt1 in H15. inv H15. clarify.
+      rewrite wfcnt1 in sim. inv sim. clarify.
       hexploit mem_tgt.(Mem.access_max).
-      rewrite PERM. i. unfold Mem.perm_order'' in *.
-      assert (0 = Int64.unsigned i - Ptrofs.unsigned base).
-      { apply (f_equal Ptrofs.unsigned) in H8.
-        change (Ptrofs.unsigned Ptrofs.zero) with 0 in H8.
-        rewrite H8. rewrite Ptrofs.unsigned_repr; et.
+      rewrite PERM. intro A. unfold Mem.perm_order'' in *.
+      assert (X: 0 = Int64.unsigned i - Ptrofs.unsigned base).
+      { apply (f_equal Ptrofs.unsigned) in Z.
+        change (Ptrofs.unsigned Ptrofs.zero) with 0 in Z.
+        rewrite Z. rewrite Ptrofs.unsigned_repr; et.
         destruct i; destruct base; ss; nia. }
       des_ifs; cycle 1.
       { exfalso. apply Maps.PTree.gselectnf in Heq. apply Heq.
-        eexists _,_. split; et. unfold Mem.denormalize_aux. rewrite <- H17.
-        unfold Mem.addr_is_in_block. rewrite <- H17. rewrite <- H18.
-        rewrite Heq0.
+        eexists _,_. split; et. unfold Mem.denormalize_aux, Mem.addr_is_in_block.
+        rewrite <- conc. rewrite <- X. rewrite Heq0.
         des_ifs. unfold Mem.is_valid in Heq1. bsimpl.
         hexploit mem_tgt.(Mem.nextblock_noaccess); try rewrite PERM; i; clarify.
         des; try nia. unfold Coqlib.Plt. apply Pos.ltb_ge in Heq1. nia. }
       apply Maps.PTree.gselectf in Heq. des.
       unfold Mem.denormalize_aux, Mem.addr_is_in_block in *. des_ifs; bsimpl; clarify.
-      des. pose proof (mem_tgt.(Mem.no_concrete_overlap) (Int64.unsigned i)).
-      red in H19. hexploit H19.
-      { econs; et. nia. }
-      { econs. 1: rewrite H17; et. { eexists. rewrite <- H18. rewrite Heq0. et. }
+      des. pose proof (mem_tgt.(Mem.no_concrete_overlap) (Int64.unsigned i)) as W.
+      red in W. hexploit W. { econs; et. nia. }
+      { econs. 1: rewrite conc; et. { eexists. rewrite <- X. rewrite Heq0. et. }
         change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in *. nia. }
       i. subst. iPureIntro. do 2 f_equal.
-      rewrite <- H17 in Heq2. clarify. }
+      rewrite <- conc in Heq2. clarify. }
+    rename H0 into v2p.
     (* prove load is safe *)
-    iCombine "ALLOC ALLOC_PRE" as "ALLOC".
-    iCombine "SZ SZ_PRE" as "SZ".
-    iOwnWf "ALLOC" as wfalloc.
-    iOwnWf "SZ" as wfsz.
+    iCombine "MEM CNT_PRE ALLOC_PRE SZ_PRE" as "MEM".
+    iOwnWf "MEM" as wfmem. ur in wfmem. des.
+    clear wfmem2 wfmem3 wfmem4. rename wfmem into wfcnt, wfmem0 into wfalloc, wfmem1 into wfsz.
+    revert wfcnt wfalloc wfsz. r_solve. i.
     ur in wfalloc. rewrite URA.unit_idl in wfalloc. des. ur in wfalloc0.
     apply pw_extends in wfalloc. ur in wfsz.
     spc wfalloc. specialize (wfsz (Some b)). ss.
-    unfold __allocated_with in *. destruct dec; clarify.
+    unfold __allocated_with in *. destruct Pos.eq_dec; clarify.
     apply Consent.extends in wfalloc; et.
     red in wfalloc. des. apply OneShot.oneshot_initialized in wfsz.
     dup SIM_ALLOC. specialize (SIM_ALLOC (Some b)). ss.
     des; rewrite wfalloc1 in SIM_ALLOC; rewrite wfsz in SIM_ALLOC; inv SIM_ALLOC; clarify.
-    hexploit DYNAMIC; et. i. des. subst.
+    hexploit DYNAMIC; et. intro MSZ. des. subst.
     iAssert ⌜Mem.load Mptr mem_tgt b (- size_chunk Mptr) = Some (Vlong (Int64.repr (sz m)))⌝%I as "%".
     { unfold Mem.load.
       destruct Mem.valid_access_dec; cycle 1.
@@ -3830,14 +3828,14 @@ Section SIMMODSEM.
         { unfold align_chunk, size_chunk. des_ifs. exists (- 1). ss. }
         replace (- _ + _) with 0 by nia.
         unfold Mem.range_perm, Mem.perm. i.
-        destruct m. ss. hexploit SZPOS. rewrite Heqo. et.
-        i. hexploit (PERMinrange ofs); try nia. i. des. rewrite H11.
-        rewrite Qfree in H12. { inv H12; econs. }
+        destruct m. ss. hexploit SZPOS; clarify.
+        i. hexploit (PERMinrange ofs); try nia. intro PERM. des. rewrite PERM.
+        rewrite Qfree in PERM0. { inv PERM0; econs. }
         eapply antisymmetry; et. }
       iAssert ⌜sz m ≤ Ptrofs.max_unsigned⌝%I as "%".
       { des_ifs; cycle 1. { iDestruct "A" as "%". des. ss. }
         iDestruct "A" as (a) "[_ %]". des. destruct a; ss. iPureIntro. nia. }
-      iPureIntro. f_equal. rewrite H8.
+      iPureIntro. f_equal. rewrite MSZ.
       rewrite pure_memval_good_decode; et.
       unfold decode_val. des_ifs.
       rewrite proj_inj_bytes in Heq. clarify.
@@ -3845,57 +3843,37 @@ Section SIMMODSEM.
       change (two_p _) with Ptrofs.modulus.
       rewrite Z.mod_small; et. change Ptrofs.modulus with (Ptrofs.max_unsigned + 1).
       nia. }
+    rename H0 into LSAFE.
     (* prove free is safe *)
-    assert (Mem.range_perm mem_tgt b (- size_chunk Mptr) (sz m) Cur Freeable).
+    assert (P: Mem.range_perm mem_tgt b (- size_chunk Mptr) (sz m) Cur Freeable).
     { unfold Mem.range_perm, Mem.perm. i.
-      hexploit PERMinrange; et. i. des. rewrite H11.
-      rewrite Qfree in H12. { inv H12; econs. }
+      hexploit PERMinrange; et. intro PERM. des. rewrite PERM.
+      rewrite Qfree in PERM0. { inv PERM0; econs. }
       eapply antisymmetry; et. }
-
-    (* resource formation starts *)
-    (* cnt *)
-    iCombine "CNT CNT_PRE" as "CNT".
-    iOwnWf "CNT" as wfcnt.
-    iPoseProof (OwnM_Upd with "CNT") as ">CNT".
-    { eapply Auth.auth_dealloc.
-      instantiate (1:= update memcnt_src b
-                        (fun _ofs =>
-                          if Coqlib.zle 0 _ofs && Coqlib.zlt _ofs (sz m)
-                          then Consent.unit
-                          else memcnt_src b _ofs)).
-      ii. des. rewrite URA.unit_idl. split.
-      { do 2 ur in H11. do 2 ur. i. unfold update. destruct dec; et. des_ifs. ur. et. }
-      rewrite H12 in *. red. extensionalities. do 2 ur. unfold update. destruct dec; clarify; cycle 1.
-      { case_points_to; ss; try rewrite URA.unit_idl; et.
-        edestruct nth_error_None. rewrite H16; try nia. }
-      case_points_to; ss; try rewrite URA.unit_idl; et.
-      2:{ destruct Coqlib.zlt; ss; try nia. rewrite URA.unit_idl. et. }
-      do 2 ur in H11. do 2 spc H11. ur in H11.
-      destruct ctx; et; try solve [des_ifs]. exfalso.
-      unfold __points_to in H11; case_points_to; ss; try nia; des_ifs.
-      { apply Qp_not_add_le_l in H11; clarify. }
-      { rewrite nth_error_None in Heq. nia. }
-      change (Ptrofs.unsigned Ptrofs.zero) with 0 in *. nia. }
-
-    (* alloc resource *)
-    iPoseProof (OwnM_Upd with "ALLOC") as ">ALLOC".
-    { eapply Auth.auth_dealloc.
-      instantiate (1:= update memalloc_src b Consent.unit).
-      ii. des. rewrite URA.unit_idl. ur in H11. split.
-      { ur. i. unfold update. destruct dec; et. ur. et. }
-      rewrite H12 in *. red. extensionalities. do 2 ur. unfold update. destruct dec; clarify; cycle 1.
-      { unfold __allocated_with. destruct dec; clarify. des_ifs. }
-      spc H11. unfold __allocated_with in H11. ur in H11. destruct dec; clarify. ur in H11. des_ifs.
-      apply Qp_not_add_le_l in H11. clarify. }
+    iDestruct "MEM" as "[MEM SZ_PRE]". unfold _allocated_with, _points_to. ur. r_solve.
+    iPoseProof (OwnM_Upd with "MEM") as ">MEM".
+    { eapply free_update; cycle 1.
+      { revert wfalloc. r_solve. i. ur in wfalloc. des. rewrite wfalloc1. f_equal.
+        spc wfalloc0. ur in wfalloc0. des_ifs. eapply antisymmetry; et. }
+      i. hexploit (SIM_CNT b ofs). { change (Ptrofs.unsigned Ptrofs.zero) with 0 in *. nia. }
+      intro sim. ur in wfcnt. des. revert wfcnt. r_solve. i.
+      apply URA.pw_extends in wfcnt. spc wfcnt.
+      apply URA.pw_extends in wfcnt. spc wfcnt.
+      inv sim. 2:{ rewrite <- H1 in wfcnt. unfold URA.extends in wfcnt. des. ur in wfcnt. des_ifs. }
+      rewrite RES in wfcnt. unfold URA.extends in wfcnt. des. ur in wfcnt. des_ifs.
+      2:{ revert Heq. case_points_to; ss. i. destruct nth_error eqn:?; clarify. apply nth_error_None in Heqo. nia. }
+      revert Heq. case_points_to; ss. i. destruct nth_error eqn:?; clarify.
+      unfold Q1 in Qwf. apply Qp_not_add_le_l in Qwf0. clarify. }
 
     destruct vaddr; clarify.
+    (* case: i *)
     - unfold Int64.eq. destruct Coqlib.zeq.
-      { exfalso. apply H3. unfold Vnullptr. des_ifs. f_equal.
+      { exfalso. apply notnull. unfold Vnullptr. ss. f_equal.
         apply Int64.same_if_eq. unfold Int64.eq. des_ifs. }
-      hred_r. unfold Mem.to_ptr in H7.
-      rewrite H7. change (Ptrofs.unsigned Ptrofs.zero) with 0.
-      rewrite Z.sub_0_l. rewrite H9. hred_r.
-      destruct m; ss. hexploit SZPOS. rewrite Heqo. et. i.
+      hred_r. unfold Mem.to_ptr in v2p. ss. unfold Vnullptr in v2p. ss.
+      rewrite v2p. change (Ptrofs.unsigned Ptrofs.zero) with 0.
+      rewrite Z.sub_0_l. unfold Mptr in LSAFE. ss. rewrite LSAFE. hred_r.
+      destruct m; ss. hexploit SZPOS; clarify. intro R5.
       iDestruct "A" as (a) "[A %]".
       iDestruct "A0" as (a0) "[A0 %]".
       des. clarify.
@@ -3904,20 +3882,15 @@ Section SIMMODSEM.
       destruct Coqlib.zlt; try nia.
       unfold Mem.free. rewrite Z.add_0_l.
       destruct Mem.range_perm_dec; clarify.
-      hred_r.
-      iApply isim_pput_tgt. hred_r.
-      iApply isim_apc. iExists None.
+      hred_r. iApply isim_pput_tgt. hred_r. iApply isim_apc. iExists None.
       hred_l. iApply isim_choose_src. iExists _.
       (* start proving conditions *)
       iApply isim_ret. iSplit; et.
       (* invariant *)
-      iExists _. iSplits; ss.
-      iDestruct "SZ" as "[SZ _]". iClear "A0 A". iFrame.
-      iPureIntro. splits; ss; ss.
+      iExists _. iSplit; ss. iExists _, _. iFrame. iPureIntro. split; et. unfold Mem.unchecked_free. econs; ss; et.
       (* sim_cnt *)
       + i. hexploit (SIM_CNT b0); et. intro SIM_CNT0.
-        unfold update. destruct dec; clarify; cycle 1.
-        { rewrite ! Maps.PMap.gso; et. }
+        unfold update. destruct dec; clarify; cycle 1. {  rewrite ! Maps.PMap.gso; et. }
         rewrite ! Maps.PMap.gss.
         do 2 destruct Coqlib.zle; destruct Coqlib.zlt; ss; try nia.
       (* sim_alloc *)
@@ -3925,24 +3898,25 @@ Section SIMMODSEM.
         { specialize (SIM_ALLOC0 None); ss. }
         unfold update. destruct dec; clarify; cycle 1.
         specialize (SIM_ALLOC0 (Some b0)); ss; des. rewrite ! Maps.PMap.gso; et.
+      (* sim_ca *)
+      + i. destruct (Pos.eq_dec b b0). 2:{ rewrite update_diff_blk in PRES; et. rewrite update_diff_blk; et. }
+        clarify. rewrite update_same_blk in *. exfalso. destruct Coqlib.zle, Coqlib.zlt; ss; try nia.
+        rewrite wfsz in *. clarify. nia.
     - hred_r. iDestruct "A" as "%". des. clarify.
       change (Ptrofs.unsigned Ptrofs.zero) with 0.
-      rewrite Z.sub_0_l. rewrite H9. hred_r.
-      destruct m; ss. hexploit SZPOS. rewrite Heqo. et. i.
+      rewrite Z.sub_0_l. unfold Mptr in LSAFE. ss. rewrite LSAFE. hred_r.
+      destruct m; ss. hexploit SZPOS; clarify. i.
       rewrite Int64.unsigned_repr.
       2:{ change Int64.max_unsigned with Ptrofs.max_unsigned. nia. }
       destruct Coqlib.zlt; try nia.
-      unfold Mem.free. do 2 rewrite Z.add_0_l.
+      unfold Mem.free. rewrite Z.add_0_l.
       destruct Mem.range_perm_dec; clarify. hred_r.
-      iApply isim_pput_tgt. hred_r.
-      iApply isim_apc. iExists None.
+      iApply isim_pput_tgt. hred_r. iApply isim_apc. iExists None.
       hred_l. iApply isim_choose_src. iExists _.
       (* start proving conditions *)
       iApply isim_ret. iSplit; et.
       (* invariant *)
-      iExists _. iSplits; ss.
-      iDestruct "SZ" as "[SZ _]". iFrame.
-      iPureIntro. splits; ss; ss.
+      iExists _. iSplits; ss. iPureIntro. econs; ss; et.
       (* sim_cnt *)
       + i. hexploit (SIM_CNT b0); et. intro SIM_CNT0.
         unfold update. destruct dec; clarify; cycle 1.
@@ -3954,25 +3928,20 @@ Section SIMMODSEM.
         { specialize (SIM_ALLOC0 None); ss. }
         unfold update. destruct dec; clarify; cycle 1.
         specialize (SIM_ALLOC0 (Some b0)); ss; des. rewrite ! Maps.PMap.gso; et.
+      (* sim_ca *)
+      + i. destruct (Pos.eq_dec b b0). 2:{ rewrite update_diff_blk in PRES; et. rewrite update_diff_blk; et. }
+        clarify. rewrite update_same_blk in *. exfalso. destruct Coqlib.zle, Coqlib.zlt; ss; try nia.
+        rewrite wfsz in *. clarify. nia.
     Unshelve. all: et. all: try apply Eqsth; try apply Qp_le_po.
   Qed.
 
   Theorem correct_mod sk: ModPair.sim (ClightPlusMem1.Mem sk) (ClightPlusMem0.Mem sk).
   Proof.
   Local Opaque Pos.add.
-    econs; ss. i.
     econstructor 1 with (wf:=wf) (le:=top2); ss; cycle 1.
     { exists tt. unfold res_init. des_ifs.
       - econs. apply to_semantic. apply init_wf; et.
-      - rewrite <- init_fail_iff in Heq0. clarify.
-      - rewrite init_fail_iff in Heq. clarify.
-      - econs; ss. eapply to_semantic.
-        iIntros "A". iSplits; ss. iPureIntro.
-        econs; ss.
-        + i. rewrite Maps.PMap.gi. econs 2; ss.
-        + i. des_ifs. rewrite Maps.PTree.gempty. econs. et.
-        + i. destruct ob; et. split. { econs 2. }
-          i. destruct Coqlib.plt; et. unfold Coqlib.Plt in *. nia. }
+      - rewrite init_fail_iff in Heq. clarify. }
     repeat (match goal with |- Forall2 _ _ _ => econs end).
     - apply sim_salloc.
     - apply sim_sfree.
