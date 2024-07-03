@@ -3938,10 +3938,17 @@ Section SIMMODSEM.
   Theorem correct_mod sk: ModPair.sim (ClightPlusMem1.Mem sk) (ClightPlusMem0.Mem sk).
   Proof.
   Local Opaque Pos.add.
+    econs; ss. i.
     econstructor 1 with (wf:=wf) (le:=top2); ss; cycle 1.
     { exists tt. unfold res_init. des_ifs.
       - econs. apply to_semantic. apply init_wf; et.
-      - rewrite init_fail_iff in Heq. clarify. }
+      - rewrite <- init_fail_iff in Heq0. clarify.
+      - rewrite init_fail_iff in Heq. clarify.
+      - econs; ss. eapply to_semantic.
+        iIntros "A". iSplits; ss. iPureIntro.
+        econs; ss.
+        + i. des_ifs. rewrite Maps.PTree.gempty. econs. et.
+        + i. destruct ob; et. }
     repeat (match goal with |- Forall2 _ _ _ => econs end).
     - apply sim_salloc.
     - apply sim_sfree.

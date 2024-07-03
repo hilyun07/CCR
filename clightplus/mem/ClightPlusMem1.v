@@ -1362,7 +1362,11 @@ Section MRS.
                             | None => OneShot.white Ptrofs.zero
                             end)
     | None => (Auth.black ε, Auth.black ε,
-                fun ob => OneShot.black,
+                fun ob => 
+                  match ob with
+                  | Some _ => OneShot.black
+                  | None => OneShot.white 0
+                  end,
                 fun ob =>
                   match ob with
                   | Some _ => OneShot.black
