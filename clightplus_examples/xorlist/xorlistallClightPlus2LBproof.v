@@ -107,7 +107,7 @@ Section PROOF.
         2:{ rewrite init_fail_iff in Heqo. pose proof _wf_sk. rewrite Heqo in H. exfalso. apply H. et. }
         destruct p as [[p a] s].
         Local Transparent _has_base _has_size.
-        unfold _has_size, _has_base. 
+        unfold _has_size, _has_base.
         apply GRA.point_wise_wf_lift.
         simpl. splits; et.
         repeat rewrite GRA.point_add. unfold GRA.embed. simpl. ur. r_solve.
@@ -115,11 +115,11 @@ Section PROOF.
         * ur. split. { exists p. r_solve. } eapply valid_point; et.
         * ur. split. { exists a. r_solve. } eapply valid_alloc; et.
         * hexploit valid_size; et. i. clear - H.
-          set (_ ⋅ _). 
+          set (_ ⋅ _).
           eassert (c = _). 2:{ rewrite H0. apply H. }
           unfold c. unfold __has_size. ur.
-          clearbody mfsk. 
-          extensionalities. destruct H0. 
+          clearbody mfsk.
+          extensionalities. destruct H0.
           { des_ifs; ur; des_ifs. }
           ur. des_ifs.
         * clear. unfold __has_base. ur. i. des_ifs; r_solve; ur; et. des_ifs.
@@ -137,14 +137,24 @@ Section PROOF.
         iSplitL "B"; iExists _; iFrame; iPureIntro; splits; et; ss.
   Qed.
 
-  Require Import Clight2Asm ClightPlus2LBProof ClightPlus2ClightProof.
-  From compcert Require Import Behaviors.
+  Require Import ClightPlus2LBProof ClightPlus2ClightProof.
+  From compcert Require Import Behaviors Compiler.
 
-  Theorem final_thm_asm prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight_program prog = Errors.OK asm) :
+  Theorem final_thm_asm prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight2_program prog = Errors.OK asm) :
     improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (Lowerbound.semantics asm).
   Proof.
     eapply improves2_program_observe_trans. apply final_thm; et.
-    eapply transf_clight_program_preservation_lbd in COMP.
+    eapply transf_clight2_program_preservation_lbd in COMP.
+    unfold Complements.improves in *. i. hexploit COMP; et.
+    i. des. hexploit semantics2to3; et. i. des.
+    esplits; et. eapply observation_improves_trans; et.
+  Qed.
+
+  Theorem final_thm_asm_via_SSA prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight2_program_via_SSA prog = Errors.OK asm) :
+    improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (Lowerbound.semantics asm).
+  Proof.
+    eapply improves2_program_observe_trans. apply final_thm; et.
+    eapply transf_clight2_program_via_SSA_preservation_lbd in COMP.
     unfold Complements.improves in *. i. hexploit COMP; et.
     i. des. hexploit semantics2to3; et. i. des.
     esplits; et. eapply observation_improves_trans; et.
