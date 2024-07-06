@@ -77,6 +77,8 @@ Section PRED.
     end%I
   .
 
+  Definition is_alive m tg q vaddr : iProp := has_offset vaddr m Ptrofs.zero tg q.
+
   Definition m_null : metadata.
   Proof.
     eapply (@Build_metadata None 0). i. clarify.
@@ -96,6 +98,7 @@ End PRED.
 Notation "vaddr ⊨ m # ofs" := (_has_offset vaddr m ofs) (at level 10).
 Notation "vaddr '(↦_' m , q ) mvs" := (points_to vaddr m mvs q) (at level 20).
 Notation "vaddr '(⊨_' m , tg , q ) ofs" := (has_offset vaddr m ofs tg q) (at level 10).
+Notation "'live_(' m , tg , q ) vaddr" := (is_alive m tg q vaddr) (at level 10).
 Notation "m #^ m0" := (disjoint m m0) (at level 20).
 Notation "vaddr '(≃_' m ) vaddr'" := (equiv_prov vaddr vaddr' m) (at level 20).
 
@@ -323,7 +326,7 @@ Section RULES.
     - iDestruct "B" as "%". des. et.
   Qed.
 
-  Lemma offset_slide
+  Lemma _offset_slide
       vaddr m tg q ofs k :
     vaddr (⊨_ m, tg, q) ofs ⊢ (Val.addl vaddr (Vptrofs k)) (⊨_ m,tg,q) (Ptrofs.add ofs k).
   Proof.
@@ -331,7 +334,7 @@ Section RULES.
     iDestruct "A" as "[? A]". iFrame. iApply _has_offset_slide. et.
   Qed.
 
-  Lemma offset_slide_rev
+  Lemma _offset_slide_rev
       vaddr m tg q ofs k :
     (Val.addl vaddr (Vptrofs k)) (⊨_ m,tg,q) (Ptrofs.add ofs k) ⊢ vaddr (⊨_ m, tg, q) ofs.
   Proof.
@@ -339,7 +342,7 @@ Section RULES.
     iDestruct "A" as "[? A]". iFrame. iApply _has_offset_slide_rev. et.
   Qed.
 
-  Lemma offset_unique
+  Lemma _offset_unique
       vaddr m tg0 tg1 q0 q1 ofs0 ofs1 :
     vaddr (⊨_ m, tg0, q0) ofs0 ** vaddr (⊨_ m, tg1, q1) ofs1 ⊢ ⌜ofs0 = ofs1⌝.
   Proof.
@@ -348,7 +351,7 @@ Section RULES.
     iCombine "A B" as "C". iApply _has_offset_unique; et.
   Qed.
 
-  Lemma offset_trivial
+  Lemma _offset_trivial
       b m tg q ofs0 ofs1 :
     Vptr b ofs0 (⊨_ m, tg, q) ofs1 ⊢ ⌜m.(blk) = Some b /\ ofs0 = ofs1⌝.
   Proof.
@@ -357,7 +360,7 @@ Section RULES.
     iDestruct "A" as "[_ %]". des. iPureIntro. clarify. split; et. symmetry. etrans; et.
   Qed.
 
-  Lemma offset_unique_meta
+  Lemma _offset_unique_meta
       vaddr m0 m1 tg0 tg1 q0 q1 ofs0 ofs1 :
     vaddr (⊨_ m0, tg0, q0) ofs0 ** vaddr (⊨_ m1, tg1, q1) ofs1 ** ⌜valid m0 ofs0 /\ valid m1 ofs1⌝ ⊢ ⌜m0 = m1⌝.
   Proof.
@@ -388,6 +391,74 @@ Section RULES.
         { clear wf3. instantiate (1:= a0). des_ifs. }
         i. clear wf3. exfalso. unfold valid in *. clear - X X0 H0 H5 H3.
         apply paddr_no_overflow_cond_lt in X; et. apply paddr_no_overflow_cond_lt in X0; et. nia.
+  Qed.
+
+  Lemma live_offset_exchage
+      vaddr m tg q k :
+    live_(m, tg, q) (Val.subl vaddr (Vptrofs k)) ⊢ vaddr (⊨_ m, tg, q) k.
+  Proof.
+    iIntros "A". unfold is_alive. iApply _offset_slide_rev.
+    instantiate (1:= (Ptrofs.neg k)). rewrite Ptrofs.add_neg_zero.
+    replace (Val.addl _ _) with (Val.subl vaddr (Vptrofs k)); et.
+    unfold Vptrofs. des_ifs. rewrite Val.subl_addl_opp. do 2 f_equal.
+    apply int64_ptrofs_neg; et.
+  Qed.
+
+  Lemma live_offset_exchage_rev
+      vaddr m tg q k :
+    vaddr (⊨_ m, tg, q) k ⊢ live_(m, tg, q) (Val.subl vaddr (Vptrofs k)).
+  Proof.
+    iIntros "A". unfold is_alive. iPoseProof (_offset_slide with "A") as "A".
+    instantiate (1:= (Ptrofs.neg k)). rewrite Ptrofs.add_neg_zero.
+    replace (Val.addl _ _) with (Val.subl vaddr (Vptrofs k)); et.
+    unfold Vptrofs. des_ifs. rewrite Val.subl_addl_opp. do 2 f_equal.
+    apply int64_ptrofs_neg; et.
+  Qed.
+
+  Lemma live_slide
+      vaddr m tg q k :
+    live_(m, tg, q) vaddr ⊢ live_(m, tg, q) (Val.subl (Val.addl vaddr (Vptrofs k)) (Vptrofs k)).
+  Proof.
+    iIntros "A". iApply live_offset_exchage_rev. set k at 1.
+    rewrite <- (Ptrofs.add_zero_l k). unfold i. clear i.
+    iApply _offset_slide. et.
+  Qed.
+
+  Lemma live_slide_rev
+      vaddr m tg q k :
+    live_(m, tg, q) (Val.subl (Val.addl vaddr (Vptrofs k)) (Vptrofs k)) ⊢ live_(m, tg, q) vaddr.
+  Proof.
+    iIntros "A". iPoseProof (live_offset_exchage with "A") as "A". set k at 1.
+    rewrite <- (Ptrofs.add_zero_l k). unfold i. clear i.
+    iPoseProof (_offset_slide_rev with "A") as "A". et.
+  Qed.
+
+  Lemma live_unique
+      vaddr m tg0 tg1 q0 q1 ofs0 ofs1 :
+    live_( m, tg0, q0) (Val.subl vaddr (Vptrofs ofs0)) ** live_( m, tg1, q1) (Val.subl vaddr (Vptrofs ofs1)) ⊢ ⌜ofs0 = ofs1⌝.
+  Proof.
+    iIntros "[A B]".
+    iPoseProof (live_offset_exchage with "A") as "A".
+    iPoseProof (live_offset_exchage with "B") as "B".
+    iApply _offset_unique; iFrame.
+  Qed.
+
+  Lemma live_trivial
+      b m tg q ofs0 ofs1 :
+    live_( m, tg, q) (Val.subl (Vptr b ofs0) (Vptrofs ofs1)) ⊢ ⌜m.(blk) = Some b /\ ofs0 = ofs1⌝.
+  Proof.
+    iIntros "A". iPoseProof (live_offset_exchage with "A") as "A".
+    iApply _offset_trivial; iFrame.
+  Qed.
+
+  Lemma live_unique_meta
+      vaddr m0 m1 tg0 tg1 q0 q1 ofs0 ofs1 :
+    live_( m0, tg0, q0) (Val.subl vaddr (Vptrofs ofs0)) ** live_( m1, tg1, q1) (Val.subl vaddr (Vptrofs ofs1)) ** ⌜valid m0 ofs0 /\ valid m1 ofs1⌝ ⊢ ⌜m0 = m1⌝.
+  Proof.
+    iIntros "[[A B] %]".
+    iPoseProof (live_offset_exchage with "A") as "A".
+    iPoseProof (live_offset_exchage with "B") as "B".
+    iApply _offset_unique_meta; iFrame. et.
   Qed.
 
   Lemma _points_to_ownership
@@ -430,7 +501,7 @@ Section RULES.
     unfold __allocated_with. des_ifs; ur; des_ifs.
   Qed.
 
-  Lemma offset_ownership
+  Lemma _offset_ownership
       vaddr m tg q0 q1 ofs :
     ⊢ vaddr (⊨_ m, tg, (q0 + q1)%Qp) ofs  ∗-∗ (vaddr (⊨_ m, tg, q0) ofs ** vaddr (⊨_ m, tg, q1) ofs).
   Proof.
@@ -449,6 +520,11 @@ Section RULES.
       iCombine "A B" as "?".
       rewrite _allocated_with_ownership. iFrame.
   Qed.
+
+  Lemma live_ownership
+      vaddr m tg q0 q1 :
+    ⊢ live_(m, tg, (q0 + q1)%Qp) vaddr ∗-∗ (live_( m, tg, q0) vaddr ** live_( m, tg, q1) vaddr).
+  Proof. apply _offset_ownership. Qed.
 
   Lemma _points_to_nil : forall blk ofs q _b _ofs, __points_to blk ofs [] q _b _ofs = ε.
   Proof.
@@ -574,7 +650,7 @@ Section RULES.
     iSplitL "A B"; iExists _; iFrame. et.
   Qed.
 
-  Lemma equiv_refl_offset
+  Lemma _equiv_refl_offset
       m p tg q ofs :
     p (⊨_m,tg,q) ofs  ⊢  p (⊨_m,tg,q) ofs ** p (≃_m) p.
   Proof.
@@ -586,7 +662,12 @@ Section RULES.
     iSplitR "A"; iFrame. iExists _. et.
   Qed.
 
-  Lemma equiv_trivial_offset
+  Lemma equiv_refl_live
+      m p tg q :
+    live_(m,tg,q) p ⊢ live_(m,tg,q) p ** p (≃_m) p.
+  Proof. apply _equiv_refl_offset. Qed.
+
+  Lemma _equiv_trivial_offset
       m p tg q ofs b
       (BLK: blk m = Some b) :
     p (⊨_m,tg,q) ofs  ⊢ (Vptr b ofs) (⊨_m,tg,q) ofs ** p (≃_m) (Vptr b ofs).
@@ -610,6 +691,12 @@ Section RULES.
         destruct a; ss; nia.
       + iFrame. rewrite Heqo. iDestruct "B" as "%". des. et.
   Qed.
+
+  Lemma live_trivial_offset
+      m p tg q b
+      (BLK: blk m = Some b) :
+    live_(m,tg,q) p ⊢ live_(m,tg,q) (Vptr b Ptrofs.zero) ** p (≃_m) (Vptr b Ptrofs.zero).
+  Proof. apply _equiv_trivial_offset; et. Qed.
 
   Lemma equiv_refl_equiv
       m p q :
@@ -758,7 +845,7 @@ Section RULES.
     iExists _. iFrame. et.
   Qed.
 
-  Lemma equiv_offset_comm
+  Lemma _equiv_offset_comm
       p q tg f m ofs :
     p (≃_m) q ** p (⊨_m,tg,f) ofs ⊢ q (⊨_m,tg,f) ofs.
   Proof.
@@ -771,6 +858,11 @@ Section RULES.
     iPoseProof (_has_offset_unique with "C") as "%".
     clarify.
   Qed.
+
+  Lemma equiv_live_comm
+      p q tg f m :
+    p (≃_m) q ** live_(m,tg,f) p ⊢ live_(m,tg,f) q.
+  Proof. apply _equiv_offset_comm. Qed.
 
   Lemma null_equiv p : Vnullptr (≃_m_null) p ⊢ ⌜p = Vnullptr⌝.
   Proof.
@@ -824,13 +916,23 @@ Section RULES.
     unfold _has_offset. des_ifs. iDestruct "A" as "[? ?]"; clarify.
   Qed.
 
-  Lemma offset_notundef
+  Lemma _offset_notundef
       p m tg q ofs :
     p (⊨_m,tg,q) ofs ⊢ ⌜p <> Vundef⌝.
   Proof.
     iIntros "A". unfold has_offset, _has_offset.
     des_ifs. iDestruct "A" as "[_ [_ []]]".
   Qed.
+
+  Lemma live_notundef
+      p m tg q :
+    live_(m,tg,q) p ⊢ ⌜p <> Vundef⌝.
+  Proof. apply _offset_notundef. Qed.
+
+  Lemma live_notundef_ofs
+      p m tg q ofs :
+    live_(m,tg,q) (Val.subl p (Vptrofs ofs))⊢ ⌜p <> Vundef⌝.
+  Proof. iIntros "A". iApply _offset_notundef. iApply live_offset_exchage. et. Qed.
 
   Lemma _offset_ptr
       {eff} {K:eventE -< eff} v m ofs :
@@ -841,7 +943,7 @@ Section RULES.
     iDestruct "A" as "[A %]"; clarify.
   Qed.
 
-  Lemma offset_cast_ptr
+  Lemma _offset_cast_ptr
       {eff} {K:eventE -< eff} v m tg q ofs :
     v (⊨_m,tg,q) ofs ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
   Proof.
@@ -849,6 +951,16 @@ Section RULES.
     unfold _has_offset.
     des_ifs; iDestruct "A" as "[_ [_ %]]"; clarify.
   Qed.
+
+  Lemma live_cast_ptr
+      {eff} {K:eventE -< eff} v m tg q :
+    live_(m,tg,q) v ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
+  Proof. apply _offset_cast_ptr. Qed.
+
+  Lemma live_cast_ptr_ofs
+      {eff} {K:eventE -< eff} v m tg q ofs :
+    live_(m,tg,q) (Val.subl v (Vptrofs ofs)) ⊢ ⌜@cast_to_ptr eff K v = Ret v⌝.
+  Proof. iIntros "A". iApply _offset_cast_ptr. iApply live_offset_exchage. et. Qed.
 
   Lemma point_cast_ptr
       {eff} {K:eventE -< eff} v m q mvs :
@@ -877,7 +989,7 @@ Section RULES.
     des_ifs.
   Qed.
 
-  Lemma decode_encode_ptr_ofs
+  Lemma _decode_encode_ptr_ofs
       v m tg q ofs :
     v (⊨_m,tg,q) ofs ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
   Proof.
@@ -889,6 +1001,16 @@ Section RULES.
       des_ifs; rewrite H0; et.
     all: iDestruct "A" as "[_ [_ %]]"; clarify.
   Qed.
+
+  Lemma decode_encode_ptr_live
+      v m tg q :
+    live_(m,tg,q) v ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
+  Proof. apply _decode_encode_ptr_ofs. Qed.
+
+  Lemma decode_encode_ptr_live_ofs
+      v m tg q ofs :
+    live_(m,tg,q) (Val.subl v (Vptrofs ofs)) ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
+  Proof. iIntros "A". iApply _decode_encode_ptr_ofs. iApply live_offset_exchage. et. Qed.
 
   Lemma decode_encode_ptr_equiv
       p m q :
@@ -903,7 +1025,7 @@ Section RULES.
     - des_ifs.
   Qed.
 
-  Lemma add_null_r
+  Lemma _add_null_r
       v m tg q ofs:
     v (⊨_m,tg,q) ofs ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
   Proof.
@@ -916,6 +1038,16 @@ Section RULES.
       rewrite Ptrofs.of_int64_to_int64; et.
       rewrite Ptrofs.add_zero. et.
   Qed.
+
+  Lemma add_null_r
+      v m tg q :
+    live_(m,tg,q) v ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
+  Proof. apply _add_null_r. Qed.
+
+  Lemma add_null_r_ofs
+      v m tg q ofs:
+    live_(m,tg,q) (Val.subl v (Vptrofs ofs)) ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
+  Proof. iIntros "A". iApply _add_null_r. iApply live_offset_exchage. et. Qed.
 
 End RULES.
 
@@ -931,7 +1063,7 @@ Section SPEC.
                     (fun vret => ∃ m vaddr b,
                                  ⌜vret = b↑ /\ m.(blk) = Some b /\ m.(sz) = n ⌝
                                  ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat n)
-                                 ** vaddr (⊨_m,Local, 1) Ptrofs.zero)
+                                 ** live_(m, Local, 1) vaddr)
     )))%I.
 
   (* input: option block * Z, output: unit *)
@@ -942,7 +1074,7 @@ Section SPEC.
                                 ⌜varg = (m.(blk), m.(sz))↑
                                 /\ Z.of_nat (List.length mvs) = m.(sz)⌝
                                 ** vaddr (↦_m,1) mvs
-                                ** vaddr (⊨_m,Local,1) Ptrofs.zero),
+                                ** live_(m,Local,1) vaddr),
                   (fun vret => ⌜vret = tt↑⌝)
     )))%I.
 
@@ -955,10 +1087,10 @@ Section SPEC.
                                  /\ Mem.change_check chunk mvs = false
                                  /\ chunk <> Many64
                                  /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)⌝
-                                 ** vaddr (⊨_m,tg,q0) ofs
+                                 ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))
                                  ** vaddr (↦_m,q1) mvs),
                     (fun vret => ∃ v, ⌜vret = v↑ /\ decode_val chunk mvs = v⌝
-                                 ** vaddr (⊨_m,tg,q0) ofs
+                                 ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))
                                  ** vaddr (↦_m,q1) mvs)
     )))%I.
 
@@ -979,11 +1111,11 @@ Section SPEC.
             (fun varg => ∃ mvs_old, ⌜varg = (chunk, vaddr, v_new)↑
                          /\ List.length mvs_old = size_chunk_nat chunk
                          /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)⌝
-                         ** vaddr (⊨_m,tg,q) ofs
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
                          ** vaddr (↦_m,1) mvs_old),
             (fun vret => ∃ mvs_new, ⌜vret = tt↑
                          /\ encode_val chunk v_new = mvs_new⌝
-                         ** vaddr (⊨_m,tg,q) ofs
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
                          ** vaddr (↦_m,1) mvs_new)
     )))%I.
 
@@ -1025,47 +1157,47 @@ Section SPEC.
       fun '(vaddr, m, tg, q, ofs) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Ceq, Vnullptr, vaddr)↑ /\ weak_valid m ofs⌝
-                         ** vaddr (⊨_m,tg,q) ofs),
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))),
             (fun vret => ⌜vret = false↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs)
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
           )%I.
 
   Definition cmp_ptr_hoare2 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
       fun '(vaddr, m, tg, q, ofs) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Cne, Vnullptr, vaddr)↑ /\ weak_valid m ofs⌝
-                         ** vaddr (⊨_m,tg,q) ofs),
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))),
             (fun vret => ⌜vret = true↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs)
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
           )%I.
 
   Definition cmp_ptr_hoare3 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
       fun '(vaddr, m, tg, q, ofs) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Ceq, vaddr, Vnullptr)↑ /\ weak_valid m ofs⌝
-                         ** vaddr (⊨_m,tg,q) ofs),
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))),
             (fun vret => ⌜vret = false↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs)
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
           )%I.
 
   Definition cmp_ptr_hoare4 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
       fun '(vaddr, m, tg, q, ofs) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Cne, vaddr, Vnullptr)↑ /\ weak_valid m ofs⌝
-                         ** vaddr (⊨_m,tg,q) ofs),
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))),
             (fun vret => ⌜vret = true↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs)
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
           )%I.
 
   Definition cmp_ptr_hoare5 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
       fun '(c, vaddr0, vaddr1, m, ofs0, ofs1, q0, q1, tg) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (c, vaddr0, vaddr1)↑ /\ weak_valid m ofs0 /\ weak_valid m ofs1⌝
-                         ** vaddr0 (⊨_m,tg,q0) ofs0
-                         ** vaddr1 (⊨_m,tg,q1) ofs1),
+                         ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1))),
             (fun vret => ⌜vret = (cmp_ofs c (Ptrofs.unsigned ofs0) (Ptrofs.unsigned ofs1))↑⌝
-                         ** vaddr0 (⊨_m,tg,q0) ofs0
-                         ** vaddr1 (⊨_m,tg,q1) ofs1)
+                         ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
           )%I.
 
   Definition cmp_ptr_hoare6 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
@@ -1073,11 +1205,11 @@ Section SPEC.
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Ceq, vaddr0, vaddr1)↑ /\ m0 #^ m1
                          /\ valid m0 ofs0 /\ valid m1 ofs1⌝
-                         ** vaddr0 (⊨_m0,tg0,q0) ofs0
-                         ** vaddr1 (⊨_m1,tg1,q1) ofs1),
+                         ** live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1))),
             (fun vret => ⌜vret = false↑⌝
-                         ** vaddr0 (⊨_m0,tg0,q0) ofs0
-                         ** vaddr1 (⊨_m1,tg1,q1) ofs1)
+                         ** live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
           )%I.
 
   Definition cmp_ptr_hoare7 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
@@ -1085,11 +1217,11 @@ Section SPEC.
             (ord_pure 0%nat),
             (fun varg => ⌜varg = (Cne, vaddr0, vaddr1)↑ /\ m0 #^ m1
                          /\ valid m0 ofs0 /\ valid m1 ofs1⌝
-                         ** vaddr0 (⊨_m0,tg0,q0) ofs0
-                         ** vaddr1 (⊨_m1,tg1,q1) ofs1),
+                         ** live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1))),
             (fun vret => ⌜vret = true↑⌝
-                         ** vaddr0 (⊨_m0,tg0,q0) ofs0
-                         ** vaddr1 (⊨_m1,tg1,q1) ofs1)
+                         ** live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
           )%I.
 
   Definition cmp_ptr_spec: fspec :=
@@ -1112,11 +1244,11 @@ Section SPEC.
             (fun varg => ⌜varg = (size, vaddr0, vaddr1)↑ /\ 0 < size ≤ Ptrofs.max_signed
                          /\ Ptrofs.min_signed ≤ Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1 ≤ Ptrofs.max_signed
                          /\ weak_valid m ofs0 /\ weak_valid m ofs1⌝
-                         ** vaddr0 (⊨_m,tg,q0) ofs0
-                         ** vaddr1 (⊨_m,tg,q1) ofs1),
+                         ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1))),
             (fun vret => ⌜vret = (Vptrofs (Ptrofs.repr (Z.quot (Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1) size)))↑⌝
-                         ** vaddr0 (⊨_m,tg,q0) ofs0
-                         ** vaddr1 (⊨_m,tg,q1) ofs1)
+                         ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                         ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
     )))%I.
 
   (* input: val, output: bool *)
@@ -1125,9 +1257,9 @@ Section SPEC.
       (fun '(vaddr, m, q, tg, ofs) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = vaddr↑ /\ weak_valid m ofs⌝
-                         ** vaddr (⊨_m,tg,q) ofs),
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))),
             (fun vret => ⌜vret = true↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs)
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
     )))%I.
 
   (* builtin-like functions of clight *)
@@ -1140,7 +1272,7 @@ Section SPEC.
                     (fun varg => ⌜varg = [Vptrofs n]↑ /\ Ptrofs.unsigned n > 0⌝),
                     (fun vret => ∃ m vaddr, ⌜vret = vaddr↑ /\ m.(sz) = Ptrofs.unsigned n⌝
                                  ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat (Ptrofs.unsigned n))
-                                 ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero)
+                                 ** live_(m,Dynamic,1) vaddr)
     )))%I.
 
   Definition mfree_spec: fspec :=
@@ -1149,7 +1281,7 @@ Section SPEC.
                     (fun varg => ∃ m mvs vaddr,
                                  ⌜varg = [vaddr]↑ /\ Z.of_nat (List.length mvs) = m.(sz)⌝
                                  ** vaddr (↦_m,1) mvs
-                                 ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero),
+                                 ** live_(m,Dynamic,1) vaddr),
                     (fun vret => ⌜vret = Vundef↑⌝)
     )))%I.
 
@@ -1165,13 +1297,13 @@ Section SPEC.
                          /\ (al | Ptrofs.unsigned ofs_src)
                          /\ (al | Ptrofs.unsigned ofs_dst)
                          /\ 0 ≤ sz /\ (al | sz)⌝
-                         ** vaddr' (⊨_m_src,tg',q') ofs_src
-                         ** vaddr (⊨_m_dst,tg,q) ofs_dst
+                         ** live_(m_src,tg',q') (Val.subl vaddr' (Vptrofs ofs_src))
+                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
                          ** vaddr' (↦_m_src,qp) mvs_src
                          ** vaddr (↦_m_dst,1) mvs_dst),
             (fun vret => ⌜vret = Vundef↑⌝
-                         ** vaddr' (⊨_m_src,tg',q') ofs_src
-                         ** vaddr (⊨_m_dst,tg,q) ofs_dst
+                         ** live_(m_src,tg',q') (Val.subl vaddr' (Vptrofs ofs_src))
+                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
                          ** vaddr' (↦_m_src,qp) mvs_src
                          ** vaddr (↦_m_dst,1) mvs_src)
           )%I.
@@ -1185,10 +1317,10 @@ Section SPEC.
                          /\ (al = 1 \/ al = 2 \/ al = 4 \/ al = 8)
                          /\ (al | Ptrofs.unsigned ofs_dst)
                          /\ 0 ≤ sz /\ (al | sz)⌝
-                         ** vaddr (⊨_m_dst,tg,q) ofs_dst
+                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
                          ** vaddr (↦_m_dst,1) mvs_dst),
             (fun vret => ⌜vret = Vundef↑⌝
-                         ** vaddr (⊨_m_dst,tg,q) ofs_dst
+                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
                          ** vaddr (↦_m_dst,1) mvs_dst)
           )%I.
 
@@ -1207,9 +1339,9 @@ Section SPEC.
       fun '(vaddr, m, q, ofs, tg) => (
             (ord_pure 0%nat),
             (fun varg => ⌜varg = [vaddr]↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs),
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))),
             (fun vret => ∃ i, ⌜vret = (Vptrofs i)↑⌝
-                         ** vaddr (⊨_m,tg,q) ofs
+                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
                          ** vaddr (≃_m) (Vptrofs i))
           )%I.
 

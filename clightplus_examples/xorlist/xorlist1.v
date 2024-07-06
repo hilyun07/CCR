@@ -55,7 +55,7 @@ Section PROP.
         ∃ i_prev i_next m_hd,
           ⌜m_hd.(sz) = (size_chunk Mint64 + size_chunk Mptr)%Z⌝
           ** hd_prev (≃_ m_prev) (Vptrofs i_prev)
-          ** hd (⊨_m_hd,Dynamic,q) Ptrofs.zero
+          ** live_(m_hd,Dynamic,q) hd
           ** hd (↦_m_hd,q) (encode_val Mint64 (Vlong a) ++ encode_val Mptr (Vptrofs (Ptrofs.xor i_prev i_next)))
           ** frag_xorlist q m_hd m_next hd (Vptrofs i_next) tl tl_next xs'
     | _ => False
@@ -69,7 +69,7 @@ Section PROP.
         ∃ i_prev i_next m_hd,
           ⌜m_hd.(sz) = (size_chunk Mint64 + size_chunk Mptr)%Z⌝
           ** hd_prev (≃_ m_prev) (Vptrofs i_prev)
-          ** hd (⊨_m_hd,Dynamic,q) Ptrofs.zero
+          ** live_(m_hd,Dynamic,q) hd
           ** hd (↦_m_hd,q) (encode_val Mint64 (Vlong a) ++ encode_val Mptr (Vptrofs (Ptrofs.xor i_prev i_next)))
           ** frag_xorlist q m_hd m_next hd (Vptrofs i_next) tl tl_next xs'
     | _ => False
@@ -80,10 +80,10 @@ Section PROP.
   Definition full_xorlist q hd_hdl tl_hdl tg_hd_hdl tg_tl_hdl xs : iProp :=
     (∃ m_hd_hdl m_tl_hdl hd tl ofs_hd_hdl ofs_tl_hdl,
     hd_hdl (↦_m_hd_hdl,q) (encode_val Mptr hd)
-    ** hd_hdl (⊨_m_hd_hdl,tg_hd_hdl,q) ofs_hd_hdl
+    ** live_(m_hd_hdl,tg_hd_hdl,q) (Val.subl hd_hdl (Vptrofs ofs_hd_hdl))
     ** ⌜m_hd_hdl.(sz) = size_chunk Mptr /\ ((size_chunk Mptr) | Ptrofs.unsigned ofs_hd_hdl)%Z⌝
     ** tl_hdl (↦_m_tl_hdl,q) (encode_val Mptr tl)
-    ** tl_hdl (⊨_m_tl_hdl,tg_tl_hdl,q) ofs_tl_hdl
+    ** live_(m_tl_hdl,tg_tl_hdl,q) (Val.subl tl_hdl (Vptrofs ofs_tl_hdl))
     ** ⌜m_tl_hdl.(sz) = size_chunk Mptr /\ ((size_chunk Mptr) | Ptrofs.unsigned ofs_tl_hdl)%Z⌝
     ** frag_xorlist q m_null m_null Vnullptr hd tl Vnullptr xs)%I.
 
@@ -201,7 +201,7 @@ Section PROP.
         iPoseProof (equiv_sym with "E") as "E".
         iPoseProof (equiv_dup with "E") as "[E E']".
         iCombine "E' B" as "B".
-        iPoseProof (equiv_offset_comm with "B") as "B".
+        iPoseProof (equiv_live_comm with "B") as "B".
         iPoseProof (equiv_dup with "E") as "[E E']".
         iCombine "E' C" as "C".
         iPoseProof (equiv_point_comm with "C") as "C".
@@ -224,7 +224,7 @@ Section PROP.
     - ss. iIntros "[A B]". iApply decode_encode_ptr_equiv. et.
     - ss. iIntros "A". destruct v; clarify.
       iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".
-      iApply decode_encode_ptr_ofs. et.
+      iApply decode_encode_ptr_live. et.
   Qed.
 
   Lemma xorlist_hd_not_Vundef q m_prev m_next hd_prev hd tl tl_next xs
@@ -234,7 +234,7 @@ Section PROP.
     - ss. iIntros "[A B]". iApply equiv_notundef. et.
     - ss. des_ifs; et. iIntros "A".
       iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".
-      iApply offset_notundef. et.
+      iApply live_notundef. et.
   Qed.
 
   Lemma xorlist_tl_deen q m_prev m_next hd_prev hd tl tl_next xs

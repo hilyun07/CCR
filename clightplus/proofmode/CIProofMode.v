@@ -35,7 +35,7 @@ Section MEM.
 
         ** (∀ st_src st_tgt vaddr m b,
             ((inv_with le I w0 st_src st_tgt)
-            ** (⌜m.(sz) = n /\ m.(blk) = Some b⌝ ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat n) ** vaddr (⊨_m,Local,1) Ptrofs.zero))
+            ** (⌜m.(sz) = n /\ m.(blk) = Some b⌝ ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat n) ** live_(m,Local,1) vaddr))
 
             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt b )))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "salloc" n >>= ktr_tgt)).
@@ -72,7 +72,7 @@ Section MEM.
         ** (∃ m mvs vaddr,
            ⌜m.(blk) = ob /\ m.(sz) = size /\ Z.of_nat (List.length mvs) = m.(sz)⌝
            ** vaddr (↦_m,1) mvs
-           ** vaddr (⊨_m,Local,1) Ptrofs.zero)
+           ** live_(m,Local,1) vaddr)
 
 
         ** (∀ st_src st_tgt,
@@ -112,7 +112,7 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (vaddr (↦_m,q1) mvs
-            ** vaddr (⊨_m,tg,q0) ofs
+            ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))
             ** ⌜List.length mvs = size_chunk_nat chunk
                /\ Mem.change_check chunk mvs = false
                /\ chunk <> Many64
@@ -121,7 +121,7 @@ Section MEM.
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (↦_m,q1) mvs
-                ** vaddr (⊨_m,tg,q0) ofs))
+                ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))))
 
              -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (decode_val chunk mvs))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "load" (chunk, vaddr) >>= ktr_tgt)).
@@ -161,12 +161,12 @@ Section MEM.
             ⌜length mvs_old = size_chunk_nat chunk
             /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)%Z⌝
             ** vaddr (↦_m,1) mvs_old
-            ** vaddr (⊨_m,tg,q) ofs)
+            ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
              ** (vaddr (↦_m,1) (encode_val chunk v_new)
-                ** vaddr (⊨_m,tg,q) ofs))
+                ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))))
 
             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "store" (chunk, vaddr, v_new) >>= ktr_tgt)).
@@ -235,11 +235,11 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
-            ** vaddr (⊨_m,tg,q) ofs)
+            ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-              ** vaddr (⊨_m,tg,q) ofs)
+              ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, Vnullptr, vaddr) >>= ktr_tgt)).
@@ -276,11 +276,11 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
-           ** vaddr (⊨_m,tg,q) ofs)
+           ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr (⊨_m,tg,q) ofs))
+             ** (live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, Vnullptr, vaddr) >>= ktr_tgt)).
@@ -317,11 +317,11 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
-           ** vaddr (⊨_m,tg,q) ofs)
+           ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr (⊨_m,tg,q) ofs))
+             ** (live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr, Vnullptr) >>= ktr_tgt)).
@@ -358,11 +358,11 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
-           ** vaddr (⊨_m,tg,q) ofs)
+           ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr (⊨_m,tg,q) ofs))
+             ** (live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Cne, vaddr, Vnullptr) >>= ktr_tgt)).
@@ -400,13 +400,13 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs0 /\ weak_valid m ofs1⌝
-           ** vaddr0 (⊨_m,tg,q0) ofs0
-           ** vaddr1 (⊨_m,tg,q1) ofs1)
+           ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+           ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr0 (⊨_m,tg,q0) ofs0
-                ** vaddr1 (⊨_m,tg,q1) ofs1))
+             ** (live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1))))
 
           -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (cmp_ofs c (Ptrofs.unsigned ofs0) (Ptrofs.unsigned ofs1)))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (c, vaddr0, vaddr1) >>= ktr_tgt)).
@@ -420,8 +420,8 @@ Section MEM.
     iSplitL "INV PRE".
     { iFrame. iSplit; ss.
       iDestruct "PRE" as "[[% ?] ?]".
-      instantiate (5:=vaddr1).
-      instantiate (9:=vaddr0).
+      instantiate (1:=ofs1).
+      instantiate (5:=ofs0).
       des. clarify. iFrame. iPureIntro. ss. }
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "POST'".
     iDestruct "POST'" as "[? [POST' %]]".
@@ -446,13 +446,13 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜m0 #^ m1 /\ valid m0 ofs0 /\ valid m1 ofs1 ⌝
-           ** vaddr0 (⊨_m0,tg0,q0) ofs0
-           ** vaddr1 (⊨_m1,tg1,q1) ofs1)
+           ** live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+           ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr0 (⊨_m0,tg0,q0) ofs0
-                ** vaddr1 (⊨_m1,tg1,q1) ofs1))
+             ** (live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1))))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt false)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "cmp_ptr" (Ceq, vaddr0, vaddr1) >>= ktr_tgt)).
@@ -466,8 +466,8 @@ Section MEM.
     iSplitL "INV PRE".
     { iFrame. iSplit; ss.
       iDestruct "PRE" as "[[% ?] ?]".
-      instantiate (5:=vaddr1).
-      instantiate (9:=vaddr0).
+      instantiate (1:=ofs1).
+      instantiate (5:=ofs0).
       des. clarify. iFrame. iPureIntro. ss. }
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "POST'".
     iDestruct "POST'" as "[? [POST' %]]".
@@ -492,13 +492,13 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
          ** (⌜m0 #^ m1 /\ valid m0 ofs0 /\ valid m1 ofs1⌝
-            ** vaddr0 (⊨_m0,tg0,q0) ofs0
-            ** vaddr1 (⊨_m1,tg1,q1) ofs1)
+            ** live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+            ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr0 (⊨_m0,tg0,q0) ofs0
-                ** vaddr1 (⊨_m1,tg1,q1) ofs1))
+             ** (live_(m0,tg0,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+                ** live_(m1,tg1,q1) (Val.subl vaddr1 (Vptrofs ofs1))))
 
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
@@ -513,8 +513,8 @@ Section MEM.
     iSplitL "INV PRE".
     { iFrame. iSplit; ss.
       iDestruct "PRE" as "[[% ?] ?]".
-      instantiate (5:=vaddr1).
-      instantiate (9:=vaddr0).
+      instantiate (1:=ofs1).
+      instantiate (5:=ofs0).
       des. clarify. iFrame. iPureIntro. ss. }
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "POST'".
     iDestruct "POST'" as "[? [POST' %]]".
@@ -541,13 +541,13 @@ Section MEM.
          ** (⌜(0 < size ≤ Ptrofs.max_signed)%Z
              /\ (Ptrofs.min_signed ≤ Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1 ≤ Ptrofs.max_signed)%Z
              /\ weak_valid m ofs0 /\ weak_valid m ofs1⌝
-            ** vaddr0 (⊨_m,tg,q0) ofs0
-            ** vaddr1 (⊨_m,tg,q1) ofs1)
+            ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+            ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-            ** vaddr0 (⊨_m,tg,q0) ofs0
-            ** vaddr1 (⊨_m,tg,q1) ofs1)
+            ** live_(m,tg,q0) (Val.subl vaddr0 (Vptrofs ofs0))
+            ** live_(m,tg,q1) (Val.subl vaddr1 (Vptrofs ofs1)))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs (Ptrofs.repr (Z.quot (Ptrofs.unsigned ofs0 - Ptrofs.unsigned ofs1) size))))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "sub_ptr" (size, vaddr0, vaddr1) >>= ktr_tgt)).
@@ -561,8 +561,8 @@ Section MEM.
     iSplitL "INV PRE".
     { iFrame. iSplit; ss.
       iDestruct "PRE" as "[[% ?] ?]".
-      instantiate (5:=vaddr1).
-      instantiate (9:=vaddr0).
+      instantiate (1:=ofs1).
+      instantiate (5:=ofs0).
       des. clarify. iFrame. iPureIntro. ss. }
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "POST'".
     iDestruct "POST'" as "[? [POST' %]]".
@@ -587,11 +587,11 @@ Section MEM.
       bi_entails
         (inv_with le I w0 st_src st_tgt
         ** (⌜weak_valid m ofs⌝
-            ** vaddr (⊨_m,tg,q) ofs)
+            ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** vaddr (⊨_m,tg,q) ofs)
+             ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt true)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "non_null?" vaddr >>= ktr_tgt)).
@@ -633,7 +633,7 @@ Section MEM.
             ((inv_with le I w0 st_src st_tgt)
             ** (⌜m.(sz) = Ptrofs.unsigned n⌝
                 ** vaddr (↦_m,1) List.repeat Undef (Z.to_nat (Ptrofs.unsigned n))
-                ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero))
+                ** live_(m,Dynamic,1) vaddr))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt vaddr)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "malloc" [Vptrofs n] >>= ktr_tgt)).
@@ -671,7 +671,7 @@ Section MEM.
         (inv_with le I w0 st_src st_tgt
         ** (∃ m mvs, ⌜Z.of_nat (List.length mvs) = m.(sz)⌝
            ** vaddr (↦_m,1) mvs
-           ** vaddr (⊨_m,Dynamic,1) Ptrofs.zero)
+           ** live_(m,Dynamic,1) vaddr)
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt))
@@ -719,14 +719,14 @@ Section MEM.
              /\ (al | Ptrofs.unsigned ofs_dst)%Z
              /\ (0 ≤ sz)%Z
              /\ (al | sz)%Z⌝
-             ** vaddr' (⊨_m_src,tg',q') ofs_src
-             ** vaddr (⊨_m_dst,tg,q) ofs_dst
+             ** live_(m_src,tg',q') (Val.subl vaddr' (Vptrofs ofs_src))
+             ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
              ** vaddr' (↦_m_src,qp) mvs_src
              ** vaddr (↦_m_dst,1) mvs_dst)
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-            ** (vaddr' (⊨_m_src,tg',q') ofs_src ** vaddr (⊨_m_dst,tg,q) ofs_dst ** vaddr' (↦_m_src,qp) mvs_src ** vaddr (↦_m_dst,1) mvs_src))
+            ** (live_(m_src,tg',q') (Val.subl vaddr' (Vptrofs ofs_src)) ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst)) ** vaddr' (↦_m_src,qp) mvs_src ** vaddr (↦_m_dst,1) mvs_src))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr']) >>= ktr_tgt)).
@@ -766,12 +766,12 @@ Section MEM.
              /\ (al | Ptrofs.unsigned ofs_dst)%Z
              /\ (0 ≤ sz)%Z
              /\ (al | sz)%Z⌝
-             ** vaddr (⊨_m_dst,tg,q) ofs_dst
+             ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
              ** vaddr (↦_m_dst,1) mvs_dst)
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-            ** (vaddr (⊨_m_dst,tg,q) ofs_dst ** vaddr (↦_m_dst,1) mvs_dst))
+            ** (live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst)) ** vaddr (↦_m_dst,1) mvs_dst))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt Vundef)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "memcpy" (al, sz, [vaddr; vaddr]) >>= ktr_tgt)).
@@ -842,11 +842,11 @@ Section MEM.
     :
       bi_entails
         (inv_with le I w0 st_src st_tgt
-         ** ( vaddr (⊨_m,tg,q) ofs)
+         ** (live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
 
         ** (∀ st_src st_tgt i,
             (((inv_with le I w0 st_src st_tgt)
-              ** (vaddr (⊨_m,tg,q) ofs
+              ** (live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
                   ** vaddr (≃_m) (Vptrofs i)))
 
            -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (Vptrofs i)))))
