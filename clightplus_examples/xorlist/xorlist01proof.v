@@ -160,7 +160,7 @@ Section PROOF.
     rename H0 into m_new_size.
 
     hred_r. unhide. remove_tau.
-    iPoseProof ((@offset_cast_ptr _ _ Es) with "new_ofs") as "%".
+    iPoseProof ((@live_cast_ptr _ _ Es) with "new_ofs") as "%".
     rewrite H0. rename H0 into new_cast_ptr.
     (* node* entry = (node* ) malloc(sizeof(node)) end *)
 
@@ -221,10 +221,11 @@ Section PROOF.
 
     replace (points_to _ _ _ _) with (points_to p_new m_new (repeat Undef 8 ++ repeat Undef 8) 1) by reflexivity.
     iPoseProof (points_to_split with "new_point") as "[new_point_item new_point_key]".
+    iPoseProof (sub_null_r with "new_ofs") as "%". rename H0 into new_sub_r.
 
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV new_point_item new_ofs"; iFrame.
-    { iExists _. iFrame. ss. iPureIntro. split; et. exists 0. ss. }
+    { rewrite new_sub_r. iExists _. iFrame. ss. iPureIntro. split; et. exists 0. ss. }
     iIntros (st_src3 st_tgt3) "[INV [new_point_item new_ofs]]".
     (* entry->item = item end *)
 
@@ -255,7 +256,7 @@ Section PROOF.
       replace (Vlong (Int64.repr _)) with Vnullptr by et.
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV new_point_key new_ofs"; iFrame.
-      { iExists _. iFrame. iSplit; cycle 1.  { iApply offset_slide. et. } { iPureIntro. split; ss. exists 1. ss. } }
+      { iExists _. iFrame. iSplit; cycle 1. { iApply live_slide. rewrite new_sub_r. et. } { iPureIntro. split; ss. exists 1. ss. } }
       iIntros (st_src5 st_tgt5) "[INV [new_point_key new_ofs]]".
       (* entry->link = 0 end *)
 
@@ -285,9 +286,9 @@ Section PROOF.
 
       iExists _,_,_,_,_,_. iFrame.
       iSplit; ss.
-      iPoseProof (offset_slide_rev with "new_ofs") as "new_ofs".
+      iPoseProof (live_slide_rev with "new_ofs") as "new_ofs".
       change Vnullptr with (Vptrofs Ptrofs.zero) at 3 4.
-      iPoseProof (equiv_refl_offset with "new_ofs") as "[new_ofs new_equiv]".
+      iPoseProof (equiv_refl_live with "new_ofs") as "[new_ofs new_equiv]".
       iPoseProof (equiv_dup with "NULL_tl") as "[? ?]".
       iExists _,_,_. iFrame. rewrite Ptrofs.xor_zero_l. iFrame.
       iSplit; ss.
@@ -295,17 +296,20 @@ Section PROOF.
     ss. destruct v; clarify.
     iDestruct "LIST" as (i_prev i_next m_hd) "[[[[% prev_addr] tl_ofs] tl_point] LIST]".
     rename H0 into m_hd_size.
+    iPoseProof (sub_null_r with "tl_ofs") as "%". rename H0 into tl_sub_r.
+
+    (* if (hd == NULL) start *)
 
     iApply isim_ccallU_cmp_ptr3; ss; oauto.
     iSplitL "INV tl_ofs".
-    { iFrame. iPureIntro. red. rewrite m_hd_size. ss. }
+    { rewrite tl_sub_r. iFrame. iPureIntro. red. rewrite m_hd_size. ss. }
     iIntros (st_src4 st_tgt4) "[INV tl_ofs]".
     (* if (hd == NULL) end *)
 
     hred_r. des_ifs_safe. clear Heq. unhide. hred_r. unhide. remove_tau. unhide. remove_tau.
 
     (* entry->link = (intptr_t)hd start *)
-    iPoseProof ((@offset_cast_ptr _ _ Es) with "tl_ofs") as "%".
+    iPoseProof ((@live_cast_ptr_ofs _ _ Es) with "tl_ofs") as "%".
     rewrite H0. hred_r. rename H0 into hd_cast_ptr.
 
     iApply isim_ccallU_capture1; ss; oauto.
@@ -323,7 +327,7 @@ Section PROOF.
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV new_point_key new_ofs"; iFrame.
     { iExists _. iFrame. iSplit; cycle 1.
-      { iApply offset_slide. ss. }
+      { iApply live_slide. rewrite new_sub_r. ss. }
       { iPureIntro. split; ss. exists 1. ss. } }
     iIntros (st_src6 st_tgt6) "[INV [new_point_key new_ofs]]".
     (* entry->link = (intptr_t)hd end *)
@@ -334,7 +338,7 @@ Section PROOF.
     rewrite new_cast_ptr. hred_r.
     iApply isim_ccallU_capture1; ss; oauto.
     iSplitL "INV new_ofs"; iFrame.
-    { iApply offset_slide_rev. et. }
+    { rewrite new_sub_r. iPoseProof (live_slide_rev with "new_ofs") as "new_ofs". et. }
     iIntros (st_src7 st_tgt7 i_new) "[INV [new_ofs new_addr]]".
 
     hred_r. unhide. remove_tau.
@@ -353,7 +357,7 @@ Section PROOF.
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_point_key tl_ofs".
     { iFrame. iSplit.
-      { iApply offset_slide. ss. }
+      { iApply live_slide. rewrite tl_sub_r. ss. }
       { iPureIntro. splits; ss. exists 1. ss. } }
     iIntros (st_src8 st_tgt8) "[INV [tl_point_key tl_ofs]]".
 
@@ -391,7 +395,7 @@ Section PROOF.
     iCombine "tl_point_item tl_point_key" as "tl_point".
     iPoseProof (points_to_collect with "new_point") as "new_point".
     iPoseProof (points_to_collect with "tl_point") as "tl_point".
-    iPoseProof (offset_slide_rev with "tl_ofs") as "tl_ofs".
+    iPoseProof (live_slide_rev with "tl_ofs") as "tl_ofs".
     iPoseProof (null_equiv with "prev_addr") as "%".
     assert (i_prev = Ptrofs.zero).
     { unfold Vptrofs, Vnullptr in *.
@@ -406,7 +410,7 @@ Section PROOF.
     change (rev [Vlong item]) with [Vlong item].
     ss. rewrite rev_app_distr.
     change (rev [Vlong i]) with [Vlong i].
-    ss.
+    ss. rewrite new_sub_r.
     iExists _,_,_. iFrame. rewrite Ptrofs.xor_zero_l. iFrame. iSplit; ss.
     rewrite <- Heq0.
 
@@ -415,7 +419,7 @@ Section PROOF.
     iPoseProof (equiv_point_comm with "tl_point") as "tl_point".
     iPoseProof (equiv_dup with "tl_addr") as "[tl_addr tl_addr']".
     iCombine "tl_addr' tl_ofs" as "tl_ofs".
-    iPoseProof (equiv_offset_comm with "tl_ofs") as "tl_ofs".
+    iPoseProof (equiv_live_comm with "tl_ofs") as "tl_ofs".
     iPoseProof (equiv_sym with "tl_addr") as "tl_addr".
     iExists _,_,_. iFrame.
     instantiate (1:=i_next).

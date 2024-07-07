@@ -1049,6 +1049,25 @@ Section RULES.
     live_(m,tg,q) (Val.subl v (Vptrofs ofs)) ⊢ ⌜Val.addl v (Vptrofs Ptrofs.zero) = v⌝.
   Proof. iIntros "A". iApply _add_null_r. iApply live_offset_exchage. et. Qed.
 
+  Lemma _sub_null_r
+      v m tg q ofs:
+    v (⊨_m,tg,q) ofs ⊢ ⌜Val.subl v (Vptrofs Ptrofs.zero) = v⌝.
+  Proof.
+    iIntros "A". unfold has_offset, _has_offset.
+    des_ifs; try solve [iDestruct "A" as "[A [A' %]]"; clarify].
+    - iPureIntro. ss. unfold Vptrofs. des_ifs.
+      change (Ptrofs.to_int64 _) with Int64.zero.
+      rewrite Int64.sub_zero_l. et.
+    - iPureIntro. ss. unfold Vptrofs. des_ifs.
+      rewrite Ptrofs.of_int64_to_int64; et.
+      rewrite Ptrofs.sub_zero_l. et.
+  Qed.
+
+  Lemma sub_null_r
+      v m tg q :
+    live_(m,tg,q) v ⊢ ⌜Val.subl v (Vptrofs Ptrofs.zero) = v⌝.
+  Proof. apply _sub_null_r. Qed.
+
 End RULES.
 
 Section SPEC.
