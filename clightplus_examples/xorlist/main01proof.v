@@ -23,6 +23,7 @@ Section PROOF.
 
   Import ClightPlusMemRA.
   Import ClightPlusMem1.
+  Local Opaque Val.subl.
 
   Context `{@GRA.inG Mem.t Σ}.
 
@@ -106,14 +107,17 @@ Section PROOF.
     unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
     destruct Archi.ptr64 eqn:?; clarify. hred_r.
 
-    iPoseProof (equiv_trivial_offset with "hd_alloc") as "[hd_alloc hd_equiv]"; et.
-    iPoseProof (equiv_trivial_offset with "tl_alloc") as "[tl_alloc tl_equiv]"; et.
+    iPoseProof (live_trivial_offset with "hd_alloc") as "[hd_alloc hd_equiv]"; et.
+    iPoseProof (live_trivial_offset with "tl_alloc") as "[tl_alloc tl_equiv]"; et.
     iCombine "hd_equiv hd_point" as "hd".
     iPoseProof (equiv_point_comm with "hd") as "hd_point".
     iCombine "tl_equiv tl_point" as "tl".
     iPoseProof (equiv_point_comm with "tl") as "tl_point".
+    iPoseProof (sub_null_r with "hd_alloc") as "%". rename H4 into hd_sub_r.
+    iPoseProof (sub_null_r with "tl_alloc") as "%". rename H4 into tl_sub_r.
 
     iApply isim_ccallU_store; ss; oauto.
+    rewrite hd_sub_r.
     iSplitL "INV hd_point hd_alloc"; iFrame.
     { iExists _. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
     iIntros (st_src2 st_tgt2) "[INV [hd_point hd_alloc]]".
@@ -122,6 +126,7 @@ Section PROOF.
 
     rewrite Heqb1. hred_r.
     iApply isim_ccallU_store; ss; oauto.
+    rewrite tl_sub_r.
     iSplitL "INV tl_point tl_alloc"; iFrame.
     { iExists _. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
     iIntros (st_src3 st_tgt3) "[INV [tl_point tl_alloc]]".
@@ -150,6 +155,7 @@ Section PROOF.
       iSplit; et. iSplit; et. unfold full_xorlist.
       iExists _, _, _, _, _, _.
       iPoseProof (equiv_dup with "NULL") as "[? ?]".
+      rewrite hd_sub_r. rewrite tl_sub_r.
       iFrame. iPureIntro. splits; try exists 0; ss. }
     iIntros (st_src4 st_tgt4 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -247,8 +253,8 @@ Section PROOF.
     iDestruct "X" as (md m1 hd tl ofs ofs1) "[[[[[[D C] %] B] A] %] ?]".
 
     iApply isim_ccallU_sfree; ss; oauto.
-    iPoseProof (offset_trivial with "A") as "%".
-    iPoseProof (offset_trivial with "C") as "%".
+    iPoseProof (live_trivial with "A") as "%".
+    iPoseProof (live_trivial with "C") as "%".
     des. clarify.
     iSplitL "INV B A"; iFrame.
     { iExists _,_,_. iFrame. iPureIntro.
