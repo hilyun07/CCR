@@ -301,9 +301,6 @@ Section PROPS.
       (BS: s (Some blk) = OneShot.black)
       (BC: c (Some blk) = OneShot.black) :
     URA.updatable (t:=Mem.t) (Auth.black p, Auth.black a, s, c)
-      (* (Auth.black (p ⋅ __points_to blk z mvl qp) ⋅ Auth.white (__points_to blk z mvl qp),
-        Auth.black (a ⋅ __allocated_with blk tg qa) ⋅ Auth.white (__allocated_with blk tg qa),
-          update s (Some blk) (OneShot.white sz), c) *)
       (((Auth.black (p ⋅ __points_to blk z mvl qp), Auth.black (a ⋅ __allocated_with blk tg qa), update s (Some blk) (OneShot.white sz), c) : Mem.t) ⋅
        ((Auth.white (__points_to blk z mvl qp), Auth.white (__allocated_with blk tg qa), __has_size (Some blk) sz, ε) : Mem.t))
   .

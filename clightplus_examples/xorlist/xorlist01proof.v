@@ -87,16 +87,6 @@ Section PROOF.
   Hypothesis SKINCL : Sk.le mfsk sk.
   Hypothesis SKWF : Sk.wf sk.
 
-  (* Ltac unfold_comp optsrc EQ :=
-    unfold optsrc, compile, get_sk in EQ;
-    destruct Coqlib.list_norepet_dec; clarify; des_ifs; ss;
-    repeat match goal with
-          | H: Coqlib.list_norepet _ |- _ => clear H
-          | H: forallb _ _ = true |- _ => clear H
-          | H: forallb _ _ && _ = true |- _ => clear H
-          | H: Ctypes.prog_main _ = _ |- _ => clear H
-          end. *)
-
   Lemma sim_add_tl :
     sim_fnsem wf top2
       ("add_tl", fun_to_tgt "xorlist" (GlobalStb sk) (mk_pure add_tl_spec))
@@ -112,13 +102,8 @@ Section PROOF.
     econs; ss. red.
 
     (* current state: 1 *)
-    (* unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
-    apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1. *)
     dup SKINCL. rename SKINCL0 into SKINCLENV.
     apply incl_incl_env in SKINCLENV.
     unfold incl_env in SKINCLENV.
@@ -445,13 +430,8 @@ Section PROOF.
     econs; ss. red.
 
     (* current state: 1 *)
-    (* unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
-    apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1. *)
     dup SKINCL. rename SKINCL0 into SKINCLENV.
     apply incl_incl_env in SKINCLENV.
     unfold incl_env in SKINCLENV.
@@ -768,13 +748,8 @@ Section PROOF.
     econs; ss. red.
 
     (* current state: 1 *)
-    (* unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
-    apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1. *)
     dup SKINCL. rename SKINCL0 into SKINCLENV.
     apply incl_incl_env in SKINCLENV.
     unfold incl_env in SKINCLENV.
@@ -1081,13 +1056,8 @@ Section PROOF.
     econs; ss. red.
 
     (* current state: 1 *)
-    (* unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss. *)
     get_composite ce e.
 
-    (* dup SKINCL1. rename SKINCL0 into SKINCLENV1.
-    apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1. *)
     dup SKINCL. rename SKINCL0 into SKINCLENV.
     apply incl_incl_env in SKINCLENV.
     unfold incl_env in SKINCLENV.

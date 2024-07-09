@@ -147,8 +147,7 @@ Definition improves2 {L0 L1} (gvmap : AST.ident -> option Z) (st_src0: L0.(STS.s
 .
 
 (* behavior improve statement for program *)
-(** Program in STS has no meta-map currently,
-interpreted as empty map so that STS is always greater than Smallstep **)
+(* Program in STS has no meta-map currently, interpreted as empty map so that STS is always greater than Smallstep *)
 Definition improves2_program (L0: STS.semantics) (L1: Smallstep.semantics) : Prop :=
   forall gvmap tr_tgt (BEH: program_observes L1 (gvmap, tr_tgt)),
   match gvmap with

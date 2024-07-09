@@ -1468,7 +1468,7 @@ Section SIMMODSEM.
       hred_l. iApply isim_choose_src. iExists _.
       iApply isim_ret. iSplitL "MEM"; cycle 1.
       { iSplit; ss. iExists _. iFrame.
-        iSplitL "SZ0_PRE ALLOC_PRE". 
+        iSplitL "SZ0_PRE ALLOC_PRE".
         { iSplit; ss. change (Vptr b _) with (Val.subl (Vptr b i) (Vptrofs i)).
           iApply live_offset_exchage_rev.
           unfold has_offset, _has_offset. destruct blk; clarify. iFrame. et. }
@@ -1921,7 +1921,7 @@ Section SIMMODSEM.
                 || Mem.valid_pointer mem_tgt b (Ptrofs.unsigned i0 - 1)) with true.
         { hred_r. iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
           iDestruct "MEM" as "[[MEM ALLOC_PRE] SZ_PRE]".
-          iApply isim_ret. iSplitL "MEM"; cycle 1. 
+          iApply isim_ret. iSplitL "MEM"; cycle 1.
           { iSplit; ss. iSplit; ss.
             change (Vptr _ _) with (Val.subl (Vptr b i0) (Vptrofs i0)).
             iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iPureIntro. splits; ss. }
@@ -1937,7 +1937,7 @@ Section SIMMODSEM.
         { spc PERMinrange0. des. rewrite PERMinrange0 in *. apply n0. econs. }
     (* rule 5 : neq, val vs null *)
     - unfold cmp_ptr_hoare4. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[[% P] %]". 
+      iDestruct "PRE" as "[[% P] %]".
       iPoseProof (live_offset_exchage with "P") as "P".
       do 2 unfold has_offset, _has_offset.
       destruct blk eqn:?; clarify. iDestruct "P" as "[ALLOC_PRE0 [SZ_PRE P]]".
@@ -1992,7 +1992,7 @@ Section SIMMODSEM.
     (* non-trivial case starts here *)
     (* rule 6 : weak valid pointers in the same block *)
     - unfold cmp_ptr_hoare5. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[[[% P] A] %]". 
+      iDestruct "PRE" as "[[[% P] A] %]".
       iPoseProof (live_offset_exchage with "P") as "P".
       iPoseProof (live_offset_exchage with "A") as "A".
       des. clarify. rename H2 into wv0, H3 into wv.
@@ -2344,7 +2344,7 @@ Section SIMMODSEM.
             intro X. des. unfold Mem.perm, Mem.perm_order' in *. rewrite X in *. apply n. econs. }
     (* rule 7 : eq, valid pointers in the different block *)
     - unfold cmp_ptr_hoare6. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[[[% P] A] %]". 
+      iDestruct "PRE" as "[[[% P] A] %]".
       iPoseProof (live_offset_exchage with "A") as "A".
       iPoseProof (live_offset_exchage with "P") as "P".
       do 2 unfold has_offset, _has_offset.
@@ -2669,7 +2669,7 @@ Section SIMMODSEM.
           *** iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
               iApply isim_ret. iSplitL "MEM".
               { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-              iSplit; ss. 
+              iSplit; ss.
               iSplitR "ALLOC_PRE SZ_PRE".
               2:{ change (Vptr _ _) with (Val.subl (Vptr b i1) (Vptrofs i1)).
                   iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iPureIntro. splits; ss. }
@@ -2681,7 +2681,7 @@ Section SIMMODSEM.
           *** iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
               iApply isim_ret. iSplitL "MEM".
               { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-              iSplit; ss. 
+              iSplit; ss.
               iSplitR "ALLOC_PRE SZ_PRE".
               2:{ change (Vptr _ _) with (Val.subl (Vptr b i1) (Vptrofs i1)).
                   iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iPureIntro. splits; ss. }
@@ -2767,7 +2767,7 @@ Section SIMMODSEM.
         iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
         iApply isim_ret. iSplitL "MEM".
         { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-        iSplit; ss. 
+        iSplit; ss.
         iSplitR "ALLOC_PRE SZ_PRE".
         2:{ change (Vptr _ _) with (Val.subl (Vptr b i1) (Vptrofs i1)).
             iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iPureIntro. splits; ss. }
@@ -2827,7 +2827,7 @@ Section SIMMODSEM.
         iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
         iApply isim_ret. iSplitL "MEM".
         { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-        iSplit; ss. 
+        iSplit; ss.
         iSplitR "ALLOC_PRE SZ_PRE CONC0_PRE".
         2:{ change (Vlong _) with (Val.subl (Vlong i1) (Vptrofs (Ptrofs.sub (Ptrofs.of_int64 i1) base0))).
             iApply live_offset_exchage_rev. unfold has_offset, _has_offset. destruct blk; clarify. iFrame.
@@ -2969,7 +2969,7 @@ Section SIMMODSEM.
           *** iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
               iApply isim_ret. iSplitL "MEM".
               { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-              iSplit; ss. 
+              iSplit; ss.
               iSplitR "ALLOC_PRE SZ_PRE CONC_PRE".
               2:{ change (Vlong _) with (Val.subl (Vlong i1) (Vptrofs (Ptrofs.sub (Ptrofs.of_int64 i1) base))).
                   iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iExists _. iFrame. iPureIntro. splits; ss. }
@@ -3115,7 +3115,7 @@ Section SIMMODSEM.
           *** iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
               iApply isim_ret. iSplitL "MEM".
               { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-              iSplit; ss. 
+              iSplit; ss.
               iSplitR "ALLOC_PRE SZ_PRE".
               2:{ change (Vptr _ _) with (Val.subl (Vptr b i1) (Vptrofs i1)).
                   iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iPureIntro. splits; ss. }
@@ -3202,7 +3202,7 @@ Section SIMMODSEM.
         iApply isim_apc. iExists None. hred_l. iApply isim_choose_src. iExists _.
         iApply isim_ret. iSplitL "MEM".
         { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
-        iSplit; ss. 
+        iSplit; ss.
         iSplitR "ALLOC_PRE SZ_PRE".
         2:{ change (Vptr _ _) with (Val.subl (Vptr b i1) (Vptrofs i1)).
             iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. iFrame. iPureIntro. splits; ss. }

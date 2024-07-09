@@ -153,54 +153,6 @@ Section EVAL_EXPR_COMP.
     let x := m / n in
     (x * n =? m).
 
-  (* Definition load_bitfield_c (ty: type)
-            (sz: intsize) (sg: signedness) (pos: Z) (width: Z)
-            (addr: val) : itree eff val :=
-  let chk := (0 <=? pos) && (0 <? width)
-            && (width <=? bitsize_intsize sz)
-            && (pos + width <=? Cop.bitsize_carrier sz) in
-  match ty, chk with
-  | Tint i sg1 attr, true =>
-    if intsize_eq i sz then
-      if signedness_eq sg1
-          (if Coqlib.zlt width (bitsize_intsize sz)
-          then Signed else sg)
-      then v <- ccallU "load" (Cop.chunk_for_carrier sz, addr);;
-        match v with
-        | Vint c =>
-          Ret (Vint (Cop.bitfield_extract sz sg pos width c))
-        | _ => triggerUB
-        end
-      else triggerUB
-    else triggerUB
-  | _, _ => triggerUB
-  end.
-
-  Definition store_bitfield_c (ty: type)
-            (sz: intsize) (sg: signedness) (pos: Z) (width: Z)
-            (addr: val) (v: val) : itree eff val :=
-  let chk := (0 <=? pos) && (0 <? width)
-            && (width <=? bitsize_intsize sz)
-            && (pos + width <=? Cop.bitsize_carrier sz) in
-  match ty, v, chk with
-  | Tint i sg1 attr, Vint n, true =>
-    if intsize_eq i sz then
-      if signedness_eq sg1
-        (if Coqlib.zlt width (bitsize_intsize sz)
-        then Signed else sg)
-      then v <- ccallU "load" (Cop.chunk_for_carrier sz, addr);;
-        match v with
-        | Vint c =>
-          let stored_v := Vint (Int.bitfield_insert (Cop.first_bit sz pos width) width c n) in
-          `_ : () <- ccallU "store" (Cop.chunk_for_carrier sz, addr, stored_v);;
-          Ret (Vint (Cop.bitfield_normalize sz sg width n))
-        | _ => triggerUB
-        end
-      else triggerUB
-    else triggerUB
-  | _, _, _ => triggerUB
-  end. *)
-
   Definition assign_loc_c (ce: comp_env)
            (ty: type) (vp: val)
            (v: val): itree eff unit :=

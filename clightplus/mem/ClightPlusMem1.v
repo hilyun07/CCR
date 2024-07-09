@@ -1113,15 +1113,6 @@ Section SPEC.
                                  ** vaddr (↦_m,q1) mvs)
     )))%I.
 
-  (* deprecated, maybe revive in bitfield at v3.11? *)
-  (* Definition loadbytes_spec: fspec :=
-    (mk_simple (fun '(vaddr, sz, q, mvs) => (
-                    (ord_pure 0%nat),
-                    (fun varg => ⌜varg = (vaddr, sz)↑ /\ Z.of_nat (List.length mvs) = sz⌝
-                                ** vaddr ⊢q#> mvs),
-                    (fun vret => ⌜vret = mvs↑⌝ ** vaddr ⊢q#> mvs)
-    ))). *)
-
   (* input: chunk * val * val, output: unit *)
   Definition store_spec: fspec :=
     (mk_simple
@@ -1137,17 +1128,6 @@ Section SPEC.
                          ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
                          ** vaddr (↦_m,1) mvs_new)
     )))%I.
-
-  (* deprecated, maybe revive in bitfield at v3.11? *)
-  (* Definition storebytes_spec: fspec :=
-    (mk_simple
-      (fun '(vaddr, mvs_new) => (
-            (ord_pure 0%nat),
-            (fun varg => ∃ mvs_old, ⌜varg = (vaddr, mvs_new)↑
-                                    /\ List.length mvs_old = List.length mvs_new⌝
-                                    ** vaddr ⊢1#> mvs_old),
-            (fun vret => ⌜vret = tt↑⌝ ** vaddr ⊢1#> mvs_new)
-    )))%I. *)
 
   (* group of cmp_ptr rules *)
   (* input: comparison * val * val, output: bool *)
@@ -1513,7 +1493,7 @@ Section MRS.
                             | None => OneShot.white Ptrofs.zero
                             end)
     | None => (Auth.black ε, Auth.black ε,
-                fun ob => 
+                fun ob =>
                   match ob with
                   | Some _ => OneShot.black
                   | None => OneShot.white 0

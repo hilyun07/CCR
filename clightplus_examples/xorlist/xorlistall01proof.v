@@ -38,9 +38,6 @@ Section PROOF.
   Hypothesis VALID_comp : compile xorlink "xorlist" = Errors.OK xormod.
   Let mfsk : Sk.t := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (Ctypes.External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)); ("free", Gfun (Ctypes.External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))].
 
-  (* Variable xor0 : Mod.t.
-  Hypothesis VALID : xorlist0._xor = Errors.OK xor0. *)
-
   Theorem correct : refines2 [ClightPlusMem0.Mem mfsk; xormod] [ClightPlusMem1.Mem mfsk; xorlistall1.xorAllWrapped GlobalStb].
   Proof.
     eapply adequacy_local_strong_l. econs; cycle 1.
