@@ -1,4 +1,4 @@
-COQMODULE    := SimComp
+COQMODULE    := CCR
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
 
 .PHONY: all proof proof-quick graph
@@ -20,26 +20,10 @@ proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
 
 Makefile.coq: Makefile $(COQTHEORIES)
-	(echo "-R ../CompCert-intptr/lib compcert.lib"; \
-	echo "-R ../CompCert-intptr/common compcert.common"; \
-	echo "-R ../CompCert-intptr/x86 compcert.x86"; \
-	echo "-R ../CompCert-intptr/x86_64 compcert.x86_64"; \
-	echo "-R ../CompCert-intptr/libSSA compcert.libSSA"; \
-	echo "-R ../CompCert-intptr/backend compcert.backend"; \
-	echo "-R ../CompCert-intptr/midend compcert.midend"; \
-	echo "-R ../CompCert-intptr/cfrontend compcert.cfrontend"; \
-	echo "-R ../CompCert-intptr/driver compcert.driver"; \
-	echo "-R ../CompCert-intptr/exportclight compcert.exportclight"; \
-	echo "-R ../CompCert-intptr/flocq Flocq"; \
-	echo "-R ../CompCert-intptr/cparser compcert.cparser"; \
-	echo "-R ../CompCert-intptr/MenhirLib MenhirLib"; \
-                          \
-		 echo "-R lib $(COQMODULE)"; \
+	(echo "-R lib $(COQMODULE)"; \
          echo "-R ems $(COQMODULE)"; \
          echo "-R spc $(COQMODULE)"; \
          echo "-R proofmode $(COQMODULE)"; \
-         echo "-R clightplus $(COQMODULE)"; \
-         echo "-R clightplus_examples $(COQMODULE)"; \
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
