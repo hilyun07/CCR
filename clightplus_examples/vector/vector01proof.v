@@ -171,6 +171,50 @@ Section PROOF.
       ("vector_total", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_total_spec))
       ("vector_total", cfunU (decomp_func sk ce f_vector_total)).
   Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    unfold_comp _vector VALID.
+    econs; ss. red.
+
+    unfold prog, mkprogram in ce.
+    destruct (build_composite_env' composites I). ss.
+    get_composite ce e. fold vector._vector in get_co.
+
+    pose proof (incl_incl_env SKINCL1) as SKINCLENV1. unfold incl_env in SKINCLENV1.
+    pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto.
+    unfold f_vector_total. i. ss.
+    unfold decomp_func, function_entry_c; ss.
+    set (HIDDEN := hide 1).
+
+    iIntros "[_ PRE]".
+    destruct x as [[[[[[[vec_ptr vec_m] size] total] capacity] memlist] q] qb]. ss.
+    iDestruct "PRE" as "[[% PRE] %]".
+    clarify. hred_r.
+
+    assert (ARCHI: Archi.ptr64 = true) by reflexivity.
+    unhide; rewrite ARCHI. hred_r. remove_tau.
+    iAssert (is_vector vec_m q qb vec_ptr size total capacity memlist ** ⌜is_ptr_val vec_ptr = true⌝%I) with "[PRE]" as "[PRE %]".
+    { iSplit; ss.
+      unfold is_vector, is_vector_handler.
+      iDestruct "PRE" as (items unused) "[[[PRE0 PRE1] PRE2] PRE3]".
+      iDestruct "PRE1" as (m tag offset) "[[PRE1.1 PRE1.2] PRE1.3]".
+      iApply points_to_is_ptr.
+      iAssumption.
+    }
+    rewrite H3. hred_r. rewrite H3. hred_r.
+    replace (alist_find vector._vector ce) with (Some co) by (apply get_co).
+    hred_r.
+    replace (ClightPlusExprgen.field_offset ce _total (co_members co)) with (Errors.OK 24%Z)
+      by (rewrite co_co_members; reflexivity).
+    hred_r.
+    iApply isim_apc. iExists (Some (1 : Ord.t)).
+    iApply isim_ccallU_load.
+    { ss. }
+    { eapply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=0%ord). eapply OrdArith.lt_from_nat. lia. }
   Admitted.
 
   Lemma sim_vector_resize :
