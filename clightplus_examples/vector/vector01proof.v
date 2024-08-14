@@ -63,6 +63,27 @@ Section PROOF.
   Context `{@GRA.inG blocksizeRA Σ}.
   Context `{@GRA.inG blockaddressRA Σ}.
   
+  Definition Lens (P : iProp) {X : Type} (Q R : X -> iProp) := bi_entails P (∃ x, Q x ** R x ** (Q x -* P)).
+
+  Arguments Lens (_)%bi_scope {_} (_ _)%bi_scope.
+
+  Lemma lens_vector_total
+    vec_m q qb vec_ptr size total capacity memlist :
+    Lens
+      (is_vector vec_m q qb vec_ptr size total capacity memlist)
+      (fun '(m, tag, offset) => (Val.addl vec_ptr (Vptrofs (Ptrofs.repr 24)) (↦_m, q) (encode_val Mint64 (Vlong (Int64.repr total)))
+                           ** Val.addl vec_ptr (Vptrofs (Ptrofs.repr 24)) (⊨_m, tag, q) offset)%I)
+      (fun '(m, tag, offset) => ⌜strings.length (encode_val Mint64 (Vlong (Int64.repr total))) = size_chunk_nat Mint64
+                             ∧ bytes_not_pure (encode_val Mint64 (Vlong (Int64.repr total))) = false
+                             ∧ Mint64 ≠ Many64
+                             ∧ (size_chunk Mint64 | Ptrofs.unsigned offset)%Z⌝%I).
+  Proof.
+    iIntros "V".
+    iDestruct "V" as (items unused) "[[[V0 V1] V2] V3]".
+    iDestruct "V1" as (m tag offset) "[[V1.1 V1.2] V1.3]".
+    iExists (m, tag, offset).
+  Admitted.
+
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).
@@ -107,6 +128,7 @@ Section PROOF.
       ("vector_init", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_init_spec))
       ("vector_init", cfunU (decomp_func sk ce f_vector_init)).
   Proof.
+    (*
     Local Opaque encode_val.
     Local Opaque cast_to_ptr.
     unfold_comp _vector VALID.
@@ -159,12 +181,9 @@ Section PROOF.
     hred_r.
     iApply isim_apc. iExists (Some (20%nat : Ord.t)).
     iApply isim_ccallU_store.
-    
-
-
-
-
+     *)
   Admitted.
+
 
   Lemma sim_vector_total :
     sim_fnsem wf top2
@@ -189,7 +208,7 @@ Section PROOF.
     unfold decomp_func, function_entry_c; ss.
     set (HIDDEN := hide 1).
 
-    iIntros "[_ PRE]".
+    iIntros "[INV PRE]".
     destruct x as [[[[[[[vec_ptr vec_m] size] total] capacity] memlist] q] qb]. ss.
     iDestruct "PRE" as "[[% PRE] %]".
     clarify. hred_r.
@@ -211,11 +230,23 @@ Section PROOF.
       by (rewrite co_co_members; reflexivity).
     hred_r.
     iApply isim_apc. iExists (Some (1 : Ord.t)).
+    iPoseProof (lens_vector_total with "PRE") as ([[m tag] offset]) "[TOTAL PRE]".
     iApply isim_ccallU_load.
     { ss. }
     { eapply OrdArith.lt_from_nat. lia. }
     { instantiate (1:=0%ord). eapply OrdArith.lt_from_nat. lia. }
-  Admitted.
+    iSplitL "INV TOTAL". { iSplitL "INV"; done. }
+    iIntros (st_src0 st_tgt0) "[INV TOTAL]".
+    iDestruct ("PRE" with "TOTAL") as "PRE".
+
+    Local Transparent cast_to_ptr.
+    hred_r. rewrite decode_encode_item. ss. change Archi.ptr64 with true. ss. hred_r.
+
+    hred_l. iApply isim_choose_src. iExists (Any.upcast (Vlong (Int64.repr total))).
+
+    iApply isim_ret.
+    iSplitL "INV"; et.
+  Qed.
 
   Lemma sim_vector_resize :
     sim_fnsem wf top2
