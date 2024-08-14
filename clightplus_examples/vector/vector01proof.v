@@ -82,6 +82,11 @@ Section PROOF.
     iDestruct "V" as (items unused) "[[[V0 V1] V2] V3]".
     iDestruct "V1" as (m tag offset) "[[V1.1 V1.2] V1.3]".
     iExists (m, tag, offset).
+    (* Use
+       points_to_split
+       offset_slide
+       offset_slide_rev
+     *)
   Admitted.
 
   Variable GlobalStb : Sk.t -> gname -> option fspec.
