@@ -218,8 +218,7 @@ Section PROOF.
     iDestruct "PRE" as "[[% PRE] %]".
     clarify. hred_r.
 
-    assert (ARCHI: Archi.ptr64 = true) by reflexivity.
-    unhide; rewrite ARCHI. hred_r. remove_tau.
+    unhide; change Archi.ptr64 with true; ss. hred_r. remove_tau.
     iAssert (is_vector vec_m q qb vec_ptr size total capacity memlist ** ⌜is_ptr_val vec_ptr = true⌝%I) with "[PRE]" as "[PRE %]".
     { iSplit; ss.
       unfold is_vector, is_vector_handler.
