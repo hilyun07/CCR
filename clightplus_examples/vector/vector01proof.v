@@ -21,6 +21,13 @@ From compcert Require Import Clightdefs.
 
 Section LEMMA.
 
+  Lemma divide_iff_eqmod_0 m n : (m | n)%Z <-> Zbits.eqmod m n 0.
+  Proof.
+    unfold Zbits.eqmod. unfold Z.divide. split.
+    - intros [k H]. exists k. lia.
+    - intros [k H]. exists k. lia.
+  Qed.
+
   Lemma f_bind_ret_r E R A (s : A -> itree E R)
     : (fun a => ` x : R <- (s a);; Ret x) = s.
   Proof. apply func_ext. i. apply bind_ret_r. Qed.
@@ -80,16 +87,68 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     iIntros "V".
-    iDestruct "V" as (items unused) "[[[V0 V1] V2] V3]".
-    iDestruct "V1" as (m tag offset) "[[PT HO] V1]".
-    iExists (m, tag, offset). ss.
-  (* Use
-       points_to, has_offset
-       points_to_split
-       offset_slide
-       offset_slide_rev
-     *)
-  Admitted.
+    iDestruct "V" as (items unused) "[[[% V1] V2] V3]".
+    iDestruct "V1" as (m tag offset) "[[PT HO] %]".
+    iExists (m, tag, Ptrofs.add offset (Ptrofs.repr 24)). ss.
+    replace (encode_val Mptr items ++
+             encode_val Mint64 (Vlong (Int64.repr size)) ++
+             encode_val Mint64 (Vlong (Int64.repr capacity)) ++
+             encode_val Mint64 (Vlong (Int64.repr total)) ++
+             [])
+      with ((encode_val Mptr items ++
+             encode_val Mint64 (Vlong (Int64.repr size)) ++
+             encode_val Mint64 (Vlong (Int64.repr capacity)))
+              ++
+              encode_val Mint64 (Vlong (Int64.repr total)))
+      by (rewrite app_nil_r; rewrite ! app_assoc; reflexivity).
+    iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
+    replace (strings.length (encode_val Mptr items
+                               ++ encode_val Mint64 (Vlong (Int64.repr size))
+                               ++ encode_val Mint64 (Vlong (Int64.repr capacity))))
+      with 24
+      by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
+    iPoseProof (offset_slide with "HO") as "HO".
+
+    iSplitL "PT2 HO".
+    { iSplit.
+      - iFrame.
+      - iPureIntro. splits; ss.
+        change vector_struct_size with 32%Z in H4.
+        rewrite Ptrofs.add_unsigned.
+        change (Ptrofs.unsigned (Ptrofs.repr 24)) with 24%Z.
+        pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned offset + 24)).
+        unfold Ptrofs.eqm in H5.
+        assert (8 | Ptrofs.modulus)%Z.
+        { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
+          eapply Z.divide_factor_l.
+        }
+        pose proof (Zbits.eqmod_divides _ _ _ _ H5 H6).
+        eapply divide_iff_eqmod_0.
+        eapply Zbits.eqmod_trans.
+        eapply Zbits.eqmod_sym. eapply H7.
+        eapply divide_iff_eqmod_0.
+        eapply Z.divide_add_r.
+        + transitivity 32; ss. change 32%Z with (8*4)%Z. eapply Z.divide_factor_l.
+        + change 24%Z with (8*3)%Z. eapply Z.divide_factor_l.
+    }
+    iIntros "[PT2 HO]". unfold is_vector.
+    iExists items, unused. iFrame.
+
+    iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
+    { iSplitL "PT1".
+      - iFrame.
+      - replace (strings.length (encode_val Mptr items
+                                   ++ encode_val Mint64 (Vlong (Int64.repr size))
+                                   ++ encode_val Mint64 (Vlong (Int64.repr capacity))))
+          with 24
+          by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
+        iFrame.
+    }
+    iPoseProof (offset_slide_rev with "HO") as "HO".
+    unfold is_vector_handler.
+    iSplit; ss. iExists m, tag, offset. iFrame.
+    iSplit; ss. rewrite app_nil_r. rewrite ! app_assoc. iFrame.
+  Qed.
 
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
