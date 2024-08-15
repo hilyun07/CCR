@@ -68,9 +68,9 @@ Section PROOF.
   Arguments Lens (_)%bi_scope {_} (_ _)%bi_scope.
 
   Lemma lens_vector_total
-    vec_m q qb vec_ptr size total capacity memlist :
+    vec_m q qb vec_ptr size capacity total memlist :
     Lens
-      (is_vector vec_m q qb vec_ptr size total capacity memlist)
+      (is_vector vec_m q qb vec_ptr size capacity total memlist)
       (fun '(m, tag, offset) => (Val.addl vec_ptr (Vptrofs (Ptrofs.repr 24)) (↦_m, q) (encode_val Mint64 (Vlong (Int64.repr total)))
                            ** Val.addl vec_ptr (Vptrofs (Ptrofs.repr 24)) (⊨_m, tag, q) offset)%I)
       (fun '(m, tag, offset) => ⌜strings.length (encode_val Mint64 (Vlong (Int64.repr total))) = size_chunk_nat Mint64
@@ -78,11 +78,13 @@ Section PROOF.
                              ∧ Mint64 ≠ Many64
                              ∧ (size_chunk Mint64 | Ptrofs.unsigned offset)%Z⌝%I).
   Proof.
+    Local Opaque encode_val.
     iIntros "V".
     iDestruct "V" as (items unused) "[[[V0 V1] V2] V3]".
-    iDestruct "V1" as (m tag offset) "[[V1.1 V1.2] V1.3]".
-    iExists (m, tag, offset).
-    (* Use
+    iDestruct "V1" as (m tag offset) "[[PT HO] V1]".
+    iExists (m, tag, offset). ss.
+  (* Use
+       points_to, has_offset
        points_to_split
        offset_slide
        offset_slide_rev
@@ -214,12 +216,12 @@ Section PROOF.
     set (HIDDEN := hide 1).
 
     iIntros "[INV PRE]".
-    destruct x as [[[[[[[vec_ptr vec_m] size] total] capacity] memlist] q] qb]. ss.
+    destruct x as [[[[[[[vec_ptr vec_m] size] capacity] total] memlist] q] qb]. ss.
     iDestruct "PRE" as "[[% PRE] %]".
     clarify. hred_r.
 
     unhide; change Archi.ptr64 with true; ss. hred_r. remove_tau.
-    iAssert (is_vector vec_m q qb vec_ptr size total capacity memlist ** ⌜is_ptr_val vec_ptr = true⌝%I) with "[PRE]" as "[PRE %]".
+    iAssert (is_vector vec_m q qb vec_ptr size capacity total memlist ** ⌜is_ptr_val vec_ptr = true⌝%I) with "[PRE]" as "[PRE %]".
     { iSplit; ss.
       unfold is_vector, is_vector_handler.
       iDestruct "PRE" as (items unused) "[[[PRE0 PRE1] PRE2] PRE3]".
