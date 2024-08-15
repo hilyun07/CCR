@@ -171,23 +171,11 @@ Section PROOF.
   Let ce := Maps.PTree.elements (prog_comp_env prog).
 
   Section SIMFUNS.
-  Variable vector0 : Mod.t.
-  Hypothesis VALID : vector0._vector = Errors.OK vector0.
 
   Variable sk: Sk.t.
-  Hypothesis SKINCL1 : Sk.le (vector0.(Mod.sk)) sk.
+  Hypothesis SKINCL1 : Sk.le (vector_compiled.(Mod.sk)) sk.
   Hypothesis SKINCL2 : Sk.le mfsk sk.
   Hypothesis SKWF : Sk.wf sk.
-
-  Ltac unfold_comp optsrc EQ :=
-    unfold optsrc, compile, get_sk in EQ;
-    destruct Coqlib.list_norepet_dec; clarify; des_ifs; ss;
-    repeat match goal with
-          | H: Coqlib.list_norepet _ |- _ => clear H
-          | H: forallb _ _ = true |- _ => clear H
-          | H: forallb _ _ && _ = true |- _ => clear H
-          | H: Ctypes.prog_main _ = _ |- _ => clear H
-          end.
 
   Lemma sim_vector_init :
     sim_fnsem wf top2
@@ -258,7 +246,6 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     Local Opaque cast_to_ptr.
-    unfold_comp _vector VALID.
     econs; ss. red.
 
     unfold prog, mkprogram in ce.
