@@ -150,6 +150,19 @@ Section PROOF.
     iSplit; ss. rewrite app_nil_r. rewrite ! app_assoc. iFrame.
   Qed.
 
+  Lemma is_vector_is_ptr_val vec_m q qb vec_ptr size capacity total memlist :
+    bi_entails
+      (is_vector vec_m q qb vec_ptr size capacity total memlist)
+      ⌜is_ptr_val vec_ptr = true⌝%I.
+  Proof.
+    iIntros "PRE".
+    unfold is_vector.
+    iDestruct "PRE" as (items unused) "[[[PRE0 PRE1] PRE2] PRE3]".
+    unfold is_vector_handler.
+    iDestruct "PRE1" as (m tag offset) "[[PRE1.1 PRE1.2] PRE1.3]".
+    iApply (points_to_is_ptr with "PRE1.1").
+  Qed.
+
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).
@@ -267,14 +280,7 @@ Section PROOF.
     clarify. hred_r.
 
     unhide; change Archi.ptr64 with true; ss. hred_r. remove_tau.
-    iAssert (is_vector vec_m q qb vec_ptr size capacity total memlist ** ⌜is_ptr_val vec_ptr = true⌝%I) with "[PRE]" as "[PRE %]".
-    { iSplit; ss.
-      unfold is_vector, is_vector_handler.
-      iDestruct "PRE" as (items unused) "[[[PRE0 PRE1] PRE2] PRE3]".
-      iDestruct "PRE1" as (m tag offset) "[[PRE1.1 PRE1.2] PRE1.3]".
-      iApply points_to_is_ptr.
-      iAssumption.
-    }
+    iPoseProof (is_vector_is_ptr_val with "PRE") as "%".
     rewrite H3. hred_r. rewrite H3. hred_r.
     replace (alist_find vector._vector ce) with (Some co) by (apply get_co).
     hred_r.
