@@ -79,19 +79,19 @@ Section SPEC.
           ** is_vector_handler 1 vec_ptr items usize capacity total)%I,
         (fun vret =>
           ⌜vret = Vundef↑⌝
-          ** ∃ m, is_vector m 1 1 vec_ptr size 0 VECTOR_INIT_CAPACITY [])
+          ** ∃ m, is_vector m 1 1 vec_ptr size VECTOR_INIT_CAPACITY 0 [])
       )).
 
   Definition vector_total_spec : fspec :=
     mk_simple
-      (fun '(vec_ptr, vec_m, size, total, capacity, memlist, q, qb) => (
+      (fun '(vec_ptr, vec_m, size, capacity, total, memlist, q, qb) => (
         (ord_pure 1%nat),
         (fun varg =>
           ⌜varg = [vec_ptr]↑⌝
-          ** is_vector vec_m q qb vec_ptr size total capacity memlist)%I,
+          ** is_vector vec_m q qb vec_ptr size capacity total memlist)%I,
         (fun vret =>
           ⌜vret = (Vlong (Int64.repr total))↑⌝
-          ** is_vector vec_m q qb vec_ptr size total capacity memlist)
+          ** is_vector vec_m q qb vec_ptr size capacity total memlist)
       )).
 
   Definition vector_resize_spec : fspec :=
@@ -103,30 +103,30 @@ Section SPEC.
           ⌜varg = [vec_ptr; (Vlong (Int64.repr (newcap : nat)))]↑
           /\ 0 < newcap * size < (Z.to_nat Ptrofs.max_unsigned)
           /\ total < newcap⌝
-          ** is_vector vec_m 1 1 vec_ptr size total oldcap memlist)%I,
+          ** is_vector vec_m 1 1 vec_ptr size oldcap total memlist)%I,
         (fun vret =>
           ∃ vec_m' vec_ptr',
           ⌜vret = Vundef↑⌝
-          ** is_vector vec_m' 1 1 vec_ptr' size total newcap memlist))
+          ** is_vector vec_m' 1 1 vec_ptr' size newcap total memlist))
       )%I.
 
   (* TODO: to be revised *)
   Definition vector_add_spec : fspec :=
     mk_simple
-      (fun '(vec_ptr, item_ptr, vec_m, vec_m', item, m, size, total, capacity, memlist, qitem, qbitem, tagitem, ofs) => (
+      (fun '(vec_ptr, item_ptr, vec_m, vec_m', item, m, size, capacity, total, memlist, qitem, qbitem, tagitem, ofs) => (
         (ord_pure 1%nat),
         (fun varg =>
           ⌜varg = [vec_ptr; item_ptr]↑
           /\ Datatypes.length item = size⌝
-          ** is_vector vec_m 1 1 vec_ptr size total capacity memlist
+          ** is_vector vec_m 1 1 vec_ptr size capacity total memlist
           ** item_ptr (↦_m,qitem) item
           ** item_ptr (⊨_m,tagitem,qbitem) ofs),
         (fun vret =>
           ⌜vret = Vundef↑⌝
           ** (if total <? capacity
-              then is_vector vec_m 1 1 vec_ptr size (total + 1) capacity (memlist ++ [(item, 1%Qp)])
+              then is_vector vec_m 1 1 vec_ptr size capacity (total + 1) (memlist ++ [(item, 1%Qp)])
               else if capacity <? Z.to_nat Ptrofs.half_modulus
-                then is_vector vec_m' 1 1 vec_ptr size (total + 1) (2 * capacity) (memlist ++ [(item, 1%Qp)])
+                then is_vector vec_m' 1 1 vec_ptr size (2 * capacity) (total + 1) (memlist ++ [(item, 1%Qp)])
                 else True%I)
           ** item_ptr (↦_m,qitem) item
           ** item_ptr (⊨_m,tagitem,qbitem) ofs)
@@ -134,33 +134,33 @@ Section SPEC.
 
   Definition vector_set_spec : fspec :=
     mk_simple
-      (fun '(vec_ptr, idx, item_ptr, vec_m, item, m, size, total, capacity, l1, old, l2, qb, qh, qitem, qbitem, tagitem, ofs) => (
+      (fun '(vec_ptr, idx, item_ptr, vec_m, item, m, size, capacity, total, l1, old, l2, qb, qh, qitem, qbitem, tagitem, ofs) => (
         (ord_pure 1%nat),
         (fun varg =>
           ⌜varg = [vec_ptr; (Vlong (Int64.repr (idx : nat))); item_ptr]↑
           /\ Datatypes.length item = size
           /\ Datatypes.length l1 = idx⌝
-          ** is_vector vec_m qh qb vec_ptr size total capacity (l1 ++ (old, 1%Qp) :: l2)
+          ** is_vector vec_m qh qb vec_ptr size capacity total (l1 ++ (old, 1%Qp) :: l2)
           ** item_ptr (↦_m,qitem) item
           ** item_ptr (⊨_m,tagitem,qbitem) ofs),
         (fun vret =>
           ⌜vret = Vundef↑⌝
-          ** is_vector vec_m qh qb vec_ptr size total capacity (l1 ++ (item, 1%Qp) :: l2)
+          ** is_vector vec_m qh qb vec_ptr size capacity total (l1 ++ (item, 1%Qp) :: l2)
           ** item_ptr (↦_m,qitem) item
           ** item_ptr (⊨_m,tagitem,qbitem) ofs)
       )).
 
   Definition vector_get_spec : fspec :=
     mk_simple
-      (fun '(vec_ptr, idx, vec_m, qh, item_ptr, item, qi, size, total, capacity, qb, l1, l2) => (
+      (fun '(vec_ptr, idx, vec_m, qh, item_ptr, item, qi, size, capacity, total, qb, l1, l2) => (
         (ord_pure 1%nat),
         (fun varg =>
           ⌜varg = [vec_ptr; (Vlong (Int64.repr (idx : nat)))]↑
           /\ Datatypes.length l1 = idx⌝
-          ** is_vector vec_m qh qb vec_ptr size total capacity (l1 ++ (item, qi) :: l2)),
+          ** is_vector vec_m qh qb vec_ptr size capacity total (l1 ++ (item, qi) :: l2)),
         (fun vret =>
           ⌜vret = item_ptr↑⌝
-          ** is_vector vec_m qh (qb/2) vec_ptr size total capacity (l1 ++ (item, qi/2) :: l2)%Qp
+          ** is_vector vec_m qh (qb/2) vec_ptr size capacity total (l1 ++ (item, qi/2) :: l2)%Qp
           ** item_ptr (↦_vec_m,qi/2) item
           ** item_ptr (⊨_vec_m,Dynamic,qb/2) (Ptrofs.add Ptrofs.zero (Ptrofs.repr (idx * size))))
       )).
@@ -168,25 +168,25 @@ Section SPEC.
   (* TODO: to be revised *)
   Definition vector_delete_spec : fspec :=
     (mk_simple
-      (fun '(vec_ptr, idx, vec_m, vec_m', size, total, capacity, l1, item, l2) => (
+      (fun '(vec_ptr, idx, vec_m, vec_m', size, capacity, total, l1, item, l2) => (
         (ord_pure 1%nat),
         (fun varg =>
           ⌜varg = [vec_ptr; (Vlong (Int64.repr (idx : nat)))]↑
           /\ Datatypes.length l1 = idx
           /\ Forall (fun a => a.2 = 1%Qp) (l1 ++ l2)⌝
-          ** is_vector vec_m 1 1 vec_ptr size (S total) capacity (l1 ++ (item, 1%Qp) :: l2)),
+          ** is_vector vec_m 1 1 vec_ptr size capacity (S total) (l1 ++ (item, 1%Qp) :: l2)),
         (fun vret => ⌜vret = Vundef↑⌝
           ** (if (0 <? total) && (total =? (capacity / 4))%nat
-              then is_vector vec_m' 1 1 vec_ptr size total (capacity / 2) (l1 ++ l2)
-              else is_vector vec_m 1 1 vec_ptr size total capacity (l1 ++ l2)))
+              then is_vector vec_m' 1 1 vec_ptr size (capacity / 2) total (l1 ++ l2)
+              else is_vector vec_m 1 1 vec_ptr size capacity total (l1 ++ l2)))
     )))%I.
 
   Definition vector_free_spec : fspec :=
     (mk_simple
-      (fun '(vec_ptr, vec_m, size, total, capacity, memlist, items) => (
+      (fun '(vec_ptr, vec_m, size, capacity, total, memlist, items) => (
         (ord_pure 1%nat),
         (fun varg => ⌜varg = [vec_ptr]↑⌝
-          ** is_vector vec_m 1 1 vec_ptr size total capacity memlist),
+          ** is_vector vec_m 1 1 vec_ptr size capacity total memlist),
         (fun vret => ⌜vret = Vundef↑⌝
           ** is_vector_handler 1 vec_ptr items
             (Vlong (Int64.repr size)) (Vlong (Int64.repr capacity)) (Vlong (Int64.repr total)))
