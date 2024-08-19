@@ -20,7 +20,7 @@ size_t vector_total(vector *);
 static void vector_resize(vector *, size_t);
 void vector_add(vector *, void *);
 void vector_set(vector *, size_t, void *);
-void *vector_get(vector *, size_t);
+void vector_get(vector *, size_t, void *);
 void vector_delete(vector *, size_t);
 void vector_free(vector *);
 

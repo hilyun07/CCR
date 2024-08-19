@@ -20,9 +20,9 @@ static void vector_resize(vector *v, size_t capacity) {
 
 void vector_add(vector *v, void *item) {
   if (v->capacity == v->total) vector_resize(v, v->capacity * 2);
-  // total++
-  void *ptr = (char *)v->items + (v->total++) * v->item_size;
+  void *ptr = (char *)v->items + v->total * v->item_size;
   memcpy(ptr, item, v->item_size);
+  v->total++;
 }
 
 void vector_set(vector *v, size_t index, void *item) {
@@ -32,31 +32,27 @@ void vector_set(vector *v, size_t index, void *item) {
   memcpy(ptr, item, v->item_size);
 }
 
-void *vector_get(vector *v, size_t index) {
+void vector_get(vector *v, size_t index, void *dst) {
   // assert(index < v->total);  // assert : if not, make program stop
 
   void *ptr = (char *)v->items + index * v->item_size;
-  return ptr;
+  memcpy(dst, ptr, v->item_size);
 }
 
 void vector_delete(vector *v, size_t index) {
   // assert(index < v->total);
 
-  // for (size_t i = 0; i < v->total - 1; i++) {
   for (size_t i = index; i < v->total - 1; i++) {
     void *pre_ptr = (char *)v->items + i * v->item_size;
     void *sub_ptr = (char *)v->items + (i + 1) * v->item_size;
     memcpy(pre_ptr, sub_ptr, v->item_size);
-    // sub_ptr = NULL;
   }
 
   v->total--;
-
-  if (v->total > 0 && v->total == v->capacity / 4)
-    vector_resize(v, v->capacity / 2);
 }
 
 void vector_free(vector *v) {
   if (v->items == NULL) return;
   free(v->items);
+  v->items = NULL;
 }
