@@ -75,75 +75,91 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
+Definition ___compound : ident := $"__compound".
 Definition _capacity : ident := $"capacity".
+Definition _data : ident := $"data".
+Definition _dst : ident := $"dst".
+Definition _esize : ident := $"esize".
 Definition _free : ident := $"free".
 Definition _i : ident := $"i".
 Definition _index : ident := $"index".
-Definition _item : ident := $"item".
-Definition _item_size : ident := $"item_size".
-Definition _items : ident := $"items".
+Definition _length : ident := $"length".
 Definition _main : ident := $"main".
 Definition _malloc : ident := $"malloc".
 Definition _memcpy : ident := $"memcpy".
-Definition _pre_ptr : ident := $"pre_ptr".
-Definition _ptr : ident := $"ptr".
+Definition _min_capacity : ident := $"min_capacity".
 Definition _realloc : ident := $"realloc".
-Definition _sub_ptr : ident := $"sub_ptr".
-Definition _total : ident := $"total".
+Definition _src : ident := $"src".
 Definition _v : ident := $"v".
 Definition _vector : ident := $"vector".
-Definition _vector_add : ident := $"vector_add".
-Definition _vector_delete : ident := $"vector_delete".
-Definition _vector_free : ident := $"vector_free".
+Definition _vector_capacity : ident := $"vector_capacity".
+Definition _vector_destruct : ident := $"vector_destruct".
+Definition _vector_esize : ident := $"vector_esize".
 Definition _vector_get : ident := $"vector_get".
 Definition _vector_init : ident := $"vector_init".
-Definition _vector_resize : ident := $"vector_resize".
+Definition _vector_length : ident := $"vector_length".
+Definition _vector_push : ident := $"vector_push".
+Definition _vector_remove : ident := $"vector_remove".
+Definition _vector_reserve : ident := $"vector_reserve".
 Definition _vector_set : ident := $"vector_set".
-Definition _vector_total : ident := $"vector_total".
 Definition _t'1 : ident := 128%positive.
 
 Definition f_vector_init := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((_v, (tptr (Tstruct _vector noattr))) ::
-                (_item_size, tulong) :: nil);
-  fn_vars := nil;
+  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: (_esize, tulong) ::
+                (_capacity, tulong) :: nil);
+  fn_vars := ((___compound, (Tstruct _vector noattr)) :: nil);
   fn_temps := ((_t'1, (tptr tvoid)) :: nil);
   fn_body :=
 (Ssequence
+  (Ssequence
+    (Ssequence
+      (Ssequence
+        (Ssequence
+          (Scall (Some _t'1)
+            (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid)
+                            cc_default))
+            ((Ebinop Omul (Etempvar _esize tulong)
+               (Etempvar _capacity tulong) tulong) :: nil))
+          (Sassign
+            (Efield (Evar ___compound (Tstruct _vector noattr)) _data
+              (tptr tvoid)) (Etempvar _t'1 (tptr tvoid))))
+        (Sassign
+          (Efield (Evar ___compound (Tstruct _vector noattr)) _esize tulong)
+          (Etempvar _esize tulong)))
+      (Sassign
+        (Efield (Evar ___compound (Tstruct _vector noattr)) _capacity tulong)
+        (Etempvar _capacity tulong)))
+    (Sassign
+      (Efield (Evar ___compound (Tstruct _vector noattr)) _length tulong)
+      (Econst_int (Int.repr 0) tint)))
+  (Sassign
+    (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+      (Tstruct _vector noattr)) (Evar ___compound (Tstruct _vector noattr))))
+|}.
+
+Definition f_vector_destruct := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Ssequence
+  (Scall None
+    (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid cc_default))
+    ((Efield
+       (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+         (Tstruct _vector noattr)) _data (tptr tvoid)) :: nil))
   (Sassign
     (Efield
       (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-        (Tstruct _vector noattr)) _capacity tulong)
-    (Econst_int (Int.repr 4) tint))
-  (Ssequence
-    (Sassign
-      (Efield
-        (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-          (Tstruct _vector noattr)) _total tulong)
-      (Econst_int (Int.repr 0) tint))
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'1)
-          (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid)
-                          cc_default))
-          ((Ebinop Omul (Etempvar _item_size tulong)
-             (Efield
-               (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                 (Tstruct _vector noattr)) _capacity tulong) tulong) :: nil))
-        (Sassign
-          (Efield
-            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-              (Tstruct _vector noattr)) _items (tptr tvoid))
-          (Etempvar _t'1 (tptr tvoid))))
-      (Sassign
-        (Efield
-          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-            (Tstruct _vector noattr)) _item_size tulong)
-        (Etempvar _item_size tulong)))))
+        (Tstruct _vector noattr)) _data (tptr tvoid))
+    (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))))
 |}.
 
-Definition f_vector_total := {|
+Definition f_vector_esize := {|
   fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: nil);
@@ -152,22 +168,46 @@ Definition f_vector_total := {|
   fn_body :=
 (Sreturn (Some (Efield
                  (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                   (Tstruct _vector noattr)) _total tulong)))
+                   (Tstruct _vector noattr)) _esize tulong)))
 |}.
 
-Definition f_vector_resize := {|
+Definition f_vector_capacity := {|
+  fn_return := tulong;
+  fn_callconv := cc_default;
+  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Sreturn (Some (Efield
+                 (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+                   (Tstruct _vector noattr)) _capacity tulong)))
+|}.
+
+Definition f_vector_length := {|
+  fn_return := tulong;
+  fn_callconv := cc_default;
+  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Sreturn (Some (Efield
+                 (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+                   (Tstruct _vector noattr)) _length tulong)))
+|}.
+
+Definition f_vector_reserve := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := ((_v, (tptr (Tstruct _vector noattr))) ::
-                (_capacity, tulong) :: nil);
+                (_min_capacity, tulong) :: nil);
   fn_vars := nil;
-  fn_temps := ((_items, (tptr tvoid)) :: (_t'1, (tptr tvoid)) :: nil);
+  fn_temps := ((_t'1, (tptr tvoid)) :: nil);
   fn_body :=
 (Ssequence
-  (Sifthenelse (Ebinop Ole (Etempvar _capacity tulong)
+  (Sifthenelse (Ebinop Ole (Etempvar _min_capacity tulong)
                  (Efield
                    (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                     (Tstruct _vector noattr)) _total tulong) tint)
+                     (Tstruct _vector noattr)) _capacity tulong) tint)
     (Sreturn None)
     Sskip)
   (Ssequence
@@ -177,279 +217,232 @@ Definition f_vector_resize := {|
                          (tptr tvoid) cc_default))
         ((Efield
            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-             (Tstruct _vector noattr)) _items (tptr tvoid)) ::
+             (Tstruct _vector noattr)) _data (tptr tvoid)) ::
          (Ebinop Omul
            (Efield
              (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-               (Tstruct _vector noattr)) _item_size tulong)
-           (Etempvar _capacity tulong) tulong) :: nil))
-      (Sset _items (Etempvar _t'1 (tptr tvoid))))
-    (Sifthenelse (Etempvar _items (tptr tvoid))
-      (Ssequence
-        (Sassign
-          (Efield
-            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-              (Tstruct _vector noattr)) _items (tptr tvoid))
-          (Etempvar _items (tptr tvoid)))
-        (Sassign
-          (Efield
-            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-              (Tstruct _vector noattr)) _capacity tulong)
-          (Etempvar _capacity tulong)))
-      Sskip)))
+               (Tstruct _vector noattr)) _esize tulong)
+           (Etempvar _min_capacity tulong) tulong) :: nil))
+      (Sassign
+        (Efield
+          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+            (Tstruct _vector noattr)) _data (tptr tvoid))
+        (Etempvar _t'1 (tptr tvoid))))
+    (Sassign
+      (Efield
+        (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+          (Tstruct _vector noattr)) _capacity tulong)
+      (Etempvar _min_capacity tulong))))
 |}.
 
-Definition f_vector_add := {|
+Definition f_vector_push := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := ((_v, (tptr (Tstruct _vector noattr))) ::
-                (_item, (tptr tvoid)) :: nil);
+                (_src, (tptr tvoid)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_ptr, (tptr tvoid)) :: (_t'1, tulong) :: nil);
+  fn_temps := ((_dst, (tptr tvoid)) :: nil);
   fn_body :=
 (Ssequence
   (Sifthenelse (Ebinop Oeq
                  (Efield
                    (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                     (Tstruct _vector noattr)) _capacity tulong)
+                     (Tstruct _vector noattr)) _length tulong)
                  (Efield
                    (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                     (Tstruct _vector noattr)) _total tulong) tint)
+                     (Tstruct _vector noattr)) _capacity tulong) tint)
     (Scall None
-      (Evar _vector_resize (Tfunction
-                             (Tcons (tptr (Tstruct _vector noattr))
-                               (Tcons tulong Tnil)) tvoid cc_default))
+      (Evar _vector_reserve (Tfunction
+                              (Tcons (tptr (Tstruct _vector noattr))
+                                (Tcons tulong Tnil)) tvoid cc_default))
       ((Etempvar _v (tptr (Tstruct _vector noattr))) ::
-       (Ebinop Omul
+       (Ebinop Omul (Econst_int (Int.repr 2) tint)
          (Efield
            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-             (Tstruct _vector noattr)) _capacity tulong)
-         (Econst_int (Int.repr 2) tint) tulong) :: nil))
+             (Tstruct _vector noattr)) _capacity tulong) tulong) :: nil))
     Sskip)
   (Ssequence
-    (Ssequence
-      (Ssequence
-        (Sset _t'1
-          (Efield
-            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-              (Tstruct _vector noattr)) _total tulong))
-        (Sassign
-          (Efield
-            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-              (Tstruct _vector noattr)) _total tulong)
-          (Ebinop Oadd (Etempvar _t'1 tulong) (Econst_int (Int.repr 1) tint)
-            tulong)))
-      (Sset _ptr
+    (Sset _dst
+      (Ecast
         (Ebinop Oadd
           (Ecast
             (Efield
               (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                (Tstruct _vector noattr)) _items (tptr tvoid)) (tptr tschar))
-          (Ebinop Omul (Etempvar _t'1 tulong)
+                (Tstruct _vector noattr)) _data (tptr tvoid)) (tptr tschar))
+          (Ebinop Omul
             (Efield
               (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                (Tstruct _vector noattr)) _item_size tulong) tulong)
-          (tptr tschar))))
-    (Scall None
-      (Evar _memcpy (Tfunction
-                      (Tcons (tptr tvoid)
-                        (Tcons (tptr tvoid) (Tcons tulong Tnil)))
-                      (tptr tvoid) cc_default))
-      ((Etempvar _ptr (tptr tvoid)) :: (Etempvar _item (tptr tvoid)) ::
-       (Efield
-         (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-           (Tstruct _vector noattr)) _item_size tulong) :: nil))))
+                (Tstruct _vector noattr)) _esize tulong)
+            (Efield
+              (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+                (Tstruct _vector noattr)) _length tulong) tulong)
+          (tptr tschar)) (tptr tvoid)))
+    (Ssequence
+      (Scall None
+        (Evar _memcpy (Tfunction
+                        (Tcons (tptr tvoid)
+                          (Tcons (tptr tvoid) (Tcons tulong Tnil)))
+                        (tptr tvoid) cc_default))
+        ((Etempvar _dst (tptr tvoid)) :: (Etempvar _src (tptr tvoid)) ::
+         (Efield
+           (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+             (Tstruct _vector noattr)) _esize tulong) :: nil))
+      (Sassign
+        (Efield
+          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+            (Tstruct _vector noattr)) _length tulong)
+        (Ebinop Oadd
+          (Efield
+            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+              (Tstruct _vector noattr)) _length tulong)
+          (Econst_int (Int.repr 1) tint) tulong)))))
+|}.
+
+Definition f_vector_get := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: (_index, tulong) ::
+                (_dst, (tptr tvoid)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_src, (tptr tvoid)) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _src
+    (Ecast
+      (Ebinop Oadd
+        (Ecast
+          (Efield
+            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+              (Tstruct _vector noattr)) _data (tptr tvoid)) (tptr tschar))
+        (Ebinop Omul
+          (Efield
+            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+              (Tstruct _vector noattr)) _esize tulong)
+          (Etempvar _index tulong) tulong) (tptr tschar)) (tptr tvoid)))
+  (Scall None
+    (Evar _memcpy (Tfunction
+                    (Tcons (tptr tvoid)
+                      (Tcons (tptr tvoid) (Tcons tulong Tnil))) (tptr tvoid)
+                    cc_default))
+    ((Etempvar _dst (tptr tvoid)) :: (Etempvar _src (tptr tvoid)) ::
+     (Efield
+       (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+         (Tstruct _vector noattr)) _esize tulong) :: nil)))
 |}.
 
 Definition f_vector_set := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: (_index, tulong) ::
-                (_item, (tptr tvoid)) :: nil);
+                (_src, (tptr tvoid)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_ptr, (tptr tvoid)) :: nil);
+  fn_temps := ((_dst, (tptr tvoid)) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _ptr
-    (Ebinop Oadd
-      (Ecast
-        (Efield
-          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-            (Tstruct _vector noattr)) _items (tptr tvoid)) (tptr tschar))
-      (Ebinop Omul (Etempvar _index tulong)
-        (Efield
-          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-            (Tstruct _vector noattr)) _item_size tulong) tulong)
-      (tptr tschar)))
+  (Sset _dst
+    (Ecast
+      (Ebinop Oadd
+        (Ecast
+          (Efield
+            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+              (Tstruct _vector noattr)) _data (tptr tvoid)) (tptr tschar))
+        (Ebinop Omul
+          (Efield
+            (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+              (Tstruct _vector noattr)) _esize tulong)
+          (Etempvar _index tulong) tulong) (tptr tschar)) (tptr tvoid)))
   (Scall None
     (Evar _memcpy (Tfunction
                     (Tcons (tptr tvoid)
                       (Tcons (tptr tvoid) (Tcons tulong Tnil))) (tptr tvoid)
                     cc_default))
-    ((Etempvar _ptr (tptr tvoid)) :: (Etempvar _item (tptr tvoid)) ::
+    ((Etempvar _dst (tptr tvoid)) :: (Etempvar _src (tptr tvoid)) ::
      (Efield
        (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-         (Tstruct _vector noattr)) _item_size tulong) :: nil)))
+         (Tstruct _vector noattr)) _esize tulong) :: nil)))
 |}.
 
-Definition f_vector_get := {|
-  fn_return := (tptr tvoid);
-  fn_callconv := cc_default;
-  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: (_index, tulong) ::
-                nil);
-  fn_vars := nil;
-  fn_temps := ((_ptr, (tptr tvoid)) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset _ptr
-    (Ebinop Oadd
-      (Ecast
-        (Efield
-          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-            (Tstruct _vector noattr)) _items (tptr tvoid)) (tptr tschar))
-      (Ebinop Omul (Etempvar _index tulong)
-        (Efield
-          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-            (Tstruct _vector noattr)) _item_size tulong) tulong)
-      (tptr tschar)))
-  (Sreturn (Some (Etempvar _ptr (tptr tvoid)))))
-|}.
-
-Definition f_vector_delete := {|
+Definition f_vector_remove := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: (_index, tulong) ::
                 nil);
   fn_vars := nil;
-  fn_temps := ((_i, tulong) :: (_pre_ptr, (tptr tvoid)) ::
-               (_sub_ptr, (tptr tvoid)) :: (_t'1, tint) :: nil);
+  fn_temps := ((_i, tulong) :: (_dst, (tptr tvoid)) ::
+               (_src, (tptr tvoid)) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
-    (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+    (Sset _i
+      (Ebinop Oadd (Etempvar _index tulong) (Econst_int (Int.repr 1) tint)
+        tulong))
     (Sloop
       (Ssequence
         (Sifthenelse (Ebinop Olt (Etempvar _i tulong)
-                       (Ebinop Osub
-                         (Efield
-                           (Ederef
-                             (Etempvar _v (tptr (Tstruct _vector noattr)))
-                             (Tstruct _vector noattr)) _total tulong)
-                         (Econst_int (Int.repr 1) tint) tulong) tint)
+                       (Efield
+                         (Ederef
+                           (Etempvar _v (tptr (Tstruct _vector noattr)))
+                           (Tstruct _vector noattr)) _length tulong) tint)
           Sskip
           Sbreak)
         (Ssequence
-          (Sset _pre_ptr
-            (Ebinop Oadd
-              (Ecast
-                (Efield
-                  (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                    (Tstruct _vector noattr)) _items (tptr tvoid))
-                (tptr tschar))
-              (Ebinop Omul (Etempvar _i tulong)
-                (Efield
-                  (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                    (Tstruct _vector noattr)) _item_size tulong) tulong)
-              (tptr tschar)))
-          (Ssequence
-            (Sset _sub_ptr
+          (Sset _dst
+            (Ecast
               (Ebinop Oadd
                 (Ecast
                   (Efield
                     (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                      (Tstruct _vector noattr)) _items (tptr tvoid))
+                      (Tstruct _vector noattr)) _data (tptr tvoid))
                   (tptr tschar))
                 (Ebinop Omul
-                  (Ebinop Oadd (Etempvar _i tulong)
-                    (Econst_int (Int.repr 1) tint) tulong)
                   (Efield
                     (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                      (Tstruct _vector noattr)) _item_size tulong) tulong)
-                (tptr tschar)))
-            (Ssequence
-              (Scall None
-                (Evar _memcpy (Tfunction
-                                (Tcons (tptr tvoid)
-                                  (Tcons (tptr tvoid) (Tcons tulong Tnil)))
-                                (tptr tvoid) cc_default))
-                ((Etempvar _pre_ptr (tptr tvoid)) ::
-                 (Etempvar _sub_ptr (tptr tvoid)) ::
-                 (Efield
-                   (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                     (Tstruct _vector noattr)) _item_size tulong) :: nil))
-              (Sset _sub_ptr
-                (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))))))
+                      (Tstruct _vector noattr)) _esize tulong)
+                  (Ebinop Osub (Etempvar _i tulong)
+                    (Econst_int (Int.repr 1) tint) tulong) tulong)
+                (tptr tschar)) (tptr tvoid)))
+          (Ssequence
+            (Sset _src
+              (Ecast
+                (Ebinop Oadd
+                  (Ecast
+                    (Efield
+                      (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+                        (Tstruct _vector noattr)) _data (tptr tvoid))
+                    (tptr tschar))
+                  (Ebinop Omul
+                    (Efield
+                      (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+                        (Tstruct _vector noattr)) _esize tulong)
+                    (Etempvar _i tulong) tulong) (tptr tschar)) (tptr tvoid)))
+            (Scall None
+              (Evar _memcpy (Tfunction
+                              (Tcons (tptr tvoid)
+                                (Tcons (tptr tvoid) (Tcons tulong Tnil)))
+                              (tptr tvoid) cc_default))
+              ((Etempvar _dst (tptr tvoid)) ::
+               (Etempvar _src (tptr tvoid)) ::
+               (Efield
+                 (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+                   (Tstruct _vector noattr)) _esize tulong) :: nil)))))
       (Sset _i
         (Ebinop Oadd (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
           tulong))))
-  (Ssequence
-    (Sassign
+  (Sassign
+    (Efield
+      (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
+        (Tstruct _vector noattr)) _length tulong)
+    (Ebinop Osub
       (Efield
         (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-          (Tstruct _vector noattr)) _total tulong)
-      (Ebinop Osub
-        (Efield
-          (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-            (Tstruct _vector noattr)) _total tulong)
-        (Econst_int (Int.repr 1) tint) tulong))
-    (Ssequence
-      (Sifthenelse (Ebinop Ogt
-                     (Efield
-                       (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                         (Tstruct _vector noattr)) _total tulong)
-                     (Econst_int (Int.repr 0) tint) tint)
-        (Sset _t'1
-          (Ecast
-            (Ebinop Oeq
-              (Efield
-                (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                  (Tstruct _vector noattr)) _total tulong)
-              (Ebinop Odiv
-                (Efield
-                  (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                    (Tstruct _vector noattr)) _capacity tulong)
-                (Econst_int (Int.repr 4) tint) tulong) tint) tbool))
-        (Sset _t'1 (Econst_int (Int.repr 0) tint)))
-      (Sifthenelse (Etempvar _t'1 tint)
-        (Scall None
-          (Evar _vector_resize (Tfunction
-                                 (Tcons (tptr (Tstruct _vector noattr))
-                                   (Tcons tulong Tnil)) tvoid cc_default))
-          ((Etempvar _v (tptr (Tstruct _vector noattr))) ::
-           (Ebinop Odiv
-             (Efield
-               (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                 (Tstruct _vector noattr)) _capacity tulong)
-             (Econst_int (Int.repr 2) tint) tulong) :: nil))
-        Sskip))))
-|}.
-
-Definition f_vector_free := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((_v, (tptr (Tstruct _vector noattr))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sifthenelse (Ebinop Oeq
-                 (Efield
-                   (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-                     (Tstruct _vector noattr)) _items (tptr tvoid))
-                 (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
-    (Sreturn None)
-    Sskip)
-  (Scall None
-    (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid cc_default))
-    ((Efield
-       (Ederef (Etempvar _v (tptr (Tstruct _vector noattr)))
-         (Tstruct _vector noattr)) _items (tptr tvoid)) :: nil)))
+          (Tstruct _vector noattr)) _length tulong)
+      (Econst_int (Int.repr 1) tint) tulong)))
 |}.
 
 Definition composites : list composite_definition :=
 (Composite _vector Struct
-   ((_items, (tptr tvoid)) :: (_item_size, tulong) :: (_capacity, tulong) ::
-    (_total, tulong) :: nil)
+   ((_data, (tptr tvoid)) :: (_esize, tulong) :: (_capacity, tulong) ::
+    (_length, tulong) :: nil)
    noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
@@ -735,18 +728,21 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (Tcons (tptr tvoid) (Tcons (tptr tvoid) (Tcons tulong Tnil)))
      (tptr tvoid) cc_default)) ::
  (_vector_init, Gfun(Internal f_vector_init)) ::
- (_vector_total, Gfun(Internal f_vector_total)) ::
- (_vector_resize, Gfun(Internal f_vector_resize)) ::
- (_vector_add, Gfun(Internal f_vector_add)) ::
- (_vector_set, Gfun(Internal f_vector_set)) ::
+ (_vector_destruct, Gfun(Internal f_vector_destruct)) ::
+ (_vector_esize, Gfun(Internal f_vector_esize)) ::
+ (_vector_capacity, Gfun(Internal f_vector_capacity)) ::
+ (_vector_length, Gfun(Internal f_vector_length)) ::
+ (_vector_reserve, Gfun(Internal f_vector_reserve)) ::
+ (_vector_push, Gfun(Internal f_vector_push)) ::
  (_vector_get, Gfun(Internal f_vector_get)) ::
- (_vector_delete, Gfun(Internal f_vector_delete)) ::
- (_vector_free, Gfun(Internal f_vector_free)) :: nil).
+ (_vector_set, Gfun(Internal f_vector_set)) ::
+ (_vector_remove, Gfun(Internal f_vector_remove)) :: nil).
 
 Definition public_idents : list ident :=
-(_vector_free :: _vector_delete :: _vector_get :: _vector_set ::
- _vector_add :: _vector_total :: _vector_init :: _memcpy :: _free ::
- _realloc :: _malloc :: ___builtin_debug :: ___builtin_write32_reversed ::
+(_vector_remove :: _vector_set :: _vector_get :: _vector_push ::
+ _vector_reserve :: _vector_length :: _vector_capacity :: _vector_esize ::
+ _vector_destruct :: _vector_init :: _memcpy :: _free :: _realloc ::
+ _malloc :: ___builtin_debug :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
  ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
  ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::

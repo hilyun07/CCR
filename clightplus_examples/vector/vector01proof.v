@@ -70,40 +70,41 @@ Section PROOF.
   Context `{@GRA.inG blocksizeRA Σ}.
   Context `{@GRA.inG blockaddressRA Σ}.
   
-  Definition Lens (P : iProp) {X : Type} (Q R : X -> iProp) := bi_entails P (∃ x, Q x ** R x ** (Q x -* P)).
+  Definition Lens (P : iProp) {X : Type} (Q R : X -> iProp) := bi_entails P (∃ x, (Q x ∗ R x) ∗ (Q x -∗ P)).
 
   Arguments Lens (_)%bi_scope {_} (_ _)%bi_scope.
 
-  Lemma lens_vector_total
-    vec_m q qb vec_ptr size capacity total memlist :
+  Lemma lens_vector_fixed_length
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    :
     Lens
-      (is_vector vec_m q qb vec_ptr size capacity total memlist)
-      (fun '(m, tag, offset) => (Val.addl vec_ptr (Vptrofs (Ptrofs.repr 24)) (↦_m, q) (encode_val Mint64 (Vlong (Int64.repr total)))
-                           ** Val.addl vec_ptr (Vptrofs (Ptrofs.repr 24)) (⊨_m, tag, q) offset)%I)
-      (fun '(m, tag, offset) => ⌜strings.length (encode_val Mint64 (Vlong (Int64.repr total))) = size_chunk_nat Mint64
-                             ∧ bytes_not_pure (encode_val Mint64 (Vlong (Int64.repr total))) = false
-                             ∧ Mint64 ≠ Many64
-                             ∧ (size_chunk Mint64 | Ptrofs.unsigned offset)%Z⌝%I).
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      (fun ofsᵥ => Val.addl v (Vptrofs (Ptrofs.repr 24)) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr length)))
+                  ∗ Val.addl v (Vptrofs (Ptrofs.repr 24)) (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ)%I
+      (fun ofsᵥ => ⌜ strings.length (encode_val Mint64 (Vlong (Int64.repr length))) = size_chunk_nat Mint64
+                ∧ bytes_not_pure (encode_val Mint64 (Vlong (Int64.repr length))) = false
+                ∧ Mint64 ≠ Many64
+                ∧ (size_chunk Mint64 | Ptrofs.unsigned ofsᵥ)%Z
+                ⌝)%I.
   Proof.
     Local Opaque encode_val.
     iIntros "V".
-    iDestruct "V" as (items unused) "[[[% V1] V2] V3]".
-    iDestruct "V1" as (m tag offset) "[[PT HO] %]".
-    iExists (m, tag, Ptrofs.add offset (Ptrofs.repr 24)). ss.
-    replace (encode_val Mptr items ++
-             encode_val Mint64 (Vlong (Int64.repr size)) ++
+    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
+    iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 24)).
+    replace (encode_val Mptr data ++
+             encode_val Mint64 (Vlong (Int64.repr esize)) ++
              encode_val Mint64 (Vlong (Int64.repr capacity)) ++
-             encode_val Mint64 (Vlong (Int64.repr total)) ++
-             [])
-      with ((encode_val Mptr items ++
-             encode_val Mint64 (Vlong (Int64.repr size)) ++
+             encode_val Mint64 (Vlong (Int64.repr length)))
+      with ((encode_val Mptr data ++
+             encode_val Mint64 (Vlong (Int64.repr esize)) ++
              encode_val Mint64 (Vlong (Int64.repr capacity)))
               ++
-              encode_val Mint64 (Vlong (Int64.repr total)))
-      by (rewrite app_nil_r; rewrite ! app_assoc; reflexivity).
+              encode_val Mint64 (Vlong (Int64.repr length)))
+      by (rewrite ! app_assoc; reflexivity).
     iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
-    replace (strings.length (encode_val Mptr items
-                               ++ encode_val Mint64 (Vlong (Int64.repr size))
+    replace (strings.length (encode_val Mptr data
+                               ++ encode_val Mint64 (Vlong (Int64.repr esize))
                                ++ encode_val Mint64 (Vlong (Int64.repr capacity))))
       with 24
       by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
@@ -113,54 +114,49 @@ Section PROOF.
     { iSplit.
       - iFrame.
       - iPureIntro. splits; ss.
-        change vector_struct_size with 32%Z in H4.
         rewrite Ptrofs.add_unsigned.
         change (Ptrofs.unsigned (Ptrofs.repr 24)) with 24%Z.
-        pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned offset + 24)).
+        pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 24)).
         unfold Ptrofs.eqm in H5.
         assert (8 | Ptrofs.modulus)%Z.
         { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
           eapply Z.divide_factor_l.
         }
-        pose proof (Zbits.eqmod_divides _ _ _ _ H5 H6).
+        pose proof (Zbits.eqmod_divides _ _ _ _ H10 H11).
         eapply divide_iff_eqmod_0.
         eapply Zbits.eqmod_trans.
-        eapply Zbits.eqmod_sym. eapply H7.
+        eapply Zbits.eqmod_sym. eapply H12.
         eapply divide_iff_eqmod_0.
-        eapply Z.divide_add_r.
-        + transitivity 32; ss. change 32%Z with (8*4)%Z. eapply Z.divide_factor_l.
-        + change 24%Z with (8*3)%Z. eapply Z.divide_factor_l.
+        eapply Z.divide_add_r; ss.
+        change 24%Z with (8*3)%Z. eapply Z.divide_factor_l.
     }
-    iIntros "[PT2 HO]". unfold is_vector.
-    iExists items, unused. iFrame.
-
+    iIntros "[PT2 HO]".
     iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
     { iSplitL "PT1".
       - iFrame.
-      - replace (strings.length (encode_val Mptr items
-                                   ++ encode_val Mint64 (Vlong (Int64.repr size))
+      - replace (strings.length (encode_val Mptr data
+                                   ++ encode_val Mint64 (Vlong (Int64.repr esize))
                                    ++ encode_val Mint64 (Vlong (Int64.repr capacity))))
           with 24
           by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
         iFrame.
     }
     iPoseProof (offset_slide_rev with "HO") as "HO".
-    unfold is_vector_handler.
-    iSplit; ss. iExists m, tag, offset. iFrame.
-    iSplit; ss. rewrite app_nil_r. rewrite ! app_assoc. iFrame.
+    iFrame.
+    iSplit; ss. iExists ofsᵥ. iFrame.
+    iSplit; ss. rewrite ! app_assoc. iFrame.
   Qed.
 
-  Lemma is_vector_is_ptr_val vec_m q qb vec_ptr size capacity total memlist :
-    bi_entails
-      (is_vector vec_m q qb vec_ptr size capacity total memlist)
-      ⌜is_ptr_val vec_ptr = true⌝%I.
+  Lemma is_vector_fixed_is_ptr_val
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜is_ptr_val v = true⌝%I.
   Proof.
-    iIntros "PRE".
-    unfold is_vector.
-    iDestruct "PRE" as (items unused) "[[[PRE0 PRE1] PRE2] PRE3]".
-    unfold is_vector_handler.
-    iDestruct "PRE1" as (m tag offset) "[[PRE1.1 PRE1.2] PRE1.3]".
-    iApply (points_to_is_ptr with "PRE1.1").
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
+    iApply (points_to_is_ptr with "V1.1").
   Qed.
 
   Variable GlobalStb : Sk.t -> gname -> option fspec.
@@ -222,7 +218,7 @@ Section PROOF.
 
     iIntros "[INV PRE]". des_ifs_safe. ss.
     iDestruct "PRE" as "[PRE %]".
-    iDestruct "PRE" as (items usize capacity total) "[% PRE]".
+    iDestruct "PRE" as (items usize capacity length) "[% PRE]".
     des. clarify. hred_r. 
 
     unhide. hred_r. unhide. remove_tau. 
@@ -251,11 +247,31 @@ Section PROOF.
      *)
   Admitted.
 
-
-  Lemma sim_vector_total :
+  Lemma sim_vector_destruct :
     sim_fnsem wf top2
-      ("vector_total", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_total_spec))
-      ("vector_total", cfunU (decomp_func sk ce f_vector_total)).
+      ("vector_destruct", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_destruct_spec))
+      ("vector_destruct", cfunU (decomp_func sk ce f_vector_destruct)).
+  Proof.
+  Admitted.
+
+  Lemma sim_vector_esize :
+    sim_fnsem wf top2
+      ("vector_esize", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_esize_spec))
+      ("vector_esize", cfunU (decomp_func sk ce f_vector_esize)).
+  Proof.
+  Admitted.
+
+  Lemma sim_vector_capacity :
+    sim_fnsem wf top2
+      ("vector_capacity", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_capacity_spec))
+      ("vector_capacity", cfunU (decomp_func sk ce f_vector_capacity)).
+  Proof.
+  Admitted.
+
+  Lemma sim_vector_length :
+    sim_fnsem wf top2
+      ("vector_length", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_length_spec))
+      ("vector_length", cfunU (decomp_func sk ce f_vector_length)).
   Proof.
     Local Opaque encode_val.
     Local Opaque cast_to_ptr.
@@ -269,61 +285,53 @@ Section PROOF.
     pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
     pose proof sk_incl_gd as SKINCLGD.
 
-    apply isim_fun_to_tgt; auto.
-    unfold f_vector_total. i. ss.
+    apply isim_fun_to_tgt; auto. i. simpl in x.
+    destruct x as [[[[[[[[[[[v data] esize] capacity] length] cells] mᵥ] tgᵥ] pᵥ] qᵥ] m_data] q_data].
     unfold decomp_func, function_entry_c; ss.
     set (HIDDEN := hide 1).
 
     iIntros "[INV PRE]".
-    destruct x as [[[[[[[vec_ptr vec_m] size] capacity] total] memlist] q] qb]. ss.
-    iDestruct "PRE" as "[[% PRE] %]".
+    iDestruct "PRE" as "[[% V] %]".
     clarify. hred_r.
 
     unhide; change Archi.ptr64 with true; ss. hred_r. remove_tau.
-    iPoseProof (is_vector_is_ptr_val with "PRE") as "%".
+    iPoseProof (is_vector_fixed_is_ptr_val with "V") as "%".
     rewrite H3. hred_r. rewrite H3. hred_r.
     replace (alist_find vector._vector ce) with (Some co) by (apply get_co).
     hred_r.
-    replace (ClightPlusExprgen.field_offset ce _total (co_members co)) with (Errors.OK 24%Z)
+    replace (ClightPlusExprgen.field_offset ce _length (co_members co)) with (Errors.OK 24%Z)
       by (rewrite co_co_members; reflexivity).
     hred_r.
     iApply isim_apc. iExists (Some (1 : Ord.t)).
-    iPoseProof (lens_vector_total with "PRE") as ([[m tag] offset]) "[TOTAL PRE]".
+    iPoseProof (lens_vector_fixed_length with "V") as (ofsᵥ) "[LENGTH V_RECOVER]".
     iApply isim_ccallU_load.
     { ss. }
     { eapply OrdArith.lt_from_nat. lia. }
     { instantiate (1:=0%ord). eapply OrdArith.lt_from_nat. lia. }
-    iSplitL "INV TOTAL". { iSplitL "INV"; done. }
-    iIntros (st_src0 st_tgt0) "[INV TOTAL]".
-    iDestruct ("PRE" with "TOTAL") as "PRE".
+    iSplitL "INV LENGTH". { iSplitL "INV"; done. }
+    iIntros (st_src0 st_tgt0) "[INV LENGTH]".
+    iDestruct ("V_RECOVER" with "LENGTH") as "V".
 
     Local Transparent cast_to_ptr.
     hred_r. rewrite decode_encode_item. ss. change Archi.ptr64 with true. ss. hred_r.
 
-    hred_l. iApply isim_choose_src. iExists (Any.upcast (Vlong (Int64.repr total))).
+    hred_l. iApply isim_choose_src. iExists (Any.upcast (Vlong (Int64.repr length))).
 
     iApply isim_ret.
     iSplitL "INV"; et.
   Qed.
 
-  Lemma sim_vector_resize :
+  Lemma sim_vector_reserve :
     sim_fnsem wf top2
-      ("vector_resize", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_resize_spec))
-      ("vector_resize", cfunU (decomp_func sk ce f_vector_resize)).
+      ("vector_reserve", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_reserve_spec))
+      ("vector_reserve", cfunU (decomp_func sk ce f_vector_reserve)).
   Proof.
   Admitted.
 
-  Lemma sim_vector_add :
+  Lemma sim_vector_push :
     sim_fnsem wf top2
-      ("vector_add", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_add_spec))
-      ("vector_add", cfunU (decomp_func sk ce f_vector_add)).
-  Proof.
-  Admitted.
-
-  Lemma sim_vector_set :
-    sim_fnsem wf top2
-      ("vector_set", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_set_spec))
-      ("vector_set", cfunU (decomp_func sk ce f_vector_set)).
+      ("vector_push", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_push_spec))
+      ("vector_push", cfunU (decomp_func sk ce f_vector_push)).
   Proof.
   Admitted.
 
@@ -334,17 +342,17 @@ Section PROOF.
   Proof.
   Admitted.
 
-  Lemma sim_vector_delete :
+  Lemma sim_vector_set :
     sim_fnsem wf top2
-      ("vector_delete", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_delete_spec))
-      ("vector_delete", cfunU (decomp_func sk ce f_vector_delete)).
+      ("vector_set", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_set_spec))
+      ("vector_set", cfunU (decomp_func sk ce f_vector_set)).
   Proof.
   Admitted.
 
-  Lemma sim_vector_free :
+  Lemma sim_vector_remove :
     sim_fnsem wf top2
-      ("vector_free", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_free_spec))
-      ("vector_free", cfunU (decomp_func sk ce f_vector_free)).
+      ("vector_remove", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_remove_spec))
+      ("vector_remove", cfunU (decomp_func sk ce f_vector_remove)).
   Proof.
   Admitted.
 
