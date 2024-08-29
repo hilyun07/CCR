@@ -248,7 +248,7 @@ Section SPEC.
            index, mvs_index, p_index, dst, mvs_dst, ofs_dst, m_dst, tg_dst, q_dst) =>
          ( ord_pure 1%nat
          , fun varg =>
-             ⌜ varg = [v; Vlong (Int64.repr (index : nat)); dst]↑
+             ⌜ varg = [v; Vlong (Int64.repr index); dst]↑
              /\ cells !! index = Some (owned mvs_index p_index)
              /\ Datatypes.length mvs_dst = esize
              ⌝
@@ -272,7 +272,7 @@ Section SPEC.
            index, mvs_index, src, mvs_src, ofs_src, m_src, tg_src, p_src, q_src) =>
          ( ord_pure 1%nat
          , fun varg =>
-             ⌜ varg = [v; Vlong (Int64.repr (index : nat)); src]↑
+             ⌜ varg = [v; Vlong (Int64.repr index); src]↑
              /\ cells !! index = Some (owned mvs_index 1)
              /\ Datatypes.length mvs_src = esize
              ⌝
@@ -294,7 +294,7 @@ Section SPEC.
       (fun '(v, esize, capacity, length, cells, mᵥ, tgᵥ, qᵥ, index, mvs_index) =>
          ( ord_pure 1%nat
          , fun varg =>
-             ⌜varg = [v; (Vlong (Int64.repr (index : nat)))]↑
+             ⌜varg = [v; Vlong (Int64.repr index)]↑
              /\ cells !! index = Some (owned mvs_index 1)
              ⌝
              ∗ is_vector v esize capacity length cells mᵥ tgᵥ qᵥ
