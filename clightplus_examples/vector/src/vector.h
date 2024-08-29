@@ -1,27 +1,44 @@
 #ifndef VECTOR_H_
 #define VECTOR_H_
 
-// vector 참고자료
-// https://www.sanfoundry.com/c-program-implement-vector/
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-#define VECTOR_INIT_CAPACITY 4
+#include <stddef.h>
 
 typedef struct vector {
-  void *items;
-  size_t item_size;
+  void *data;
+  size_t esize;
   size_t capacity;
-  size_t total;
+  size_t length;
 } vector;
 
-void vector_init(vector *, size_t item_size);  // get vector then return vector
-size_t vector_total(vector *);
-static void vector_resize(vector *, size_t);
-void vector_add(vector *, void *);
-void vector_set(vector *, size_t, void *);
-void *vector_get(vector *, size_t);
-void vector_delete(vector *, size_t);
-void vector_free(vector *);
+// typedef struct slice {
+//   void *data;
+//   size_t esize;
+//   size_t length;
+// } slice;
+
+/* inititlizer and destructor */
+void vector_init(vector *v, size_t esize, size_t capacity);
+void vector_destruct(vector *v);
+
+/* field access */
+size_t vector_esize(const vector *v);
+size_t vector_capacity(const vector *v);
+size_t vector_length(const vector *v);
+
+/* adjusting capacity */
+void vector_reserve(vector *v, size_t min_capacity);
+// void vector_shrink(vector *v, size_t min_capacity);
+
+/* modifying elements */
+void vector_push(vector *v, const void *src);
+// void vector_pop(vector *v, void *dst);
+void vector_get(const vector *v, size_t index, void *dst);
+void vector_set(const vector *v, size_t index, const void *src);
+void vector_remove(vector *v, size_t index);
+
+/* direct access */
+// void *vector_data(const vector *v);
+// void *vector_get_ptr(const vector *v, size_t index);
+// slice vector_get_slice(const vector *v, size_t index, size_t length);
 
 #endif
