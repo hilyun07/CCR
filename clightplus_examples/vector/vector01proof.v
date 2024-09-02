@@ -51,6 +51,13 @@ Section LEMMA.
     rewrite <- (Ptrofs.of_int64_to_int64 Heq i). rewrite H. et.
   Qed.
 
+  Lemma decode_encode_ptr p : is_ptr_val p -> decode_val Mptr (encode_val Mptr p) = p.
+  Proof.
+    intro.
+    pose proof (decode_encode_val_general p Mptr Mptr).
+    destruct p; ss.
+  Qed.
+
   Context `{eventE -< eff}.
 
   Lemma cast_ptrofs i : cast_to_ptr (Vptrofs i) = Ret (Vptrofs i).
@@ -96,13 +103,47 @@ Section PROOF.
     replace (strings.length (encode_val Mptr data))
       with 8
       by (rewrite encode_val_length; reflexivity).
+    iPoseProof (add_null_r with "HO") as "%".
     iPoseProof (offset_slide with "HO") as "HO".
 
-    iSplitL "PT2 HO".
+    iSplitL "PT1 HO".
     { iSplit.
-      - iFrame.
+      - replace (Val.addl v (Vptrofs (Ptrofs.repr 0))) with v.
+        iFrame.
+      - iPureIntro. splits; ss.
+        + (* bytes_not_pure (encode_val Mptr data) = false *)
+          admit.
+        + rewrite Ptrofs.add_unsigned.
+          change (Ptrofs.unsigned (Ptrofs.repr 0)) with 0%Z.
+          pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 0)).
+          unfold Ptrofs.eqm in H11.
+          assert (8 | Ptrofs.modulus)%Z.
+          { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
+            apply Z.divide_factor_l.
+          }
+          pose proof (Zbits.eqmod_divides _ _ _ _ H11 H12).
+          apply divide_iff_eqmod_0.
+          eapply Zbits.eqmod_trans.
+          apply Zbits.eqmod_sym. apply H13.
+          apply divide_iff_eqmod_0.
+          apply Z.divide_add_r; ss.
+          change 0%Z with (8*0)%Z. apply Z.divide_factor_l.
     }
-    (* TODO *)
+    replace (Val.addl v (Vptrofs (Ptrofs.repr 0)) (↦_mᵥ, pᵥ) encode_val Mptr data)
+      with (v (↦_mᵥ, pᵥ) encode_val Mptr data)
+      by (replace (Val.addl v (Vptrofs (Ptrofs.repr 0))) with v; ss).
+    iIntros "[PT1 HO]".
+    iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
+    { iSplitL "PT1".
+      - iFrame.
+      - replace (strings.length (encode_val Mptr data))
+          with 8
+          by (rewrite encode_val_length; reflexivity).
+        iFrame.
+    }
+    iPoseProof (offset_slide_rev with "HO") as "HO".
+    iFrame.
+    iSplit; ss. iExists ofsᵥ. iFrame. ss.
   Admitted.
 
   Lemma lens_vector_fixed_length
@@ -190,7 +231,7 @@ Section PROOF.
     iApply (points_to_is_ptr with "V1.1").
   Qed.
 
-  Lemma is_vector_fixed_decode_encode_ptr
+  (* Lemma is_vector_fixed_decode_encode_ptr
     v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
     : bi_entails
       (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
@@ -200,7 +241,7 @@ Section PROOF.
     iDestruct "V" as "[% [V1 [V2 V3]]]".
     iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
     iApply (decode_encode_ptr_ofs with "V1.2").
-  Qed.
+  Qed. *)
 
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
@@ -428,7 +469,7 @@ Section PROOF.
 
     Local Transparent cast_to_ptr.
     hred_r.
-    iPoseProof (is_vector_fixed_decode_encode_ptr with "V") as "%".
+    pose proof (decode_encode_ptr data).
     (* TODO *)
   Admitted.
 
