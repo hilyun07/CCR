@@ -74,6 +74,37 @@ Section PROOF.
 
   Arguments Lens (_)%bi_scope {_} (_ _)%bi_scope.
 
+  Lemma lens_vector_fixed_data
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    :
+    Lens
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      (fun ofsᵥ => Val.addl v (Vptrofs (Ptrofs.repr 0)) (↦_mᵥ,pᵥ) (encode_val Mptr data)
+                  ∗ Val.addl v (Vptrofs (Ptrofs.repr 0)) (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ)%I
+      (fun ofsᵥ => ⌜ strings.length (encode_val Mptr data) = size_chunk_nat Mptr
+                ∧ bytes_not_pure (encode_val Mptr data) = false
+                ∧ Mptr ≠ Many64
+                ∧ (size_chunk Mptr | Ptrofs.unsigned ofsᵥ)%Z
+                ⌝)%I.
+  Proof.
+    Local Opaque encode_val.
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
+    iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 0)).
+    iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
+    replace (strings.length (encode_val Mptr data))
+      with 8
+      by (rewrite encode_val_length; reflexivity).
+    iPoseProof (offset_slide with "HO") as "HO".
+
+    iSplitL "PT2 HO".
+    { iSplit.
+      - iFrame.
+    }
+    (* TODO *)
+  Admitted.
+
   Lemma lens_vector_fixed_length
     v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
     :
@@ -157,6 +188,18 @@ Section PROOF.
     iDestruct "V" as "[% [V1 [V2 V3]]]".
     iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
     iApply (points_to_is_ptr with "V1.1").
+  Qed.
+
+  Lemma is_vector_fixed_decode_encode_ptr
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜decode_val Mptr (encode_val Mptr v) = v⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
+    iApply (decode_encode_ptr_ofs with "V1.2").
   Qed.
 
   Variable GlobalStb : Sk.t -> gname -> option fspec.
@@ -340,6 +383,53 @@ Section PROOF.
       ("vector_get", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_get_spec))
       ("vector_get", cfunU (decomp_func sk ce f_vector_get)).
   Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    econs; ss. red.
+
+    unfold prog, mkprogram in ce.
+    destruct (build_composite_env' composites I). ss.
+    get_composite ce e. fold vector._vector in get_co.
+
+    pose proof (incl_incl_env SKINCL1) as SKINCLENV1. unfold incl_env in SKINCLENV1.
+    pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto. i. simpl in x.
+    destruct x as
+      [[[[[[[[[[[[[[[[[[[
+        [v data] esize] capacity] length] cells] mᵥ] tgᵥ] pᵥ] qᵥ] m_data] q_data]
+        index] mvs_index] p_index] dst] mvs_dst] ofs_dst] m_dst] tg_dst] q_dst].
+    unfold decomp_func, function_entry_c; ss.
+    set (HIDDEN := hide 1).
+
+    iIntros "[INV PRE]".
+    iDestruct "PRE" as "[[% [V [MVS OFS]]] %]". des.
+    clarify. hred_r.
+
+    unhide. hred_r. remove_tau.
+    unhide. change Archi.ptr64 with true. ss. hred_r. remove_tau.
+    iPoseProof (is_vector_fixed_is_ptr_val with "V") as "%".
+    rewrite H3. hred_r. rewrite H3. hred_r.
+    replace (alist_find vector._vector ce) with (Some co). hred_r.
+    replace (ClightPlusExprgen.field_offset ce _data (co_members co)) with (Errors.OK 0%Z)
+      by (rewrite co_co_members; reflexivity).
+    hred_r.
+
+    iApply isim_apc. iExists (Some (2: Ord.t)).
+    iPoseProof (lens_vector_fixed_data with "V") as (ofsᵥ) "[DATA V_RECOVER]".
+    iApply isim_ccallU_load.
+    { ss. }
+    { apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=1%ord). apply OrdArith.lt_from_nat. lia. }
+    iSplitL "INV DATA". { iSplitL "INV"; done. }
+    iIntros (st_src0 st_tgt0) "[INV DATA]".
+    iDestruct ("V_RECOVER" with "DATA") as "V".
+
+    Local Transparent cast_to_ptr.
+    hred_r.
+    iPoseProof (is_vector_fixed_decode_encode_ptr with "V") as "%".
+    (* TODO *)
   Admitted.
 
   Lemma sim_vector_set :
