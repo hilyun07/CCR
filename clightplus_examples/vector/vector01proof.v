@@ -99,6 +99,18 @@ Section PROOF.
     iApply (points_to_is_ptr with "V1.1").
   Qed.
 
+  Lemma is_vector_fixed_is_ptr_data
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜is_ptr_val data = true⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
+    iApply (offset_is_ptr with "V3").
+  Qed.
+
   Lemma lens_vector_fixed_data
     v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
     :
@@ -448,7 +460,7 @@ Section PROOF.
     rewrite H3. hred_r. rewrite H3. hred_r.
     replace (alist_find vector._vector ce) with (Some co). hred_r.
     replace (ClightPlusExprgen.field_offset ce _data (co_members co)) with (Errors.OK 0%Z)
-      by (rewrite co_co_members; reflexivity).
+      by (rewrite co_co_members; ss).
     hred_r.
 
     iApply isim_apc. iExists (Some (2: Ord.t)).
@@ -463,8 +475,16 @@ Section PROOF.
 
     Local Transparent cast_to_ptr.
     hred_r.
-    pose proof (decode_encode_ptr data).
-    (* TODO *)
+    iPoseProof (is_vector_fixed_is_ptr_data with "V") as "%".
+    rewrite (decode_encode_ptr _ H4).
+    rewrite (cast_to_ptr_ptr _ H4).
+    hred_r.
+
+    rewrite H3. hred_r. rewrite H3. hred_r.
+    replace (ClightPlusExprgen.field_offset ce _esize (co_members co))
+      with (Errors.OK 8%Z)
+      by (rewrite co_co_members; ss).
+    hred_r.
   Admitted.
 
   Lemma sim_vector_set :
