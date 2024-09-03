@@ -176,89 +176,6 @@ Section PROOF.
     iSplit; ss. iExists ofsᵥ. iFrame. ss.
   Qed.
 
-  Lemma lens_vector_fixed_capacity
-    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
-    :
-    Lens
-      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
-      (fun ofsᵥ => Val.addl v (Vptrofs (Ptrofs.repr 16)) (↦_mᵥ,pᵥ)
-                                (encode_val Mint64 (Vlong (Int64.repr capacity)))
-                  ∗ Val.addl v (Vptrofs (Ptrofs.repr 16)) (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ)%I
-      (fun ofsᵥ => ⌜ strings.length (encode_val Mint64 (Vlong (Int64.repr capacity))) = size_chunk_nat Mint64
-                ∧ bytes_not_pure (encode_val Mint64 (Vlong (Int64.repr capacity))) = false
-                ∧ Mint64 ≠ Many64
-                ∧ (size_chunk Mint64 | Ptrofs.unsigned ofsᵥ)%Z
-                ⌝)%I.
-  Proof.
-    Local Opaque encode_val.
-    iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
-    iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 16)).
-
-    replace (encode_val Mptr data ++
-            encode_val Mint64 (Vlong (Int64.repr esize)) ++
-            encode_val Mint64 (Vlong (Int64.repr capacity)) ++
-            encode_val Mint64 (Vlong (Int64.repr length)))
-      with ((encode_val Mptr data ++
-            encode_val Mint64 (Vlong (Int64.repr esize))) ++
-            (encode_val Mint64 (Vlong (Int64.repr capacity))
-              ++
-              encode_val Mint64 (Vlong (Int64.repr length))))
-      by (rewrite ! app_assoc; reflexivity).
-
-    iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
-    iPoseProof (points_to_split with "PT2") as "[PT2 PT3]".
-
-    replace (strings.length (encode_val Mptr data
-                              ++ encode_val Mint64 (Vlong (Int64.repr esize))))
-      with 16
-      by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
-    iPoseProof (offset_slide with "HO") as "HO".
-
-    iSplitL "PT2 HO".
-    { iSplit.
-      - iFrame.
-      - iPureIntro. splits; ss.
-        rewrite Ptrofs.add_unsigned.
-        change (Ptrofs.unsigned (Ptrofs.repr 16)) with 16%Z.
-        pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 16)).
-        unfold Ptrofs.eqm in H10.
-        assert (8 | Ptrofs.modulus)%Z.
-        { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
-          eapply Z.divide_factor_l.
-        }
-        pose proof (Zbits.eqmod_divides _ _ _ _ H10 H11).
-        eapply divide_iff_eqmod_0.
-        eapply Zbits.eqmod_trans.
-        eapply Zbits.eqmod_sym. eapply H12.
-        eapply divide_iff_eqmod_0.
-        eapply Z.divide_add_r; ss.
-        change 16%Z with (8*2)%Z. eapply Z.divide_factor_l.
-    }
-    iIntros "[PT2 HO]".
-    iPoseProof (points_to_collect with "[PT2 PT3]") as "PT2".
-    {
-      iSplitL "PT2".
-      - iFrame.
-      - iFrame.
-    }
-
-    iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
-    { iSplitL "PT1".
-      - iFrame.
-      - replace (strings.length (encode_val Mptr data
-                                  ++ encode_val Mint64 (Vlong (Int64.repr esize))))
-          with 16
-          by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
-        iFrame.
-    }
-    iPoseProof (offset_slide_rev with "HO") as "HO".
-    iFrame.
-    iSplit; ss. iExists ofsᵥ. iFrame.
-    iSplit; ss. rewrite ! app_assoc. iFrame.
-  Qed.
-
   Lemma lens_vector_fixed_esize
     v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
     :
@@ -307,10 +224,7 @@ Section PROOF.
     iIntros "[PT2 HO]".
 
     iPoseProof (points_to_collect with "[PT2 PT3]") as "PT2".
-    { iSplitL "PT2".
-      - iFrame.
-      - iFrame.
-    }
+    { iSplitL "PT2"; iFrame. }
     iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
     { iSplitL "PT1".
       - iFrame.
@@ -323,6 +237,85 @@ Section PROOF.
     iPoseProof (offset_slide_rev with "HO") as "HO".
     iFrame.
     iSplit; ss. iExists ofsᵥ. iFrame. ss.
+  Qed.
+
+  Lemma lens_vector_fixed_capacity
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    :
+    Lens
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      (fun ofsᵥ => Val.addl v (Vptrofs (Ptrofs.repr 16)) (↦_mᵥ,pᵥ)
+                                (encode_val Mint64 (Vlong (Int64.repr capacity)))
+                  ∗ Val.addl v (Vptrofs (Ptrofs.repr 16)) (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ)%I
+      (fun ofsᵥ => ⌜ strings.length (encode_val Mint64 (Vlong (Int64.repr capacity))) = size_chunk_nat Mint64
+                ∧ bytes_not_pure (encode_val Mint64 (Vlong (Int64.repr capacity))) = false
+                ∧ Mint64 ≠ Many64
+                ∧ (size_chunk Mint64 | Ptrofs.unsigned ofsᵥ)%Z
+                ⌝)%I.
+  Proof.
+    Local Opaque encode_val.
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
+    iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 16)).
+
+    replace (encode_val Mptr data ++
+             encode_val Mint64 (Vlong (Int64.repr esize)) ++
+             encode_val Mint64 (Vlong (Int64.repr capacity)) ++
+             encode_val Mint64 (Vlong (Int64.repr length)))
+      with ((encode_val Mptr data ++
+             encode_val Mint64 (Vlong (Int64.repr esize)))
+             ++
+             (encode_val Mint64 (Vlong (Int64.repr capacity)) ++
+              encode_val Mint64 (Vlong (Int64.repr length))))
+      by (rewrite ! app_assoc; reflexivity).
+
+    iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
+    iPoseProof (points_to_split with "PT2") as "[PT2 PT3]".
+
+    replace (strings.length (encode_val Mptr data
+                              ++ encode_val Mint64 (Vlong (Int64.repr esize))))
+      with 16
+      by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
+    iPoseProof (offset_slide with "HO") as "HO".
+
+    iSplitL "PT2 HO".
+    { iSplit.
+      - iFrame.
+      - iPureIntro. splits; ss.
+        rewrite Ptrofs.add_unsigned.
+        change (Ptrofs.unsigned (Ptrofs.repr 16)) with 16%Z.
+        pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 16)).
+        unfold Ptrofs.eqm in H10.
+        assert (8 | Ptrofs.modulus)%Z.
+        { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
+          eapply Z.divide_factor_l.
+        }
+        pose proof (Zbits.eqmod_divides _ _ _ _ H10 H11).
+        eapply divide_iff_eqmod_0.
+        eapply Zbits.eqmod_trans.
+        eapply Zbits.eqmod_sym. eapply H12.
+        eapply divide_iff_eqmod_0.
+        eapply Z.divide_add_r; ss.
+        change 16%Z with (8*2)%Z. eapply Z.divide_factor_l.
+    }
+    iIntros "[PT2 HO]".
+    iPoseProof (points_to_collect with "[PT2 PT3]") as "PT2".
+    { iSplitL "PT2"; iFrame. }
+
+    iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
+    { iSplitL "PT1".
+      - iFrame.
+      - replace (strings.length (encode_val Mptr data
+                                  ++ encode_val Mint64 (Vlong (Int64.repr esize))))
+          with 16
+          by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
+        iFrame.
+    }
+    iPoseProof (offset_slide_rev with "HO") as "HO".
+    iFrame.
+    iSplit; ss. iExists ofsᵥ. iFrame.
+    iSplit; ss. rewrite ! app_assoc. iFrame.
   Qed.
 
   Lemma lens_vector_fixed_length
