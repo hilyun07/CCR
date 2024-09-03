@@ -969,6 +969,14 @@ Section RULES.
     iDestruct "C" as "[_ %]". clarify.
   Qed.
 
+  Lemma offset_is_ptr v m tg q ofs
+    : 
+      v (⊨_m,tg,q) ofs ⊢ ⌜is_ptr_val v = true⌝.
+  Proof.
+    iIntros "A". unfold has_offset, _has_offset.
+    des_ifs; iDestruct "A" as "(_ & _ & %)"; clarify.
+  Qed.
+
   Lemma decode_encode_ptr_ofs v m tg q ofs 
     : 
       v (⊨_m,tg,q) ofs ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
