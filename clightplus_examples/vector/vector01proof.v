@@ -107,7 +107,6 @@ Section PROOF.
   Proof.
     iIntros "V".
     iDestruct "V" as "[% [V1 [V2 V3]]]".
-    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
     iApply (offset_is_ptr with "V3").
   Qed.
 
@@ -688,23 +687,24 @@ Section PROOF.
 
     iIntros "[INV PRE]".
     iDestruct "PRE" as "[[% [V [MVS OFS]]] %]". des.
-    clarify. hred_r.
+    revert H6. clarify. i. hred_r.
 
     unhide. hred_r. remove_tau.
     unhide. change Archi.ptr64 with true. ss. hred_r. remove_tau.
     iPoseProof (is_vector_fixed_is_ptr_val with "V") as "%".
     rewrite H3. hred_r. rewrite H3. hred_r.
     replace (alist_find vector._vector ce) with (Some co). hred_r.
-    replace (ClightPlusExprgen.field_offset ce _data (co_members co)) with (Errors.OK 0%Z)
+    replace (ClightPlusExprgen.field_offset ce _data (co_members co))
+      with (Errors.OK 0%Z)
       by (rewrite co_co_members; ss).
     hred_r.
 
-    iApply isim_apc. iExists (Some (2: Ord.t)).
+    iApply isim_apc. iExists (Some (3: Ord.t)).
     iPoseProof (lens_vector_fixed_data with "V") as (ofsᵥ) "[DATA V_RECOVER]".
     iApply isim_ccallU_load.
     { ss. }
     { apply OrdArith.lt_from_nat. lia. }
-    { instantiate (1:=1%ord). apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=2%ord). apply OrdArith.lt_from_nat. lia. }
     iSplitL "INV DATA". { iSplitL "INV"; done. }
     iIntros (st_src0 st_tgt0) "[INV DATA]".
     iDestruct ("V_RECOVER" with "DATA") as "V".
@@ -721,6 +721,21 @@ Section PROOF.
       with (Errors.OK 8%Z)
       by (rewrite co_co_members; ss).
     hred_r.
+
+    iPoseProof (lens_vector_fixed_esize with "V") as (ofsᵥ') "[E_SIZE V_RECOVER]".
+    iApply isim_ccallU_load.
+    { ss. }
+    { apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=1%ord). apply OrdArith.lt_from_nat. lia. }
+    iSplitL "INV E_SIZE". { iSplitL "INV"; done. }
+    iIntros (st_src1 st_tgt1) "[INV E_SIZE]".
+    iDestruct ("V_RECOVER" with "E_SIZE") as "V".
+
+    rewrite decode_encode_item. hred_r.
+    unfold sem_mul_c. ss.
+    change Archi.ptr64 with true. hred_r.
+    unfold sem_add_ptr_long_c.
+    change Archi.ptr64 with true. ss.
   Admitted.
 
   Lemma sim_vector_set :
