@@ -28,6 +28,21 @@ Section LEMMA.
     - intros [k H]. exists k. lia.
   Qed.
 
+  Lemma agree64_eq (p : ptrofs) (n : int64) : Ptrofs.agree64 p n -> Ptrofs.to_int64 p = n.
+  Proof.
+    unfold Ptrofs.agree64. unfold Ptrofs.to_int64.
+    i. rewrite H. apply Int64.repr_unsigned.
+  Qed.
+
+  Lemma Ptrofs_repr_Z_add x y : Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
+  Proof.
+    rewrite Ptrofs.add_unsigned.
+    eapply Ptrofs.eqm_samerepr.
+    eapply Ptrofs.eqm_add.
+    - eapply Ptrofs.eqm_unsigned_repr.
+    - eapply Ptrofs.eqm_unsigned_repr.
+  Qed.
+
   Lemma f_bind_ret_r E R A (s : A -> itree E R)
     : (fun a => ` x : R <- (s a);; Ret x) = s.
   Proof. apply func_ext. i. apply bind_ret_r. Qed.
@@ -72,6 +87,18 @@ Section LEMMA.
   Lemma cast_long i : Archi.ptr64 = true -> cast_to_ptr (Vlong i) = Ret (Vlong i).
   Proof. ss. Qed.
 
+  Lemma sem_add_ptr_long_c_addl
+    ce p n
+    (PTR : is_ptr_val p)
+    : sem_add_ptr_long_c ce tschar p (Vlong n) = Ret (Val.addl p (Vlong n)).
+  Proof.
+    unfold sem_add_ptr_long_c, Val.addl.
+    change Archi.ptr64 with true; ss.
+    destruct p; ss.
+    - repeat f_equal. rewrite Int64.mul_commut. apply Int64.mul_one.
+    - repeat f_equal. rewrite Ptrofs.mul_commut. apply Ptrofs.mul_one.
+  Qed.
+
 End LEMMA.
 
 Section PROOF.
@@ -84,8 +111,127 @@ Section PROOF.
   Context `{@GRA.inG blockaddressRA Σ}.
 
   Definition Lens (P : iProp) {X : Type} (Q R : X -> iProp) := bi_entails P (∃ x, (Q x ∗ R x) ∗ (Q x -∗ P)).
+  Definition Accessor (P Q : iProp) := bi_entails P (Q ∗ (Q -∗ P)).
 
   Arguments Lens (_)%bi_scope {_} (_ _)%bi_scope.
+
+  (* PRACTICE LEMMA *)
+  Lemma accessor_compose P Q R :
+    Accessor P Q -> Accessor Q R -> Accessor P R.
+  Proof.
+    iIntros (AP AQ) "P".
+    iPoseProof (AP with "P") as "[Q QP]".
+    iPoseProof (AQ with "Q") as "[R RQ]".
+    iFrame.
+    iIntros "R".
+    iApply "QP". iApply "RQ". iApply "R".
+  Qed.
+
+  Lemma accessor_is_vector_fixed_2
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    :
+    Accessor
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ((list_points_to data m_data cells) ** (data (⊨_m_data,Dynamic,q_data) Ptrofs.zero)).
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "(% & V1 & V2 & V3)".
+    iFrame.
+    iIntros "V2". iFrame.
+    iPureIntro. ss.
+  Qed.
+
+  Lemma is_ptr_val_null_r
+    p : is_ptr_val p -> Val.addl p (Vptrofs Ptrofs.zero) = p.
+  Proof.
+    i.
+    change (Vptrofs Ptrofs.zero) with (Vlong Int64.zero).
+    destruct p; ss.
+    - rewrite Int64.add_zero. ss.
+    - des_ifs. change (Ptrofs.of_int64 Int64.zero) with Ptrofs.zero.
+      rewrite Ptrofs.add_zero. ss.
+  Qed.
+
+  Lemma addl_Vptrofs m n : Val.addl (Vptrofs m) (Vptrofs n) = Vptrofs (Ptrofs.add m n).
+  Proof.
+    unfold Vptrofs; des_ifs; ss. f_equal.
+    symmetry. eapply agree64_eq.
+    eapply Ptrofs.agree64_add; ss.
+    - apply Ptrofs.agree64_to_int; ss.
+    - apply Ptrofs.agree64_to_int; ss.
+  Qed.
+
+  Lemma accessor_is_vector_fixed_3 cs : forall (esize : nat) p m (i : nat) c,
+    is_ptr_val p ->
+    Forall (fun c => cell_size c = esize) cs ->
+    cs !! i = Some c ->
+    Accessor (list_points_to p m cs)
+             (cell_points_to (Val.addl p (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr i)))) m c).
+  Proof.
+    induction cs; i.
+    - ss.
+    - destruct i; ss.
+      + inv H5. inv H4. inv H3.
+        iIntros "[C CS]".
+        replace (Ptrofs.mul (Ptrofs.repr (cell_size c)) (Ptrofs.repr 0)) with Ptrofs.zero.
+        2:{ change (Ptrofs.repr 0) with Ptrofs.zero. rewrite Ptrofs.mul_zero. ss. }
+        rewrite is_ptr_val_null_r; ss.
+        iSplitL "C". iFrame.
+        iIntros "C". iFrame.
+      + inversion H4. subst l x . rewrite H8. clear H8 H4.
+        iIntros "[C CS]".
+        hexploit (IHcs esize (Val.addl p (Vptrofs (Ptrofs.repr esize)))).
+        { destruct p; ss. }
+        { ss. }
+        { eapply H5. }
+        i. iPoseProof (H4 with "CS") as "[X CS_RECOVER]".
+        replace (Val.addl (Val.addl p (Vptrofs (Ptrofs.repr esize)))
+                            (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr i))))
+            with (Val.addl p (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr (Z.pos (Pos.of_succ_nat i)))))).
+        2: {
+          rewrite Zpos_P_of_succ_nat. rewrite Val.addl_assoc. f_equal.
+          rewrite addl_Vptrofs. f_equal.
+          replace (Ptrofs.repr esize) with (Ptrofs.mul (Ptrofs.repr esize) Ptrofs.one) at 2
+            by eapply Ptrofs.mul_one.
+          transitivity (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.add Ptrofs.one (Ptrofs.repr i))).
+          - f_equal. rewrite Ptrofs.add_unsigned.
+            unfold Ptrofs.one, Z.succ.
+            rewrite ! Ptrofs_repr_Z_add.
+            rewrite ! Ptrofs.repr_unsigned.
+            apply Ptrofs.add_commut.
+          - apply Ptrofs.mul_add_distr_r.
+        }
+        iSplitL "X".
+        * iFrame.
+        * iIntros "X".
+          iPoseProof ("CS_RECOVER" with "X") as "CS".
+          iFrame.
+  Qed.
+
+  Lemma is_vector_fixed_esize_le_max_unsigned
+    v data (esize : nat) capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+      : bi_entails
+        (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+        ⌜(Z.of_nat esize <= Int64.max_unsigned)%Z⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "(% & _ & _ & _)". des.
+    iPureIntro.
+    assert (Z.of_nat esize <= Ptrofs.max_unsigned)%Z by nia.
+    ss.
+  Qed.
+
+  Lemma is_vector_fixed_cells_esize
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜Forall (fun c => cell_size c = esize) cells⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "(% & _ & _ & _)". des.
+    iPureIntro.
+    ss.
+  Qed.
 
   Lemma is_vector_fixed_is_ptr_val
     v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
@@ -699,12 +845,12 @@ Section PROOF.
       by (rewrite co_co_members; ss).
     hred_r.
 
-    iApply isim_apc. iExists (Some (3: Ord.t)).
+    iApply isim_apc. iExists (Some (4: Ord.t)).
     iPoseProof (lens_vector_fixed_data with "V") as (ofsᵥ) "[DATA V_RECOVER]".
     iApply isim_ccallU_load.
     { ss. }
     { apply OrdArith.lt_from_nat. lia. }
-    { instantiate (1:=2%ord). apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=3%ord). apply OrdArith.lt_from_nat. lia. }
     iSplitL "INV DATA". { iSplitL "INV"; done. }
     iIntros (st_src0 st_tgt0) "[INV DATA]".
     iDestruct ("V_RECOVER" with "DATA") as "V".
@@ -722,21 +868,109 @@ Section PROOF.
       by (rewrite co_co_members; ss).
     hred_r.
 
-    iPoseProof (lens_vector_fixed_esize with "V") as (ofsᵥ') "[E_SIZE V_RECOVER]".
+    iPoseProof (lens_vector_fixed_esize with "V") as (ofsᵥ') "[ESIZE V_RECOVER]".
     iApply isim_ccallU_load.
     { ss. }
     { apply OrdArith.lt_from_nat. lia. }
-    { instantiate (1:=1%ord). apply OrdArith.lt_from_nat. lia. }
-    iSplitL "INV E_SIZE". { iSplitL "INV"; done. }
-    iIntros (st_src1 st_tgt1) "[INV E_SIZE]".
-    iDestruct ("V_RECOVER" with "E_SIZE") as "V".
+    { instantiate (1:=2%ord). apply OrdArith.lt_from_nat. lia. }
+    iDestruct "ESIZE" as "[ESIZE %]".
+    iSplitL "INV ESIZE". { iSplitL "INV". done. iSplit; done. }
+    iIntros (st_src1 st_tgt1) "[INV ESIZE]".
 
     rewrite decode_encode_item. hred_r.
     unfold sem_mul_c. ss.
     change Archi.ptr64 with true. hred_r.
-    unfold sem_add_ptr_long_c.
-    change Archi.ptr64 with true. ss.
-  Admitted.
+    rewrite sem_add_ptr_long_c_addl; ss. hred_r.
+    rewrite cast_to_ptr_ptr.
+      2: { destruct data; ss. }
+    hred_r.
+    remove_tau. unhide. hred_r. remove_tau.
+
+    change Archi.ptr64 with true; ss.
+    hexploit SKINCLENV2. { right. right. left. ss. }
+    i. des. rewrite FIND. hred_r.
+    rewrite H3. hred_r. rewrite H3. ss.
+    replace (alist_find vector._vector ce) with (Some co). hred_r.
+    replace (ClightPlusExprgen.field_offset ce _esize (co_members co))
+      with (Errors.OK 8%Z)
+      by (rewrite co_co_members; ss).
+    hred_r.
+
+    iApply isim_ccallU_load.
+    { ss. }
+    { apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=1%ord). apply OrdArith.lt_from_nat. lia. }
+    iSplitL "INV ESIZE". { iSplitL "INV". done. iSplit; done. }
+    iIntros (st_src2 st_tgt2) "[INV ESIZE]".
+    iDestruct ("V_RECOVER" with "ESIZE") as "V".
+
+    rewrite decode_encode_item. hred_r.
+    change Archi.ptr64 with true. ss. hred_r.
+    iPoseProof (points_to_is_ptr with "MVS") as "%".
+    rewrite ! cast_to_ptr_ptr.
+      2: { destruct data; ss. }
+      2: { ss. }
+    hred_r.
+
+    des_if; ss. hred_r.
+    rewrite SuccNat2Pos.pred_id.
+    erewrite SKINCLGD; cycle 1.
+    { ss. }
+    { apply SKINCL2. }
+    { apply FIND. }
+    { right. right. left. reflexivity. }
+    hred_r.
+
+    replace (Val.addl data (Vlong (Int64.mul (Int64.repr esize) (Int64.repr index))))
+      with (Val.addl data (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr index)))); cycle 1.
+    { f_equal. unfold Vptrofs. change Archi.ptr64 with true; ss. f_equal.
+      eapply agree64_eq. eapply Ptrofs.agree64_mul.
+      - ss.
+      - apply Ptrofs.agree64_repr. ss.
+      - apply Ptrofs.agree64_repr. ss.
+    }
+
+    iApply isim_ccallU_memcpy0.
+    { ss. }
+    { apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=0%ord). apply OrdArith.lt_from_nat. lia. }
+
+    iPoseProof (is_vector_fixed_cells_esize with "V") as "%".
+    iPoseProof (is_vector_fixed_esize_le_max_unsigned with "V") as "%".
+    pose proof (accessor_is_vector_fixed_2 v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data) as ACC2.
+    pose proof (accessor_is_vector_fixed_3 cells esize data m_data index (owned mvs_index p_index) H4 H12 H5) as ACC3.
+    iPoseProof (ACC2 with "V") as "[[LPT HO] V_RECOVER]".
+    iPoseProof (ACC3 with "LPT") as "[CPT LPT_RECOVER]".
+    ss.
+
+    iSplitL "MVS OFS INV HO CPT".
+    { iFrame.
+      iExists mvs_dst.
+      iFrame.
+      iSplit.
+      - iPureIntro. splits.
+        + eapply Forall_lookup_1 in H12; et. ss. congruence.
+        + rewrite Int64.unsigned_repr.
+          * rewrite Nat2Z.id. ss.
+          * lia.
+        + left. ss.
+        + apply Z.divide_1_l.
+        + apply Z.divide_1_l.
+        + rewrite Int64.unsigned_repr; lia.
+        + apply Z.divide_1_l.
+      - iApply offset_slide. iFrame.
+    }
+    iIntros (st_src3 st_tgt3) "(INV & [[HO OFS] CPT] & MVS)".
+    iPoseProof (offset_slide_rev with "HO") as "HO".
+    iPoseProof ("LPT_RECOVER" with "CPT") as "LPT".
+    iPoseProof ("V_RECOVER" with "[LPT HO]") as "V". { iFrame. }
+    hred_r. remove_tau.
+
+    hred_l.
+    iApply isim_choose_src. iExists (Any.upcast Vundef).
+    iApply isim_ret.
+    iFrame. iPureIntro. ss.
+  Qed.
 
   Lemma sim_vector_set :
     sim_fnsem wf top2
