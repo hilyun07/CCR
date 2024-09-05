@@ -44,7 +44,9 @@ Section PROP.
 
   Definition is_vector_handler (v : val) (data : val) (esize capacity length: nat) mᵥ tgᵥ pᵥ qᵥ : iProp :=
     ( ∃ ofsᵥ,
-      ⌜ (8 | Ptrofs.unsigned ofsᵥ)%Z ⌝
+      ⌜ (8 | Ptrofs.unsigned ofsᵥ)%Z
+      /\ is_ptr_val data
+      ⌝
       ∗ v (↦_mᵥ,pᵥ) (encode_val Mptr data
                        ++ encode_val Mint64 (Vlong (Int64.repr esize))
                        ++ encode_val Mint64 (Vlong (Int64.repr capacity))

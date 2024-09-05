@@ -28,21 +28,6 @@ Section LEMMA.
     - intros [k H]. exists k. lia.
   Qed.
 
-  Lemma agree64_eq (p : ptrofs) (n : int64) : Ptrofs.agree64 p n -> Ptrofs.to_int64 p = n.
-  Proof.
-    unfold Ptrofs.agree64. unfold Ptrofs.to_int64.
-    i. rewrite H. apply Int64.repr_unsigned.
-  Qed.
-
-  Lemma Ptrofs_repr_Z_add x y : Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
-  Proof.
-    rewrite Ptrofs.add_unsigned.
-    eapply Ptrofs.eqm_samerepr.
-    eapply Ptrofs.eqm_add.
-    - eapply Ptrofs.eqm_unsigned_repr.
-    - eapply Ptrofs.eqm_unsigned_repr.
-  Qed.
-
   Lemma f_bind_ret_r E R A (s : A -> itree E R)
     : (fun a => ` x : R <- (s a);; Ret x) = s.
   Proof. apply func_ext. i. apply bind_ret_r. Qed.
@@ -73,13 +58,48 @@ Section LEMMA.
     destruct p; ss.
   Qed.
 
+  Lemma agree64_eq (p : ptrofs) (n : int64) : Ptrofs.agree64 p n -> Ptrofs.to_int64 p = n.
+  Proof.
+    unfold Ptrofs.agree64, Ptrofs.to_int64.
+    i. rewrite H. apply Int64.repr_unsigned.
+  Qed.
+
+  Lemma Ptrofs_repr_Z_add x y : Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
+  Proof.
+    rewrite Ptrofs.add_unsigned.
+    eapply Ptrofs.eqm_samerepr.
+    eapply Ptrofs.eqm_add.
+    - eapply Ptrofs.eqm_unsigned_repr.
+    - eapply Ptrofs.eqm_unsigned_repr.
+  Qed.
+
+  Lemma is_ptr_val_null_r
+    p : is_ptr_val p -> Val.addl p (Vptrofs Ptrofs.zero) = p.
+  Proof.
+    i.
+    change (Vptrofs Ptrofs.zero) with (Vlong Int64.zero).
+    destruct p; ss.
+    - rewrite Int64.add_zero. ss.
+    - des_ifs. change (Ptrofs.of_int64 Int64.zero) with Ptrofs.zero.
+      rewrite Ptrofs.add_zero. ss.
+  Qed.
+
+  Lemma addl_Vptrofs m n : Val.addl (Vptrofs m) (Vptrofs n) = Vptrofs (Ptrofs.add m n).
+  Proof.
+    unfold Vptrofs; des_ifs; ss. f_equal.
+    symmetry. eapply agree64_eq.
+    eapply Ptrofs.agree64_add; ss.
+    - apply Ptrofs.agree64_to_int; ss.
+    - apply Ptrofs.agree64_to_int; ss.
+  Qed.
+
   Context `{eventE -< eff}.
 
   Lemma encode_ptr_bytes_not_pure p : is_ptr_val p -> bytes_not_pure (encode_val Mptr p) = false.
   Proof. destruct p; ss. Qed.
 
   Lemma cast_to_ptr_ptr p : is_ptr_val p -> cast_to_ptr p = Ret p.
-  Proof. i. destruct p; ss. Qed.
+  Proof. destruct p; ss. Qed.
 
   Lemma cast_ptrofs i : cast_to_ptr (Vptrofs i) = Ret (Vptrofs i).
   Proof. des_ifs. Qed.
@@ -87,16 +107,15 @@ Section LEMMA.
   Lemma cast_long i : Archi.ptr64 = true -> cast_to_ptr (Vlong i) = Ret (Vlong i).
   Proof. ss. Qed.
 
-  Lemma sem_add_ptr_long_c_addl
-    ce p n
+  Lemma sem_add_ptr_long_c_addl ce p n
     (PTR : is_ptr_val p)
     : sem_add_ptr_long_c ce tschar p (Vlong n) = Ret (Val.addl p (Vlong n)).
   Proof.
     unfold sem_add_ptr_long_c, Val.addl.
     change Archi.ptr64 with true; ss.
-    destruct p; ss.
-    - repeat f_equal. rewrite Int64.mul_commut. apply Int64.mul_one.
-    - repeat f_equal. rewrite Ptrofs.mul_commut. apply Ptrofs.mul_one.
+    destruct p; ss; repeat f_equal.
+    - rewrite Int64.mul_commut. apply Int64.mul_one.
+    - rewrite Ptrofs.mul_commut. apply Ptrofs.mul_one.
   Qed.
 
 End LEMMA.
@@ -140,26 +159,6 @@ Section PROOF.
     iPureIntro. ss.
   Qed.
 
-  Lemma is_ptr_val_null_r
-    p : is_ptr_val p -> Val.addl p (Vptrofs Ptrofs.zero) = p.
-  Proof.
-    i.
-    change (Vptrofs Ptrofs.zero) with (Vlong Int64.zero).
-    destruct p; ss.
-    - rewrite Int64.add_zero. ss.
-    - des_ifs. change (Ptrofs.of_int64 Int64.zero) with Ptrofs.zero.
-      rewrite Ptrofs.add_zero. ss.
-  Qed.
-
-  Lemma addl_Vptrofs m n : Val.addl (Vptrofs m) (Vptrofs n) = Vptrofs (Ptrofs.add m n).
-  Proof.
-    unfold Vptrofs; des_ifs; ss. f_equal.
-    symmetry. eapply agree64_eq.
-    eapply Ptrofs.agree64_add; ss.
-    - apply Ptrofs.agree64_to_int; ss.
-    - apply Ptrofs.agree64_to_int; ss.
-  Qed.
-
   Lemma accessor_is_vector_fixed_3 cs : forall (esize : nat) p m (i : nat) c,
     is_ptr_val p ->
     Forall (fun c => cell_size c = esize) cs ->
@@ -171,26 +170,27 @@ Section PROOF.
     - ss.
     - destruct i; ss.
       + inv H5. inv H4. inv H3.
-        iIntros "[C CS]".
+        iIntros "[CPT LPT]".
         replace (Ptrofs.mul (Ptrofs.repr (cell_size c)) (Ptrofs.repr 0)) with Ptrofs.zero.
-        2:{ change (Ptrofs.repr 0) with Ptrofs.zero. rewrite Ptrofs.mul_zero. ss. }
+          2: { change (Ptrofs.repr 0) with Ptrofs.zero. rewrite Ptrofs.mul_zero. ss. }
         rewrite is_ptr_val_null_r; ss.
-        iSplitL "C". iFrame.
-        iIntros "C". iFrame.
-      + inversion H4. subst l x . rewrite H8. clear H8 H4.
-        iIntros "[C CS]".
+        iSplitL "CPT". iFrame.
+        iIntros "CPT". iFrame.
+      + inversion H4. subst l x. rewrite H8. clear H4 H8.
+        iIntros "[CPT LPT]".
         hexploit (IHcs esize (Val.addl p (Vptrofs (Ptrofs.repr esize)))).
         { destruct p; ss. }
         { ss. }
         { eapply H5. }
-        i. iPoseProof (H4 with "CS") as "[X CS_RECOVER]".
+        i. iPoseProof (H4 with "LPT") as "[CPT_OFS LPT_RECOVER]".
         replace (Val.addl (Val.addl p (Vptrofs (Ptrofs.repr esize)))
-                            (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr i))))
-            with (Val.addl p (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr (Z.pos (Pos.of_succ_nat i)))))).
-        2: {
-          rewrite Zpos_P_of_succ_nat. rewrite Val.addl_assoc. f_equal.
+                          (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr i))))
+          with (Val.addl p (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr (Z.pos (Pos.of_succ_nat i)))))); cycle 1.
+        { rewrite Zpos_P_of_succ_nat. rewrite Val.addl_assoc. f_equal.
           rewrite addl_Vptrofs. f_equal.
-          replace (Ptrofs.repr esize) with (Ptrofs.mul (Ptrofs.repr esize) Ptrofs.one) at 2
+          replace (Ptrofs.repr esize)
+            with (Ptrofs.mul (Ptrofs.repr esize) Ptrofs.one)
+            at 2
             by eapply Ptrofs.mul_one.
           transitivity (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.add Ptrofs.one (Ptrofs.repr i))).
           - f_equal. rewrite Ptrofs.add_unsigned.
@@ -200,10 +200,10 @@ Section PROOF.
             apply Ptrofs.add_commut.
           - apply Ptrofs.mul_add_distr_r.
         }
-        iSplitL "X".
+        iSplitL "CPT_OFS".
         * iFrame.
-        * iIntros "X".
-          iPoseProof ("CS_RECOVER" with "X") as "CS".
+        * iIntros "CPT_OFS".
+          iPoseProof ("LPT_RECOVER" with "CPT_OFS") as "LPT".
           iFrame.
   Qed.
 
@@ -255,6 +255,63 @@ Section PROOF.
     iApply (offset_is_ptr with "V3").
   Qed.
 
+  Lemma is_vector_is_ptr_val
+    v esize capacity length cells mᵥ tgᵥ qᵥ
+    : bi_entails
+      (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
+      ⌜is_ptr_val v = true⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as (data m_data unused_length unused) "[% [V1 [V2 [V3 V4]]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
+    iApply (points_to_is_ptr with "V1.1").
+  Qed.
+
+  Lemma lens_vector_handler_data
+    v data esize capacity length mᵥ tgᵥ pᵥ qᵥ
+    :
+    Lens
+      (is_vector_handler v data esize capacity length mᵥ tgᵥ pᵥ qᵥ)
+      (fun ofsᵥ => Val.addl v (Vptrofs (Ptrofs.repr 0)) (↦_mᵥ,pᵥ) (encode_val Mptr data)
+                          ∗ Val.addl v (Vptrofs (Ptrofs.repr 0)) (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ)%I
+      (fun ofsᵥ => ⌜ strings.length (encode_val Mptr data) = size_chunk_nat Mptr
+                          ∧ bytes_not_pure (encode_val Mptr data) = false
+                          ∧ Mptr ≠ Many64
+                          ∧ (size_chunk Mptr | Ptrofs.unsigned ofsᵥ)%Z
+                          ⌝)%I.
+  Proof.
+    Local Opaque encode_val.
+    iIntros "V".
+    iDestruct "V" as (ofsᵥ) "[% [PT HO]]". des.
+    iExists ofsᵥ.
+    iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
+    replace (strings.length (encode_val Mptr data))
+      with 8
+      by (rewrite encode_val_length; reflexivity).
+
+    iPoseProof (add_null_r with "HO") as "%".
+    iPoseProof (offset_is_ptr with "HO") as "%".
+    change (Ptrofs.repr 0) with Ptrofs.zero.
+    rewrite H5.
+    iSplitL "PT1 HO".
+    { iFrame. iPureIntro. splits; ss.
+      apply encode_ptr_bytes_not_pure. ss.
+    }
+
+    iIntros "[PT1 HO]".
+    iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
+    { iSplitL "PT1".
+      - iFrame.
+      - replace (strings.length (encode_val Mptr data))
+          with 8
+          by (rewrite encode_val_length; reflexivity).
+        iFrame.
+    }
+
+    iExists ofsᵥ. iFrame.
+    iPureIntro. ss.
+  Qed.
+
   Lemma lens_vector_fixed_data
     v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
     :
@@ -270,42 +327,23 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
-    iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 0)).
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]". des.
+    iExists ofsᵥ.
     iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
     replace (strings.length (encode_val Mptr data))
       with 8
       by (rewrite encode_val_length; reflexivity).
-    iPoseProof (offset_is_ptr with "V3") as "%".
-    iPoseProof (add_null_r with "HO") as "%".
-    iPoseProof (offset_slide with "HO") as "HO".
 
+    iPoseProof (add_null_r with "HO") as "%".
+    iPoseProof (offset_is_ptr with "HO") as "%".
+    change (Ptrofs.repr 0) with Ptrofs.zero.
+    rewrite H11.
     iSplitL "PT1 HO".
-    { iSplit.
-      - replace (Val.addl v (Vptrofs (Ptrofs.repr 0))) with v.
-        iFrame.
-      - iPureIntro. splits; ss.
-        + apply encode_ptr_bytes_not_pure. ss.
-        + rewrite Ptrofs.add_unsigned.
-          change (Ptrofs.unsigned (Ptrofs.repr 0)) with 0%Z.
-          pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 0)).
-          unfold Ptrofs.eqm in H11.
-          assert (8 | Ptrofs.modulus)%Z.
-          { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
-            apply Z.divide_factor_l.
-          }
-          pose proof (Zbits.eqmod_divides _ _ _ _ H12 H13).
-          apply divide_iff_eqmod_0.
-          eapply Zbits.eqmod_trans.
-          apply Zbits.eqmod_sym. apply H14.
-          apply divide_iff_eqmod_0.
-          apply Z.divide_add_r; ss.
-          change 0%Z with (8*0)%Z. apply Z.divide_factor_l.
+    { iFrame. iPureIntro. splits; ss.
+      apply encode_ptr_bytes_not_pure. ss.
     }
-    replace (Val.addl v (Vptrofs (Ptrofs.repr 0)) (↦_mᵥ, pᵥ) encode_val Mptr data)
-      with (v (↦_mᵥ, pᵥ) encode_val Mptr data)
-      by (replace (Val.addl v (Vptrofs (Ptrofs.repr 0))) with v; ss).
+
     iIntros "[PT1 HO]".
     iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
     { iSplitL "PT1".
@@ -315,9 +353,11 @@ Section PROOF.
           by (rewrite encode_val_length; reflexivity).
         iFrame.
     }
-    iPoseProof (offset_slide_rev with "HO") as "HO".
-    iFrame.
-    iSplit; ss. iExists ofsᵥ. iFrame. ss.
+
+    iSplit.
+    iPureIntro. ss.
+    iSplitL "PT HO"; iFrame.
+    iExists ofsᵥ. iFrame. iPureIntro. ss.
   Qed.
 
   Lemma lens_vector_fixed_esize
@@ -335,14 +375,14 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]". des.
     iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 8)).
     iPoseProof (points_to_split with "PT") as "[PT1 PT2]".
     iPoseProof (points_to_split with "PT2") as "[PT2 PT3]".
     replace (strings.length (encode_val Mptr data))
       with 8
-      by (rewrite ! encode_val_length; reflexivity).
+      by (rewrite encode_val_length; reflexivity).
     iPoseProof (offset_slide with "HO") as "HO".
 
     iSplitL "PT2 HO".
@@ -352,21 +392,21 @@ Section PROOF.
         rewrite Ptrofs.add_unsigned.
         change (Ptrofs.unsigned (Ptrofs.repr 8)) with 8%Z.
         pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 8)).
-        unfold Ptrofs.eqm in H5.
+        unfold Ptrofs.eqm in H11.
         assert (8 | Ptrofs.modulus)%Z.
         { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
           eapply Z.divide_factor_l.
         }
-        pose proof (Zbits.eqmod_divides _ _ _ _ H10 H11).
+        pose proof (Zbits.eqmod_divides _ _ _ _ H11 H12).
         eapply divide_iff_eqmod_0.
         eapply Zbits.eqmod_trans.
-        eapply Zbits.eqmod_sym. eapply H12.
+        eapply Zbits.eqmod_sym. eapply H13.
         eapply divide_iff_eqmod_0.
         eapply Z.divide_add_r; ss.
         change 8%Z with (8*1)%Z. eapply Z.divide_factor_l.
     }
-    iIntros "[PT2 HO]".
 
+    iIntros "[PT2 HO]".
     iPoseProof (points_to_collect with "[PT2 PT3]") as "PT2".
     { iSplitL "PT2"; iFrame. }
     iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
@@ -399,8 +439,8 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]". des.
     iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 16)).
 
     replace (encode_val Mptr data ++
@@ -430,23 +470,23 @@ Section PROOF.
         rewrite Ptrofs.add_unsigned.
         change (Ptrofs.unsigned (Ptrofs.repr 16)) with 16%Z.
         pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 16)).
-        unfold Ptrofs.eqm in H10.
+        unfold Ptrofs.eqm in H11.
         assert (8 | Ptrofs.modulus)%Z.
         { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
           eapply Z.divide_factor_l.
         }
-        pose proof (Zbits.eqmod_divides _ _ _ _ H10 H11).
+        pose proof (Zbits.eqmod_divides _ _ _ _ H11 H12).
         eapply divide_iff_eqmod_0.
         eapply Zbits.eqmod_trans.
-        eapply Zbits.eqmod_sym. eapply H12.
+        eapply Zbits.eqmod_sym. eapply H13.
         eapply divide_iff_eqmod_0.
         eapply Z.divide_add_r; ss.
         change 16%Z with (8*2)%Z. eapply Z.divide_factor_l.
     }
+
     iIntros "[PT2 HO]".
     iPoseProof (points_to_collect with "[PT2 PT3]") as "PT2".
     { iSplitL "PT2"; iFrame. }
-
     iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
     { iSplitL "PT1".
       - iFrame.
@@ -456,6 +496,7 @@ Section PROOF.
           by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
         iFrame.
     }
+
     iPoseProof (offset_slide_rev with "HO") as "HO".
     iFrame.
     iSplit; ss. iExists ofsᵥ. iFrame.
@@ -477,8 +518,8 @@ Section PROOF.
   Proof.
     Local Opaque encode_val.
     iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [PT HO]]". des.
     iExists (Ptrofs.add ofsᵥ (Ptrofs.repr 24)).
     replace (encode_val Mptr data ++
              encode_val Mint64 (Vlong (Int64.repr esize)) ++
@@ -505,19 +546,20 @@ Section PROOF.
         rewrite Ptrofs.add_unsigned.
         change (Ptrofs.unsigned (Ptrofs.repr 24)) with 24%Z.
         pose proof (Ptrofs.eqm_unsigned_repr (Ptrofs.unsigned ofsᵥ + 24)).
-        unfold Ptrofs.eqm in H10.
+        unfold Ptrofs.eqm in H11.
         assert (8 | Ptrofs.modulus)%Z.
         { change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
           eapply Z.divide_factor_l.
         }
-        pose proof (Zbits.eqmod_divides _ _ _ _ H10 H11).
+        pose proof (Zbits.eqmod_divides _ _ _ _ H11 H12).
         eapply divide_iff_eqmod_0.
         eapply Zbits.eqmod_trans.
-        eapply Zbits.eqmod_sym. eapply H12.
+        eapply Zbits.eqmod_sym. eapply H13.
         eapply divide_iff_eqmod_0.
         eapply Z.divide_add_r; ss.
         change 24%Z with (8*3)%Z. eapply Z.divide_factor_l.
     }
+
     iIntros "[PT2 HO]".
     iPoseProof (points_to_collect with "[PT1 PT2]") as "PT".
     { iSplitL "PT1".
@@ -529,6 +571,7 @@ Section PROOF.
           by (rewrite ! app_length; rewrite ! encode_val_length; reflexivity).
         iFrame.
     }
+
     iPoseProof (offset_slide_rev with "HO") as "HO".
     iFrame.
     iSplit; ss. iExists ofsᵥ. iFrame.
@@ -574,6 +617,76 @@ Section PROOF.
       ("vector_destruct", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_destruct_spec))
       ("vector_destruct", cfunU (decomp_func sk ce f_vector_destruct)).
   Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    econs; ss. red.
+
+    unfold prog, mkprogram in ce.
+    destruct (build_composite_env' composites I). ss.
+    get_composite ce e. fold vector._vector in get_co.
+
+    pose proof (incl_incl_env SKINCL1) as SKINCLENV1. unfold incl_env in SKINCLENV1.
+    pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto. i. simpl in x.
+    destruct x as [[[[[[[v esize] capacity] length] cells] mᵥ] tgᵥ] qᵥ].
+    unfold decomp_func, function_entry_c; ss.
+    set (HIDDEN := hide 1).
+
+    iIntros "[INV PRE]".
+    iDestruct "PRE" as "[[% V] %]".
+    clarify. hred_r.
+
+    unhide. hred_r. remove_tau.
+    unhide. hred_r. remove_tau.
+    hexploit SKINCLENV2.
+    { right. left. ss. }
+    i. des. rewrite FIND. hred_r.
+
+    iPoseProof (is_vector_is_ptr_val with "V") as "%".
+    rewrite H3. hred_r. rewrite H3. hred_r.
+    replace (alist_find vector._vector ce) with (Some co).
+    hred_r.
+    replace (ClightPlusExprgen.field_offset ce _data (co_members co))
+      with (Errors.OK 0%Z)
+      by (rewrite co_co_members; ss).
+    change Archi.ptr64 with true. ss. hred_r.
+
+    unfold is_vector.
+    iDestruct "V" as (data m_data unused_length unused) "[% [V [LPT [DATA_HO DATA_PT]]]]". des.
+
+    iApply isim_apc. iExists (Some (2: Ord.t)).
+    iPoseProof (lens_vector_handler_data with "V") as (ofsᵥ) "[DATA V_RECOVER]".
+    iApply isim_ccallU_load.
+    { ss. }
+    { eapply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=1%ord). eapply OrdArith.lt_from_nat. lia. }
+    iSplitL "INV DATA". { iSplitL "INV"; done. }
+    iIntros (st_src0 st_tgt0) "[INV DATA]".
+    iPoseProof ("V_RECOVER" with "DATA") as "V".
+
+    unfold is_vector_handler.
+    iDestruct "V" as (ofsᵥ') "[% [V_PT V_HO]]". des.
+
+    hred_r.
+    rewrite (decode_encode_ptr _ H13).
+    rewrite (cast_to_ptr_ptr _ H13).
+    hred_r.
+
+    des_if; ss. hred_r.
+    rewrite SuccNat2Pos.pred_id.
+    erewrite SKINCLGD; cycle 1.
+    { ss. }
+    { apply SKINCL2. }
+    { apply FIND. }
+    { right. left. ss. }
+    hred_r.
+
+    iApply isim_ccallU_mfree.
+    { ss. }
+    { eapply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=0%ord). eapply OrdArith.lt_from_nat. lia. }
   Admitted.
 
   Lemma sim_vector_esize :
@@ -893,7 +1006,7 @@ Section PROOF.
         + apply Z.divide_1_l.
       - iApply offset_slide. iFrame.
     }
-    iIntros (st_src3 st_tgt3) "(INV & [[HO OFS] CPT] & MVS)".
+    iIntros (st_src3 st_tgt3) "[INV [[[HO OFS] CPT] MVS]]".
     iPoseProof (offset_slide_rev with "HO") as "HO".
     iPoseProof ("LPT_RECOVER" with "CPT") as "LPT".
     iPoseProof ("V_RECOVER" with "[LPT HO]") as "V". { iFrame. }
