@@ -146,7 +146,9 @@ Section SPEC.
              ∗ is_vector v esize capacity length cells mᵥ tgᵥ qᵥ
          , fun vret =>
              ∃ mvsᵥ ofsᵥ,
-             ⌜vret = Vundef↑⌝
+             ⌜vret = Vundef↑
+             /\ Datatypes.length mvsᵥ = 24
+             ⌝
              ∗ v (↦_mᵥ,1) mvsᵥ
              ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ
          )%I

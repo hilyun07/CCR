@@ -115,7 +115,6 @@ Section PROOF.
 
   Arguments Lens (_)%bi_scope {_} (_ _)%bi_scope.
 
-  (* PRACTICE LEMMA *)
   Lemma accessor_compose P Q R :
     Accessor P Q -> Accessor Q R -> Accessor P R.
   Proof.
@@ -568,60 +567,6 @@ Section PROOF.
       ("vector_init", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_init_spec))
       ("vector_init", cfunU (decomp_func sk ce f_vector_init)).
   Proof.
-    (*
-    Local Opaque encode_val.
-    Local Opaque cast_to_ptr.
-    unfold_comp _vector VALID.
-    econs; ss. red.
-
-    (* current state: 1 *)
-    unfold prog in ce. unfold mkprogram in ce.
-    destruct (build_composite_env'). ss.
-    get_composite ce e.
-
-    dup SKINCL1. rename SKINCL0 into SKINCLENV1.
-    apply incl_incl_env in SKINCLENV1.
-    unfold incl_env in SKINCLENV1.
-    dup SKINCL2. rename SKINCL0 into SKINCLENV2.
-    apply incl_incl_env in SKINCLENV2.
-    unfold incl_env in SKINCLENV2.
-    pose proof sk_incl_gd as SKINCLGD.
-
-    apply isim_fun_to_tgt; auto.
-    unfold f_vector_init. i; ss.
-    unfold decomp_func, function_entry_c. ss.
-    let H := fresh "HIDDEN" in
-    set (H := hide 1).
-
-    iIntros "[INV PRE]". des_ifs_safe. ss.
-    iDestruct "PRE" as "[PRE %]".
-    iDestruct "PRE" as (items usize capacity length) "[% PRE]".
-    des. clarify. hred_r. 
-
-    unhide. hred_r. unhide. remove_tau. 
-
-    unfold is_vector_handler.
-    iDestruct "PRE" as (m tag offset) "[[handler_cnt handler_ofs] %]".
-    rename v into vect_handler.
-
-    iPoseProof (points_to_is_ptr with "handler_cnt") as "%".
-    rewrite H4. hred_r.
-    rewrite H4. hred_r.
-    unfold vector._vector.
-    unfold ident. des_ifs_safe.
-    rewrite get_co. hred_r.
-    rewrite co_co_members. ss.
-    hred_r.
-    change (Coqlib.align _ _) with 16%Z.
-
-    rewrite List.app_assoc.
-    iPoseProof (points_to_split with "handler_cnt") as "[A B]".
-    iPoseProof (points_to_split with "B") as "[B C]".
-
-    hred_r.
-    iApply isim_apc. iExists (Some (20%nat : Ord.t)).
-    iApply isim_ccallU_store.
-     *)
   Admitted.
 
   Lemma sim_vector_destruct :
@@ -643,10 +588,6 @@ Section PROOF.
     unfold prog, mkprogram in ce.
     destruct (build_composite_env' composites I). ss.
     get_composite ce e. fold vector._vector in get_co.
-
-    pose proof (incl_incl_env SKINCL1) as SKINCLENV1. unfold incl_env in SKINCLENV1.
-    pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
-    pose proof sk_incl_gd as SKINCLGD.
 
     apply isim_fun_to_tgt; auto. i. simpl in x.
     destruct x as [[[[[[[[[[[v data] esize] capacity] length] cells] mᵥ] tgᵥ] pᵥ] qᵥ] m_data] q_data].
@@ -698,10 +639,6 @@ Section PROOF.
     destruct (build_composite_env' composites I). ss.
     get_composite ce e. fold vector._vector in get_co.
 
-    pose proof (incl_incl_env SKINCL1) as SKINCLENV1. unfold incl_env in SKINCLENV1.
-    pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
-    pose proof sk_incl_gd as SKINCLGD.
-
     apply isim_fun_to_tgt; auto. i. simpl in x.
     destruct x as [[[[[[[[[[[v data] esize] capacity] length] cells] mᵥ] tgᵥ] pᵥ] qᵥ] m_data] q_data].
     unfold decomp_func, function_entry_c; ss.
@@ -751,10 +688,6 @@ Section PROOF.
     unfold prog, mkprogram in ce.
     destruct (build_composite_env' composites I). ss.
     get_composite ce e. fold vector._vector in get_co.
-
-    pose proof (incl_incl_env SKINCL1) as SKINCLENV1. unfold incl_env in SKINCLENV1.
-    pose proof (incl_incl_env SKINCL2) as SKINCLENV2. unfold incl_env in SKINCLENV2.
-    pose proof sk_incl_gd as SKINCLGD.
 
     apply isim_fun_to_tgt; auto. i. simpl in x.
     destruct x as [[[[[[[[[[[v data] esize] capacity] length] cells] mᵥ] tgᵥ] pᵥ] qᵥ] m_data] q_data].
