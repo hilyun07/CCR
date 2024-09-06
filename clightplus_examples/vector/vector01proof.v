@@ -677,12 +677,12 @@ Section PROOF.
     unfold is_vector.
     iDestruct "V" as (data m_data unused_length unused) "[% [V [LPT [DATA_HO DATA_PT]]]]". des.
 
-    iApply isim_apc. iExists (Some (2: Ord.t)).
+    iApply isim_apc. iExists (Some (3: Ord.t)).
     iPoseProof (lens_vector_handler_data with "V") as (ofsᵥ) "[DATA V_RECOVER]".
     iApply isim_ccallU_load.
     { ss. }
     { eapply OrdArith.lt_from_nat. lia. }
-    { instantiate (1:=1%ord). eapply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=2%ord). eapply OrdArith.lt_from_nat. lia. }
     iSplitL "INV DATA". { iSplitL "INV"; done. }
     iIntros (st_src0 st_tgt0) "[INV DATA]".
     iPoseProof ("V_RECOVER" with "DATA") as "V".
@@ -705,7 +705,57 @@ Section PROOF.
     iApply isim_ccallU_mfree.
     { ss. }
     { eapply OrdArith.lt_from_nat. lia. }
-    { instantiate (1:=0%ord). eapply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=1%ord). eapply OrdArith.lt_from_nat. lia. }
+
+    iPoseProof (list_points_to_collect with "LPT") as (mvs) "[% PT]"; et.
+    rewrite H8 in H14.
+    iPoseProof (points_to_collect with "[PT DATA_PT]") as "PT".
+    { iSplitL "PT". iFrame.
+      rewrite H14.
+      replace (Z.of_nat (esize * length))%nat with (Z.of_nat esize * Z.of_nat length)%Z
+        by (symmetry; apply Nat2Z.inj_mul).
+      iFrame.
+    }
+    iSplitL "INV DATA_HO PT".
+    { iFrame.
+      iExists m_data, (mvs ++ unused). iFrame.
+      iPureIntro. rewrite app_length. lia.
+    }
+
+    iIntros (st_src1 st_tgt1) "INV".
+    hred_r. remove_tau. unhide.
+    change Archi.ptr64 with true. ss.
+    hred_r. remove_tau.
+    rewrite H3. hred_r. rewrite H3. hred_r.
+    replace (alist_find vector._vector ce) with (Some co).
+    hred_r.
+    replace (ClightPlusExprgen.field_offset ce _data (co_members co))
+      with (Errors.OK 0%Z)
+      by (rewrite co_co_members; ss).
+    change (Ptrofs.repr 0) with Ptrofs.zero.
+    rewrite (is_ptr_val_null_r); ss.
+    hred_r.
+
+    rewrite cast_long; ss.
+    change (Vlong (Int64.repr (Int.signed (Int.repr 0)))) with Vnullptr.
+    hred_r.
+
+    iPoseProof (lens_vector_handler_data with "V") as (ofsᵥ') "[DATA V_RECOVER]".
+    rewrite is_ptr_val_null_r; ss.
+    iApply isim_ccallU_store.
+    { ss. }
+    { apply OrdArith.lt_from_nat. lia. }
+    { instantiate (1:=0%ord). apply OrdArith.lt_from_nat. lia. }
+    iSplitL "INV DATA".
+    { iDestruct "DATA" as "[[PT HO] %]". des.
+      iSplitL "INV".
+      - iFrame.
+      - iExists (encode_val Mptr data).
+        iFrame. iPureIntro. ss.
+    }
+    iIntros (st_src2 st_tgt2) "[INV [PT HO]]".
+    hred_r. remove_tau.
+    iPoseProof ("V_RECOVER" with "[PT HO]") as "V"; iFrame.
   Admitted.
 
   Lemma sim_vector_esize :
