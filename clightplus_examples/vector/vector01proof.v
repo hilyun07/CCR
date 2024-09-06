@@ -578,6 +578,27 @@ Section PROOF.
     iSplit; ss. rewrite ! app_assoc. iFrame.
   Qed.
 
+  Lemma list_points_to_collect esize p m cs
+    (SIZE : Forall (fun c => cell_size c = esize) cs)
+    (OWNED : Forall (fun c => exists mvs, c = owned mvs 1) cs) :
+    bi_entails
+      (list_points_to p m cs)
+      (∃ mvs, ⌜Datatypes.length mvs = (esize * Datatypes.length cs)%nat⌝ ∗ p (↦_m, 1) mvs).
+  Proof.
+    revert p.
+    induction cs; i; iIntros "LPT".
+    - iExists []. iSplit; ss.
+    - inv SIZE. inv OWNED. ss. des. clarify.
+      iDestruct "LPT" as "[CPT LPT_OFS]".
+      hexploit IHcs; ss. i.
+      iPoseProof (H3 with "LPT_OFS") as "IH".
+      iDestruct "IH" as (mvs') "[% PT]".
+      iPoseProof (points_to_collect with "[CPT PT]") as "PT".
+      { iSplitL "CPT"; iFrame. }
+      iExists (mvs ++ mvs'). iFrame. iPureIntro.
+      rewrite app_length. lia.
+  Qed.
+
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).
@@ -666,9 +687,7 @@ Section PROOF.
     iIntros (st_src0 st_tgt0) "[INV DATA]".
     iPoseProof ("V_RECOVER" with "DATA") as "V".
 
-    unfold is_vector_handler.
-    iDestruct "V" as (ofsᵥ') "[% [V_PT V_HO]]". des.
-
+    iPoseProof (offset_is_ptr with "DATA_HO") as "%".
     hred_r.
     rewrite (decode_encode_ptr _ H13).
     rewrite (cast_to_ptr_ptr _ H13).

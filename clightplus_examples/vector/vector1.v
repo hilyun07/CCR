@@ -38,7 +38,7 @@ Section PROP.
 
   Fixpoint list_points_to ptr m (cs : list cell) : iProp :=
     match cs with
-    | [] => True%I
+    | [] => ptr (↦_m,1) []
     | c :: cs' => cell_points_to ptr m c ** list_points_to (Val.addl ptr (Vptrofs (Ptrofs.repr (cell_size c)))) m cs'
     end.
 
@@ -77,6 +77,7 @@ Section PROP.
       /\ Datatypes.length unused = (esize * unused_length)%nat
       /\ Forall (fun c => cell_size c = esize) cells
       /\ Forall (fun c => exists mvs, c = owned mvs 1) cells
+      /\ Z.of_nat (esize * (length + unused_length)) = sz m_data
       ⌝
       ∗ is_vector_handler v data esize capacity length mᵥ tgᵥ 1 qᵥ
       ∗ list_points_to data m_data cells
