@@ -153,6 +153,100 @@ Section LEMMA.
 
 End LEMMA.
 
+Section KNOWLEDGES. (* pure of persistent facts *)
+
+  Import ClightPlusMem1.
+
+  Context `{@GRA.inG pointstoRA Σ}.
+  Context `{@GRA.inG allocatedRA Σ}.
+  Context `{@GRA.inG blocksizeRA Σ}.
+  Context `{@GRA.inG blockaddressRA Σ}.
+
+  Lemma is_vector_fixed_esize_le_max_unsigned
+    v data (esize : nat) capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+      : bi_entails
+        (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+        ⌜(Z.of_nat esize <= Int64.max_unsigned)%Z⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "(% & _ & _ & _)". des.
+    iPureIntro.
+    assert (Z.of_nat esize <= Ptrofs.max_unsigned)%Z by nia.
+    ss.
+  Qed.
+
+  Lemma is_vector_fixed_cells_esize
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜Forall (fun c => cell_size c = esize) cells⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "(% & _ & _ & _)". des.
+    iPureIntro.
+    ss.
+  Qed.
+
+  Lemma is_vector_fixed_is_ptr_val
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜is_ptr_val v = true⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
+    iPoseProof (points_to_is_ptr with "V1.1") as "%".
+    iPureIntro. destruct v; ss.
+  Qed.
+
+  Lemma is_vector_fixed_is_ptr_data
+    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
+    : bi_entails
+      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
+      ⌜is_ptr_val data = true⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as "[% [V1 [V2 V3]]]".
+    iApply (offset_is_ptr with "V3").
+  Qed.
+
+  Lemma is_vector_is_ptr_val
+    v esize capacity length cells mᵥ tgᵥ qᵥ
+    : bi_entails
+      (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
+      ⌜is_ptr_val v = true⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as (data m_data unused_length unused) "[% [V1 [V2 [V3 V4]]]]".
+    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
+    iPoseProof (points_to_is_ptr with "V1.1") as "%".
+    iPureIntro. destruct v; ss.
+  Qed.
+
+  Lemma list_points_to_collect esize p m cs
+    (SIZE : Forall (fun c => cell_size c = esize) cs)
+    (OWNED : Forall (fun c => exists mvs, c = owned mvs 1) cs) :
+    bi_entails
+      (list_points_to p m cs)
+      (∃ mvs, ⌜Datatypes.length mvs = (esize * Datatypes.length cs)%nat⌝ ∗ p (↦_m, 1) mvs).
+  Proof.
+    revert p.
+    induction cs; i; iIntros "LPT".
+    - iExists []. iSplit; ss.
+    - inv SIZE. inv OWNED. ss. des. clarify.
+      iDestruct "LPT" as "[CPT LPT_OFS]".
+      hexploit IHcs; ss. i.
+      iPoseProof (H3 with "LPT_OFS") as "IH".
+      iDestruct "IH" as (mvs') "[% PT]".
+      iPoseProof (points_to_collect with "[CPT PT]") as "PT".
+      { iSplitL "CPT"; iFrame. }
+      iExists (mvs ++ mvs'). iFrame. iPureIntro.
+      rewrite app_length. lia.
+  Qed.
+
+End KNOWLEDGES.
+
 Section ACCESSORS.
 
   Import ClightPlusMem1.
@@ -421,89 +515,6 @@ Section PROOF.
   Context `{@GRA.inG allocatedRA Σ}.
   Context `{@GRA.inG blocksizeRA Σ}.
   Context `{@GRA.inG blockaddressRA Σ}.
-
-  Lemma is_vector_fixed_esize_le_max_unsigned
-    v data (esize : nat) capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
-      : bi_entails
-        (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
-        ⌜(Z.of_nat esize <= Int64.max_unsigned)%Z⌝%I.
-  Proof.
-    iIntros "V".
-    iDestruct "V" as "(% & _ & _ & _)". des.
-    iPureIntro.
-    assert (Z.of_nat esize <= Ptrofs.max_unsigned)%Z by nia.
-    ss.
-  Qed.
-
-  Lemma is_vector_fixed_cells_esize
-    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
-    : bi_entails
-      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
-      ⌜Forall (fun c => cell_size c = esize) cells⌝%I.
-  Proof.
-    iIntros "V".
-    iDestruct "V" as "(% & _ & _ & _)". des.
-    iPureIntro.
-    ss.
-  Qed.
-
-  Lemma is_vector_fixed_is_ptr_val
-    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
-    : bi_entails
-      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
-      ⌜is_ptr_val v = true⌝%I.
-  Proof.
-    iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]".
-    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
-    iPoseProof (points_to_is_ptr with "V1.1") as "%".
-    iPureIntro. destruct v; ss.
-  Qed.
-
-  Lemma is_vector_fixed_is_ptr_data
-    v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
-    : bi_entails
-      (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
-      ⌜is_ptr_val data = true⌝%I.
-  Proof.
-    iIntros "V".
-    iDestruct "V" as "[% [V1 [V2 V3]]]".
-    iApply (offset_is_ptr with "V3").
-  Qed.
-
-  Lemma is_vector_is_ptr_val
-    v esize capacity length cells mᵥ tgᵥ qᵥ
-    : bi_entails
-      (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
-      ⌜is_ptr_val v = true⌝%I.
-  Proof.
-    iIntros "V".
-    iDestruct "V" as (data m_data unused_length unused) "[% [V1 [V2 [V3 V4]]]]".
-    iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
-    iPoseProof (points_to_is_ptr with "V1.1") as "%".
-    iPureIntro. destruct v; ss.
-  Qed.
-
-  Lemma list_points_to_collect esize p m cs
-    (SIZE : Forall (fun c => cell_size c = esize) cs)
-    (OWNED : Forall (fun c => exists mvs, c = owned mvs 1) cs) :
-    bi_entails
-      (list_points_to p m cs)
-      (∃ mvs, ⌜Datatypes.length mvs = (esize * Datatypes.length cs)%nat⌝ ∗ p (↦_m, 1) mvs).
-  Proof.
-    revert p.
-    induction cs; i; iIntros "LPT".
-    - iExists []. iSplit; ss.
-    - inv SIZE. inv OWNED. ss. des. clarify.
-      iDestruct "LPT" as "[CPT LPT_OFS]".
-      hexploit IHcs; ss. i.
-      iPoseProof (H3 with "LPT_OFS") as "IH".
-      iDestruct "IH" as (mvs') "[% PT]".
-      iPoseProof (points_to_collect with "[CPT PT]") as "PT".
-      { iSplitL "CPT"; iFrame. }
-      iExists (mvs ++ mvs'). iFrame. iPureIntro.
-      rewrite app_length. lia.
-  Qed.
 
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
