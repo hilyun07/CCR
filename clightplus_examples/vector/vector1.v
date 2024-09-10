@@ -47,10 +47,10 @@ Section PROP.
       ⌜ (8 | Ptrofs.unsigned ofsᵥ)%Z
       /\ is_ptr_val data
       ⌝
-      ∗ v (↦_mᵥ,pᵥ) (encode_val Mptr data
-                       ++ encode_val Mint64 (Vlong (Int64.repr esize))
-                       ++ encode_val Mint64 (Vlong (Int64.repr capacity))
-                       ++ encode_val Mint64 (Vlong (Int64.repr length)))
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 0))) (↦_mᵥ,pᵥ) (encode_val Mptr data)
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 8))) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr esize)))
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 16))) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr capacity)))
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 24))) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr length)))
       ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ
     )%I.
 
@@ -84,28 +84,6 @@ Section PROP.
       ∗ data (⊨_m_data,Dynamic,1) Ptrofs.zero
       ∗ (Val.addl data (Vptrofs (Ptrofs.repr (esize * length)))) (↦_m_data,1) unused
     )%I.
-
-  Lemma is_vector_fix
-    v esize capacity length cells mᵥ tgᵥ qᵥ
-    : bi_entails
-        (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
-        (∃ data m_data,
-            ⌜ Forall (fun c => exists mvs, c = owned mvs 1) cells ⌝
-            ∗ is_vector_fixed v data esize capacity length cells mᵥ tgᵥ 1 qᵥ m_data 1
-            ∗ (∀ qᵥ' cells',
-                ⌜ Forall (fun c => exists mvs, c = owned mvs 1) cells' ⌝
-                -∗ is_vector_fixed v data esize capacity length cells' mᵥ tgᵥ 1 qᵥ' m_data 1
-                -∗ is_vector v esize capacity length cells' mᵥ tgᵥ qᵥ' )).
-  Proof.
-    iIntros "V".
-    iDestruct "V" as (data m_data unused_length unused) "[% [V1 [V2 [V3 V4]]]]". des.
-    iExists data, m_data. iSplit; ss. iSplitL "V1 V2 V3".
-    - iFrame. iPureIntro. splits; ss; lia.
-    - iIntros (qᵥ' cells') "% V".
-      iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-      iExists data, m_data, (capacity - length), unused.
-      iFrame. iPureIntro. splits; ss; lia.
-  Qed.
 
 End PROP.
 
