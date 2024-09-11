@@ -94,7 +94,6 @@ Section SPEC.
   Context `{@GRA.inG blocksizeRA Σ}.
   Context `{@GRA.inG blockaddressRA Σ}.
 
-  (* TODO : Fix specs *)
   Definition vector_init_spec : fspec :=
     @mk_simple
       _
@@ -106,7 +105,7 @@ Section SPEC.
              /\ esize > 0
              /\ capacity > 0
              /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
-             /\ Datatypes.length mvsᵥ = 24
+             /\ Datatypes.length mvsᵥ = 32
              ⌝
              ∗ v (↦_mᵥ,1) mvsᵥ
              ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ
@@ -128,7 +127,7 @@ Section SPEC.
          , fun vret =>
              ∃ mvsᵥ ofsᵥ,
              ⌜vret = Vundef↑
-             /\ Datatypes.length mvsᵥ = 24
+             /\ Datatypes.length mvsᵥ = 32
              ⌝
              ∗ v (↦_mᵥ,1) mvsᵥ
              ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ

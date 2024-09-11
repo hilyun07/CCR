@@ -609,6 +609,7 @@ Section PROOF.
     iPoseProof (offset_is_ptr with "DATA_HO") as "%".
     iPoseProof ("V_RECOVER" with "[DATA]") as "V".
     { iFrame; ss. }
+    clear ofsᵥ.
 
     iPoseProof (offset_is_ptr with "DATA_HO") as "%".
     hred_r.
@@ -663,7 +664,7 @@ Section PROOF.
     change (Vlong (Int64.repr (Int.signed (Int.repr 0)))) with Vnullptr.
     hred_r.
 
-    iPoseProof (accessor_is_vector_handler_data with "V") as (ofsᵥ') "[DATA V_RECOVER]".
+    iPoseProof (accessor_is_vector_handler_data with "V") as (ofsᵥ) "[DATA V_RECOVER]".
     rewrite is_ptr_val_null_r; ss.
     iApply isim_ccallU_store.
     { ss. }
@@ -678,8 +679,24 @@ Section PROOF.
     }
     iIntros (st_src2 st_tgt2) "[INV [PT HO]]".
     hred_r. remove_tau.
-    iPoseProof ("V_RECOVER" with "[PT HO]") as "V"; iFrame.
-  Admitted.
+    iPoseProof ("V_RECOVER" with "[PT HO]") as "V". { iFrame; ss. }
+    clear ofsᵥ.
+
+    hred_l.
+    iApply isim_choose_src. iExists (Vundef↑).
+    iApply isim_ret. iFrame. iSplit; ss.
+
+    iDestruct "V" as (ofsᵥ) "(% & PT1 & PT2 & PT3 & PT4 & HO)".
+    rewrite is_ptr_val_null_r; ss.
+    iPoseProof (points_to_collect with "[PT1 PT2]") as "PT". { iSplitL "PT1"; iFrame. }
+    iPoseProof (points_to_collect with "[PT PT3]") as "PT". { iSplitL "PT"; iFrame. }
+    iPoseProof (points_to_collect with "[PT PT4]") as "PT". { iSplitL "PT"; iFrame. }
+    iExists (encode_val Mptr Vnullptr
+               ++ encode_val Mint64 (Vlong (Int64.repr esize))
+               ++ encode_val Mint64 (Vlong (Int64.repr capacity))
+               ++ encode_val Mint64 (Vlong (Int64.repr length))).
+    iExists ofsᵥ. iFrame; ss.
+  Qed.
 
   Lemma sim_vector_esize :
     sim_fnsem wf top2
