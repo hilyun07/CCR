@@ -19,7 +19,7 @@ Require Import PtrofsArith.
 From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
-Section LEMMA.
+Section INTEGERS.
 
   Instance eqmod_Reflexive m : Reflexive (Zbits.eqmod m).
   Proof. exact (Zbits.eqmod_refl m). Qed.
@@ -36,6 +36,49 @@ Section LEMMA.
     - intros [k H]. exists k. lia.
     - intros [k H]. exists k. lia.
   Qed.
+
+  Lemma agree64_eq (p : ptrofs) (n : int64) : Ptrofs.agree64 p n -> Ptrofs.to_int64 p = n.
+  Proof.
+    unfold Ptrofs.agree64, Ptrofs.to_int64.
+    i. rewrite H. apply Int64.repr_unsigned.
+  Qed.
+
+  Lemma Ptrofs_repr_Z_add x y : Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
+  Proof.
+    rewrite Ptrofs.add_unsigned.
+    eapply Ptrofs.eqm_samerepr.
+    eapply Ptrofs.eqm_add.
+    - eapply Ptrofs.eqm_unsigned_repr.
+    - eapply Ptrofs.eqm_unsigned_repr.
+  Qed.
+
+  Lemma offset_add_align
+    align ofs x
+    : (align | Ptrofs.modulus)%Z ->
+      (align | Ptrofs.unsigned ofs)%Z ->
+      (align | Ptrofs.unsigned x)%Z ->
+      (align | Ptrofs.unsigned (Ptrofs.add ofs x))%Z.
+  Proof.
+    intros H0 H1 H2.
+    eapply divide_iff_eqmod_0.
+    unfold Ptrofs.add.
+    transitivity (Ptrofs.unsigned ofs + Ptrofs.unsigned x)%Z.
+    - symmetry.
+      eapply (Zbits.eqmod_divides Ptrofs.modulus); et.
+      eapply Ptrofs.eqm_unsigned_repr.
+    - eapply divide_iff_eqmod_0.
+      eapply Z.divide_add_r; et.
+  Qed.
+
+  Lemma align8_divides_modulus : (8 | Ptrofs.modulus)%Z.
+  Proof.
+    change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
+    eapply Z.divide_factor_l.
+  Qed.
+
+End INTEGERS.
+
+Section LEMMA.
 
   Lemma f_bind_ret_r E R A (s : A -> itree E R)
     : (fun a => ` x : R <- (s a);; Ret x) = s.
@@ -67,21 +110,6 @@ Section LEMMA.
     destruct p; ss.
   Qed.
 
-  Lemma agree64_eq (p : ptrofs) (n : int64) : Ptrofs.agree64 p n -> Ptrofs.to_int64 p = n.
-  Proof.
-    unfold Ptrofs.agree64, Ptrofs.to_int64.
-    i. rewrite H. apply Int64.repr_unsigned.
-  Qed.
-
-  Lemma Ptrofs_repr_Z_add x y : Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
-  Proof.
-    rewrite Ptrofs.add_unsigned.
-    eapply Ptrofs.eqm_samerepr.
-    eapply Ptrofs.eqm_add.
-    - eapply Ptrofs.eqm_unsigned_repr.
-    - eapply Ptrofs.eqm_unsigned_repr.
-  Qed.
-
   Lemma is_ptr_val_null_r
     p : is_ptr_val p -> Val.addl p (Vptrofs Ptrofs.zero) = p.
   Proof.
@@ -100,30 +128,6 @@ Section LEMMA.
     eapply Ptrofs.agree64_add; ss.
     - apply Ptrofs.agree64_to_int; ss.
     - apply Ptrofs.agree64_to_int; ss.
-  Qed.
-
-  Lemma offset_add_align
-    align ofs x
-    : (align | Ptrofs.modulus)%Z ->
-      (align | Ptrofs.unsigned ofs)%Z ->
-      (align | Ptrofs.unsigned x)%Z ->
-      (align | Ptrofs.unsigned (Ptrofs.add ofs x))%Z.
-  Proof.
-    intros H0 H1 H2.
-    eapply divide_iff_eqmod_0.
-    unfold Ptrofs.add.
-    transitivity (Ptrofs.unsigned ofs + Ptrofs.unsigned x)%Z.
-    - symmetry.
-      eapply (Zbits.eqmod_divides Ptrofs.modulus); et.
-      eapply Ptrofs.eqm_unsigned_repr.
-    - eapply divide_iff_eqmod_0.
-      eapply Z.divide_add_r; et.
-  Qed.
-
-  Lemma align8_divides_modulus : (8 | Ptrofs.modulus)%Z.
-  Proof.
-    change Ptrofs.modulus with (8 * 2305843009213693952)%Z.
-    eapply Z.divide_factor_l.
   Qed.
 
   Context `{eventE -< eff}.
