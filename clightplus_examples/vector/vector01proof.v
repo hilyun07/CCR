@@ -37,19 +37,41 @@ Section INTEGERS.
     - intros [k H]. exists k. lia.
   Qed.
 
-  Lemma agree64_eq (p : ptrofs) (n : int64) : Ptrofs.agree64 p n -> Ptrofs.to_int64 p = n.
+  Lemma Ptrofs_repr_add_comm x y :
+    Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
   Proof.
-    unfold Ptrofs.agree64, Ptrofs.to_int64.
-    i. rewrite H. apply Int64.repr_unsigned.
+    unfold Ptrofs.add.
+    eapply Ptrofs.eqm_samerepr.
+    eapply Ptrofs.eqm_add; eapply Ptrofs.eqm_unsigned_repr.
   Qed.
 
-  Lemma Ptrofs_repr_Z_add x y : Ptrofs.repr (x + y) = Ptrofs.add (Ptrofs.repr x) (Ptrofs.repr y).
+  Lemma Ptrofs_repr_mul_comm x y :
+    Ptrofs.repr (x * y) = Ptrofs.mul (Ptrofs.repr x) (Ptrofs.repr y).
   Proof.
-    rewrite Ptrofs.add_unsigned.
+    unfold Ptrofs.mul.
     eapply Ptrofs.eqm_samerepr.
-    eapply Ptrofs.eqm_add.
-    - eapply Ptrofs.eqm_unsigned_repr.
-    - eapply Ptrofs.eqm_unsigned_repr.
+    eapply Ptrofs.eqm_mult; eapply Ptrofs.eqm_unsigned_repr.
+  Qed.
+
+  Lemma Ptrofs_to_int64_repr_comm n :
+    Ptrofs.to_int64 (Ptrofs.repr n) = Int64.repr n.
+  Proof.
+    eapply Ptrofs.agree64_to_int_eq.
+    eapply Ptrofs.agree64_repr; ss.
+  Qed.
+
+  Lemma Ptrofs_to_int64_add_comm m n :
+    Ptrofs.to_int64 (Ptrofs.add m n) = Int64.add (Ptrofs.to_int64 m) (Ptrofs.to_int64 n).
+  Proof.
+    eapply Ptrofs.agree64_to_int_eq.
+    eapply Ptrofs.agree64_add; ss; apply Ptrofs.agree64_to_int; ss.
+  Qed.
+
+  Lemma Ptrofs_to_int64_mul_comm m n :
+    Ptrofs.to_int64 (Ptrofs.mul m n) = Int64.mul (Ptrofs.to_int64 m) (Ptrofs.to_int64 n).
+  Proof.
+    eapply Ptrofs.agree64_to_int_eq.
+    eapply Ptrofs.agree64_mul; ss; apply Ptrofs.agree64_to_int; ss.
   Qed.
 
   Lemma offset_add_align
@@ -124,10 +146,7 @@ Section LEMMA.
   Lemma addl_Vptrofs m n : Val.addl (Vptrofs m) (Vptrofs n) = Vptrofs (Ptrofs.add m n).
   Proof.
     unfold Vptrofs; des_ifs; ss. f_equal.
-    symmetry. eapply agree64_eq.
-    eapply Ptrofs.agree64_add; ss.
-    - apply Ptrofs.agree64_to_int; ss.
-    - apply Ptrofs.agree64_to_int; ss.
+    symmetry. eapply Ptrofs_to_int64_add_comm.
   Qed.
 
   Context `{eventE -< eff}.
@@ -497,7 +516,7 @@ Section ACCESSORS.
         transitivity (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.add Ptrofs.one (Ptrofs.repr i))).
         - f_equal. rewrite Ptrofs.add_unsigned.
            unfold Ptrofs.one, Z.succ.
-           rewrite ! Ptrofs_repr_Z_add.
+           rewrite ! Ptrofs_repr_add_comm.
            rewrite ! Ptrofs.repr_unsigned.
            apply Ptrofs.add_commut.
         - apply Ptrofs.mul_add_distr_r.
@@ -989,13 +1008,12 @@ Section PROOF.
     { right. right. left. reflexivity. }
     hred_r.
 
-    replace (Val.addl data (Vlong (Int64.mul (Int64.repr esize) (Int64.repr index))))
-      with (Val.addl data (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr index)))); cycle 1.
-    { f_equal. unfold Vptrofs. change Archi.ptr64 with true; ss. f_equal.
-      eapply agree64_eq. eapply Ptrofs.agree64_mul.
-      - ss.
-      - apply Ptrofs.agree64_repr. ss.
-      - apply Ptrofs.agree64_repr. ss.
+    replace (Vlong (Int64.mul (Int64.repr esize) (Int64.repr index)))
+      with (Vptrofs (Ptrofs.mul (Ptrofs.repr esize) (Ptrofs.repr index))); cycle 1.
+    { unfold Vptrofs. change Archi.ptr64 with true; ss. f_equal.
+      etransitivity.
+      - eapply Ptrofs_to_int64_mul_comm.
+      - f_equal; eapply Ptrofs_to_int64_repr_comm.
     }
 
     iApply isim_ccallU_memcpy0.
