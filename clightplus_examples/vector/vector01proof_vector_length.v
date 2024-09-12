@@ -85,7 +85,7 @@ Section PROOF.
     Local Transparent cast_to_ptr.
     hred_r. rewrite decode_encode_item. ss. change Archi.ptr64 with true. ss. hred_r.
 
-    hred_l. iApply isim_choose_src. iExists (Any.upcast (Vlong (Int64.repr length))).
+    hred_l. iApply isim_choose_src. iExists ((Vlong (Int64.repr length))↑).
 
     iApply isim_ret.
     iSplitL "INV"; et.

@@ -176,7 +176,7 @@ Section PROOF.
     { instantiate (1:=0%ord). apply OrdArith.lt_from_nat. lia. }
 
     iPoseProof (is_vector_fixed_cells_esize with "V") as "%".
-    iPoseProof (is_vector_fixed_esize_le_max_unsigned with "V") as "%".
+    iPoseProof (is_vector_fixed_esize_range with "V") as "%".
     iPoseProof (accessor_is_vector_fixed_cells with "V") as ([]) "[[CELLS HO] V_RECOVER]".
     iPoseProof ((accessor_cells_cell esize data m_data cells index) with "CELLS") as ([]) "[CELL CELLS_RECOVER]"; et.
     ss.
@@ -205,7 +205,7 @@ Section PROOF.
     hred_r. remove_tau.
 
     hred_l.
-    iApply isim_choose_src. iExists (Any.upcast Vundef).
+    iApply isim_choose_src. iExists (Vundef↑).
     iApply isim_ret.
     iFrame. iPureIntro. ss.
   Qed.
