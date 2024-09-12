@@ -57,7 +57,7 @@ Section PROP.
   Definition is_vector_fixed (v : val) (data : val) (esize capacity length : nat) (cells : list cell) mᵥ tgᵥ pᵥ qᵥ m_data q_data : iProp :=
     ( ⌜ esize > 0
       /\ capacity > 0
-      /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
+      /\ (esize * capacity <= Int64.max_unsigned)%Z
       /\ length <= capacity
       /\ Datatypes.length cells = length
       /\ Forall (fun c => cell_size c = esize) cells
@@ -71,7 +71,7 @@ Section PROP.
     ( ∃ (data : val) (m_data : metadata) (unused_length : nat) (unused : list memval),
       ⌜ esize > 0
       /\ capacity > 0
-      /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
+      /\ (esize * capacity <= Int64.max_unsigned)%Z
       /\ (length + unused_length)%nat = capacity
       /\ Datatypes.length cells = length
       /\ Datatypes.length unused = (esize * unused_length)%nat
@@ -104,7 +104,7 @@ Section SPEC.
              ⌜ varg = [v; Vlong (Int64.repr esize); Vlong (Int64.repr capacity)]↑
              /\ esize > 0
              /\ capacity > 0
-             /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
+             /\ (esize * capacity <= Int64.max_unsigned)%Z
              /\ Datatypes.length mvsᵥ = 32
              ⌝
              ∗ v (↦_mᵥ,1) mvsᵥ
@@ -188,7 +188,7 @@ Section SPEC.
          , fun varg =>
              ⌜varg = [v; Vlong (Int64.repr min_capacity)]↑
              /\ min_capacity > 0
-             /\ esize * min_capacity < Z.to_nat Ptrofs.max_unsigned
+             /\ (esize * min_capacity <= Int64.max_unsigned)%Z
              ⌝
              ∗ is_vector v esize capacity length cells mᵥ tgᵥ qᵥ
          , fun vret =>

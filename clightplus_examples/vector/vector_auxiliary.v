@@ -205,17 +205,37 @@ Section KNOWLEDGES. (* pure of persistent facts *)
   Context `{@GRA.inG blocksizeRA Σ}.
   Context `{@GRA.inG blockaddressRA Σ}.
 
-  Lemma is_vector_fixed_esize_le_max_unsigned
+  Lemma is_vector_fixed_esize_range
     v data (esize : nat) capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data
       : bi_entails
         (is_vector_fixed v data esize capacity length cells mᵥ tgᵥ pᵥ qᵥ m_data q_data)
-        ⌜(Z.of_nat esize <= Int64.max_unsigned)%Z⌝%I.
+        ⌜(0 < Z.of_nat esize <= Int64.max_unsigned)%Z⌝%I.
   Proof.
     iIntros "V".
     iDestruct "V" as "(% & _ & _ & _)". des.
-    iPureIntro.
-    assert (Z.of_nat esize <= Ptrofs.max_unsigned)%Z by nia.
-    ss.
+    iPureIntro. nia.
+  Qed.
+
+  Lemma is_vector_esize_range
+    v esize capacity length cells mᵥ tgᵥ qᵥ
+    : bi_entails
+      (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
+      ⌜(0 < Z.of_nat esize <= Int64.max_unsigned)%Z⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as (? ? ? ?) "(% & _ & _ & _ & _)". des.
+    iPureIntro. nia.
+  Qed.
+
+  Lemma is_vector_capacity_range
+    v esize capacity length cells mᵥ tgᵥ qᵥ
+      : bi_entails
+        (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
+        ⌜(0 < Z.of_nat capacity <= Int64.max_unsigned)%Z⌝%I.
+  Proof.
+    iIntros "V".
+    iDestruct "V" as (? ? ? ?) "(% & _ & _ & _ & _)". des.
+    iPureIntro. nia.
   Qed.
 
   Lemma is_vector_fixed_cells_esize
@@ -265,6 +285,17 @@ Section KNOWLEDGES. (* pure of persistent facts *)
     iDestruct "V1" as (ofsᵥ) "[% [V1.1 V1.2]]".
     iPoseProof (points_to_is_ptr with "V1.1") as "%".
     iPureIntro. destruct v; ss.
+  Qed.
+
+  Lemma is_vector_handler_is_ptr_data
+    v data esize capacity length mᵥ tgᵥ qᵥ
+    : bi_entails
+      (is_vector_handler v data esize capacity length mᵥ tgᵥ 1 qᵥ)
+      ⌜is_ptr_val data = true⌝%I.
+  Proof.
+    iIntros "VH".
+    iDestruct "VH" as (ofsᵥ) "[% _]".
+    iPureIntro. apply H3.
   Qed.
 
   Lemma list_points_to_collect esize p m cs
