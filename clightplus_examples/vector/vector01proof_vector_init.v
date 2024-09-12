@@ -18,18 +18,7 @@ Require Import vector1.
 Require Import PtrofsArith.
 From Coq Require Import Program.
 From compcert Require Import Clightdefs.
-
 Require Import vector_auxiliary.
-Require Import vector01proof_vector_init.
-Require Import vector01proof_vector_destruct.
-Require Import vector01proof_vector_esize.
-Require Import vector01proof_vector_capacity.
-Require Import vector01proof_vector_length.
-Require Import vector01proof_vector_reserve.
-Require Import vector01proof_vector_push.
-Require Import vector01proof_vector_get.
-Require Import vector01proof_vector_set.
-Require Import vector01proof_vector_remove.
 
 Section PROOF.
 
@@ -44,25 +33,17 @@ Section PROOF.
   Hypothesis STBINCL : forall sk, stb_incl (to_stb vectorStb) (GlobalStb sk).
   Hypothesis MEMINCL : forall sk, stb_incl (to_stb MemStb) (GlobalStb sk).
 
+  Variable sk: Sk.t.
+  Hypothesis SKINCL1 : Sk.le (vector_compiled.(Mod.sk)) sk.
+  Hypothesis SKINCL2 : Sk.le mfsk sk.
+  Hypothesis SKWF : Sk.wf sk.
+
   Let ce := Maps.PTree.elements (prog_comp_env prog).
 
-  Require Import ClightPlusMem01Proof.
-
-  Variable vector0 : Mod.t.
-  Hypothesis VALID : vector0._vector = Errors.OK vector0.
-
-  (* Check sim_vector_init. *)
-  (* Check sim_vector_destruct. *)
-  (* Check sim_vector_esize. *)
-  (* Check sim_vector_capacity. *)
-  (* Check sim_vector_length. *)
-  (* Check sim_vector_reserve. *)
-  (* Check sim_vector_push. *)
-  (* Check sim_vector_get. *)
-  (* Check sim_vector_set. *)
-  (* Check sim_vector_remove. *)
-
-  Theorem correct : refines2 [vector0; (ClightPlusMem0.Mem mfsk)] [vector1.vector vector0 GlobalStb; (ClightPlusMem1.Mem mfsk)].
+  Lemma sim_vector_init :
+    sim_fnsem wf top2
+      ("vector_init", fun_to_tgt "vector" (GlobalStb sk) (mk_pure vector_init_spec))
+      ("vector_init", cfunU (decomp_func sk ce f_vector_init)).
   Proof.
   Admitted.
 
