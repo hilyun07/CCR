@@ -98,6 +98,28 @@ Section INTEGERS.
     eapply Z.divide_factor_l.
   Qed.
 
+  Lemma Int64_ltu_true
+    x y
+    : Int64.ltu x y = true ->
+      (Int64.unsigned x < Int64.unsigned y)%Z.
+  Proof.
+    intro H. eapply Int64.ltu_inv in H. lia.
+  Qed.
+
+  Lemma Int64_ltu_false
+    x y
+    : Int64.ltu x y = false ->
+      (Int64.unsigned y <= Int64.unsigned x)%Z.
+  Proof.
+    intro H.
+    apply f_equal with (f := negb) in H.
+    rewrite Int64.not_ltu in H. ss.
+    eapply orb_true_iff in H. destruct H.
+    - eapply Int64.ltu_inv in H. lia.
+    - pose proof (Int64.eq_spec y x) as E.
+      rewrite H in E. subst. lia.
+  Qed.
+
 End INTEGERS.
 
 Section LEMMA.
