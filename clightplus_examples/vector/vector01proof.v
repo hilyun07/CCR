@@ -19,6 +19,7 @@ Require Import PtrofsArith.
 From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
+Require Import ClightPlusMem01Proof.
 Require Import vector_auxiliary.
 Require Import vector01proof_vector_init.
 Require Import vector01proof_vector_destruct.
@@ -46,11 +47,6 @@ Section PROOF.
 
   Let ce := Maps.PTree.elements (prog_comp_env prog).
 
-  Require Import ClightPlusMem01Proof.
-
-  Variable vector0 : Mod.t.
-  Hypothesis VALID : vector0._vector = Errors.OK vector0.
-
   (* Check sim_vector_init. *)
   (* Check sim_vector_destruct. *)
   (* Check sim_vector_esize. *)
@@ -62,8 +58,10 @@ Section PROOF.
   (* Check sim_vector_set. *)
   (* Check sim_vector_remove. *)
 
-  Theorem correct : refines2 [vector0; (ClightPlusMem0.Mem mfsk)] [vector1.vector vector0 GlobalStb; (ClightPlusMem1.Mem mfsk)].
-  Proof.
+  Theorem correct :
+    refines2
+      [vector_compiled; (ClightPlusMem0.Mem mfsk)]
+      [vector1.vector vector_compiled GlobalStb; (ClightPlusMem1.Mem mfsk)].
   Admitted.
 
 End PROOF.
