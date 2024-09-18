@@ -5,7 +5,7 @@ Require Import hardening.
 (* Require Import main. *)
 (* From compcert Require Import Linking. *)
 
-Definition _hardening : Clight.program := link hardening.prog.
+Definition _hardening : Clight.program := hardening.prog.
 
 Definition hardening : Errors.res Mod.t :=
   compile _hardening "hardening".
@@ -21,8 +21,11 @@ Definition _msk : Errors.res Sk.t :=
 
 Theorem msk_hardening: exists msk, _msk = Errors.OK msk.
 Proof.
-Admitted.
+  unfold _msk, _hardening. vm_compute (mem_skel _). eauto.
+Qed.
 
 Theorem valid_hardening: exists p, hardening = Errors.OK p.
 Proof.
+  unfold hardening, _hardening.
+  unfold prog. 
 Admitted.
