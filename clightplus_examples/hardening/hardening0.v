@@ -26,6 +26,5 @@ Qed.
 
 Theorem valid_hardening: exists p, hardening = Errors.OK p.
 Proof.
-  unfold hardening, _hardening.
-  unfold prog. 
-Admitted.
+  unfold hardening, _hardening. unfold prog. eauto.
+Qed.

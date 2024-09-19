@@ -38,12 +38,12 @@ Section SPEC.
 
   Definition encode_spec : fspec :=
     (mk_simple
-      (fun '(key, ptr, m_ptr, tg, q, iptr) => (
+      (fun '(key, ptr, ofs, m_ptr, tg, q) => (
         (ord_pure 1%nat),
         (fun varg => ⌜varg = [Vlong key; ptr]↑⌝
-                     ** live_(m_ptr,tg,q) ptr),
-        (fun vret => ⌜vret = (Val.xorl iptr (Vlong key))↑⌝
-                     ** live_(m_ptr,tg,q) ptr ** ptr (≃_ m_ptr) iptr)
+                     ** live_(m_ptr,tg,q) (Val.subl ptr (Vptrofs ofs))),
+        (fun vret => ∃ iptr, ⌜vret = (Val.xorl iptr (Vlong key))↑⌝
+                     ** live_(m_ptr,tg,q) (Val.subl ptr (Vptrofs ofs)) ** ptr (≃_ m_ptr) iptr)
     )))%I.
 
   (* void *decode(uintptr_t key, uintptr_t ptr) { *)

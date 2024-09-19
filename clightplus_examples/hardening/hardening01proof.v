@@ -79,31 +79,34 @@ Section PROOF.
   Let mfsk : Sk.t := [("malloc", Gfun (F:=Clight.fundef) (V:=type) (Ctypes.External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)); ("free", Gfun (Ctypes.External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default))].
 
   Section SIMFUNS.
-  Variable hardening_code : Clight.program.
-  (* Variable xormod : Mod.t. *)
+  Variable hardening_mod : Mod.t.
   (* Hypothesis VALID_link : xorlistall0._xor = Some xorlink. *)
-  (* Hypothesis VALID_comp : compile xorlink "xorlist" = Errors.OK xormod. *)
-  Let ce := Maps.PTree.elements (prog_comp_env hardening_code).
+  Hypothesis VALID: hardening = Errors.OK hardening_mod.
+  Let ce := Maps.PTree.elements (prog_comp_env prog).
 
   Variable sk: Sk.t.
   (* TODO: How to encapsulate fuction info? *)
-  (* Hypothesis SKINCL1 : Sk.le (xormod.(Mod.sk)) sk. *)
-  Hypothesis SKINCL : Sk.le mfsk sk.
+  Hypothesis SKINCL : Sk.le (hardening_mod.(Mod.sk)) sk.
   Hypothesis SKWF : Sk.wf sk.
 
-  Lemma encode :
+  Ltac unfold_comp optsrc EQ :=
+    unfold optsrc, compile, get_sk in EQ;
+    destruct Coqlib.list_norepet_dec; clarify; des_ifs; ss;
+    repeat match goal with
+          | H: Coqlib.list_norepet _ |- _ => clear H
+          | H: forallb _ _ = true |- _ => clear H
+          | H: forallb _ _ && _ = true |- _ => clear H
+          | H: Ctypes.prog_main _ = _ |- _ => clear H
+          end.
+
+  Lemma encode_sim:
     sim_fnsem wf top2
       ("encode", fun_to_tgt "hardening" (GlobalStb sk) (mk_pure encode_spec))
       ("encode", cfunU (decomp_func sk ce f_encode)).
   Proof.
     Local Opaque encode_val.
     Local Opaque cast_to_ptr.
-    eassert (_hardening = _).
-    { unfold _hardening. reflexivity. }
-    (* rewrite H0 in *. clear H0. *)
-    (* destruct Ctypes.link_build_composite_env. destruct a. *)
-    (* inversion VALID_link. clear VALID_link. subst. *)
-    (* clear a. simpl in ce. *)
+    unfold_comp hardening VALID.
     econs; ss. red.
 
     (* get_composite ce e. *)
@@ -123,12 +126,80 @@ Section PROOF.
     iDestruct "PRE" as "[[% PRE] %]".
     des. clarify. hred_r.
 
-    rename v into iptr, v0 into ptr.
+    rename i0 into iptr, v into ptr.
 
-    unhide. hred_r. unhide. remove_tau. unhide. remove_tau.
+    unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
 
+    iPoseProof ((@live_cast_ptr_ofs _ _ Es) with "PRE") as "#->".
 
+    hred_r.
+
+    iApply isim_apc. iExists (Some (20%nat : Ord.t)).
+
+    iApply isim_ccallU_capture1; ss; oauto.
+    iSplitL "INV PRE".
+    { iFrame. }
+    iIntros (st_src5 st_tgt5 i0) "[INV [LIVE RELT]]".
+
+    hred_r. remove_tau. unhide. des_ifs. hred_r. remove_tau.
+    rewrite ptrofs_cast_ptr. hred_r. rewrite cast_long; eauto.
+    hred_r. unfold Vptrofs. des_ifs_safe.
+    hred_r. remove_tau. unhide. remove_tau.
+    rewrite cast_long; eauto.
+    hred_r. hred_l. hred_l.
+    iApply isim_choose_src.
+
+    iExists _. iApply isim_ret.
+    iSplitR "INV LIVE RELT".
+    { ss. }
+
+    iFrame. iSplit; ss.
+    iExists (Vlong (Ptrofs.to_int64 i0)). iFrame.
+    unfold Val.xorl. ss.
+  Qed.
+    
+  Lemma decode_sim:
+    sim_fnsem wf top2
+      ("decode", fun_to_tgt "hardening" (GlobalStb sk) (mk_pure decode_spec))
+      ("decode", cfunU (decomp_func sk ce f_decode)).
+  Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    unfold_comp hardening VALID.
+    econs; ss. red.
+
+    (* get_composite ce e. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto.
+    unfold f_decode. i; ss.
+    unfold decomp_func, function_entry_c. ss.
+
+    let H := fresh "HIDDEN" in
+    set (H := hide 1).
+    
+    iIntros "[INV PRE]". des_ifs_safe. ss.
+    iDestruct "PRE" as "[% %]".
+    des. clarify. hred_r.
+
+    unhide. remove_tau. unhide. remove_tau. des_ifs_safe.
+
+    rewrite cast_long; eauto. rewrite cast_long; eauto.
+    hred_r. rewrite cast_long; eauto. hred_r. remove_tau. unhide. remove_tau.
+    rewrite cast_long; eauto. hred_r.
+    iApply isim_apc. iExists (Some (0%nat : Ord.t)).
+    hred_l.
+    
+    iApply isim_choose_src.
+    iExists _. iApply isim_ret.
+    iSplitL "INV".
+    { ss. }
+    esplits; eauto.
+  Qed.
 
   End SIMFUNS.
 
-End Proof.
+End PROOF.
