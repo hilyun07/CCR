@@ -12,14 +12,14 @@ void *decode(uintptr_t key, uintptr_t ptr) {
   return decoded;
 }
 
-/* long bar(uintptr_t key, uintptr_t ptr) { */
-/*   long *q = decode(key, ptr); */
-/*   return *q; */
-/* } */
+long bar(uintptr_t key, uintptr_t ptr) {
+  long *q = decode(key, ptr);
+  return *q;
+}
 
-/* long foo(uintptr_t key, long *p) { */
-/*   *p = 42; */
-/*   uintptr_t qi = encode(key, p); */
-/*   long ret = bar(key, qi); */
-/*   return ret; */
-/* } */
+long foo(uintptr_t key, long *p) {
+  *p = 42;
+  uintptr_t qi = encode(key, p);
+  long ret = bar(key, qi);
+  return ret;
+}

@@ -75,14 +75,21 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
+Definition _bar : ident := $"bar".
 Definition _decode : ident := $"decode".
 Definition _decoded : ident := $"decoded".
 Definition _encode : ident := $"encode".
 Definition _encoded : ident := $"encoded".
+Definition _foo : ident := $"foo".
 Definition _key : ident := $"key".
 Definition _main : ident := $"main".
+Definition _p : ident := $"p".
 Definition _ptr : ident := $"ptr".
+Definition _q : ident := $"q".
+Definition _qi : ident := $"qi".
+Definition _ret : ident := $"ret".
 Definition _t'1 : ident := 128%positive.
+Definition _t'2 : ident := 129%positive.
 
 Definition f_encode := {|
   fn_return := tulong;
@@ -112,6 +119,51 @@ Definition f_decode := {|
     (Ecast (Ebinop Oxor (Etempvar _ptr tulong) (Etempvar _key tulong) tulong)
       (tptr tvoid)))
   (Sreturn (Some (Etempvar _decoded (tptr tvoid)))))
+|}.
+
+Definition f_bar := {|
+  fn_return := tlong;
+  fn_callconv := cc_default;
+  fn_params := ((_key, tulong) :: (_ptr, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_q, (tptr tlong)) :: (_t'1, (tptr tvoid)) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Scall (Some _t'1)
+      (Evar _decode (Tfunction (Tcons tulong (Tcons tulong Tnil))
+                      (tptr tvoid) cc_default))
+      ((Etempvar _key tulong) :: (Etempvar _ptr tulong) :: nil))
+    (Sset _q (Etempvar _t'1 (tptr tvoid))))
+  (Sreturn (Some (Ederef (Etempvar _q (tptr tlong)) tlong))))
+|}.
+
+Definition f_foo := {|
+  fn_return := tlong;
+  fn_callconv := cc_default;
+  fn_params := ((_key, tulong) :: (_p, (tptr tlong)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_qi, tulong) :: (_ret, tlong) :: (_t'2, tlong) ::
+               (_t'1, tulong) :: nil);
+  fn_body :=
+(Ssequence
+  (Sassign (Ederef (Etempvar _p (tptr tlong)) tlong)
+    (Econst_int (Int.repr 42) tint))
+  (Ssequence
+    (Ssequence
+      (Scall (Some _t'1)
+        (Evar _encode (Tfunction (Tcons tulong (Tcons (tptr tvoid) Tnil))
+                        tulong cc_default))
+        ((Etempvar _key tulong) :: (Etempvar _p (tptr tlong)) :: nil))
+      (Sset _qi (Etempvar _t'1 tulong)))
+    (Ssequence
+      (Ssequence
+        (Scall (Some _t'2)
+          (Evar _bar (Tfunction (Tcons tulong (Tcons tulong Tnil)) tlong
+                       cc_default))
+          ((Etempvar _key tulong) :: (Etempvar _qi tulong) :: nil))
+        (Sset _ret (Etempvar _t'2 tlong)))
+      (Sreturn (Some (Etempvar _ret tlong))))))
 |}.
 
 Definition composites : list composite_definition :=
@@ -386,29 +438,29 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      (Tcons tint Tnil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (_encode, Gfun(Internal f_encode)) :: (_decode, Gfun(Internal f_decode)) ::
- nil).
+ (_bar, Gfun(Internal f_bar)) :: (_foo, Gfun(Internal f_foo)) :: nil).
 
 Definition public_idents : list ident :=
-(_decode :: _encode :: ___builtin_debug :: ___builtin_write32_reversed ::
- ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
- ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
- ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
- ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
- ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
- ___compcert_i64_dtos :: ___builtin_expect :: ___builtin_unreachable ::
- ___compcert_va_composite :: ___compcert_va_float64 ::
- ___compcert_va_int64 :: ___compcert_va_int32 :: ___builtin_va_end ::
- ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
- ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
- ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
- ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
- ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
- ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
- ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
- ___builtin_ais_annot :: nil).
+(_foo :: _bar :: _decode :: _encode :: ___builtin_debug ::
+ ___builtin_write32_reversed :: ___builtin_write16_reversed ::
+ ___builtin_read32_reversed :: ___builtin_read16_reversed ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_fmin :: ___builtin_fmax ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___builtin_expect :: ___builtin_unreachable :: ___compcert_va_composite ::
+ ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
+ ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
+ ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
+ ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
+ ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
+ ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
+ ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
+ ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
+ ___builtin_bswap64 :: ___builtin_ais_annot :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
