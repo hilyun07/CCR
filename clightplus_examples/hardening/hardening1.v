@@ -39,11 +39,11 @@ Section SPEC.
   Definition encode_spec : fspec :=
     (mk_simple
       (fun '(key, ptr, ofs, m_ptr, tg, q) => (
-        (ord_pure 1%nat),
+        (ord_pure 10%nat),
         (fun varg => ⌜varg = [Vlong key; ptr]↑⌝
                      ** live_(m_ptr,tg,q) (Val.subl ptr (Vptrofs ofs))),
-        (fun vret => ∃ iptr, ⌜vret = (Val.xorl iptr (Vlong key))↑⌝
-                     ** live_(m_ptr,tg,q) (Val.subl ptr (Vptrofs ofs)) ** ptr (≃_ m_ptr) iptr)
+        (fun vret => ∃ iptr, ⌜vret = (Val.xorl (Vlong iptr) (Vlong key))↑⌝
+                     ** live_(m_ptr,tg,q) (Val.subl ptr (Vptrofs ofs)) ** ptr (≃_ m_ptr) (Vlong iptr))
     )))%I.
 
   (* void *decode(uintptr_t key, uintptr_t ptr) { *)
@@ -55,7 +55,7 @@ Section SPEC.
   Definition decode_spec : fspec :=
     (mk_simple
       (fun '(key, ptr) => (
-        (ord_pure 1%nat),
+        (ord_pure 10%nat),
         (fun varg => ⌜varg = [Vlong key; (Vlong ptr)]↑⌝),
         (fun vret => ⌜vret = (Val.xorl (Vlong ptr) (Vlong key))↑⌝)
     )))%I.
@@ -68,9 +68,10 @@ Section SPEC.
   Definition bar_spec : fspec :=
     (mk_simple
       (fun '(key, ptr, qq, a, m, q, tg, ofs, qqq) => (
-        (ord_pure 2%nat),
+        (ord_pure 20%nat),
         (fun varg => ⌜varg = [Vlong key; (Vlong ptr)]↑
-                      /\ (qq = Val.xorl (Vlong ptr) (Vlong key)) /\ ((8|Ptrofs.unsigned ofs)%Z)⌝
+                  /\ ((8|Ptrofs.unsigned ofs)%Z)⌝
+                          ** (qq (≃_m) Val.xorl (Vlong ptr) (Vlong key))
                           ** (qq (↦_m, q) (encode_val Mint64 (Vlong a)))
                           ** live_(m,tg,qqq) (Val.subl qq (Vptrofs ofs))),
         (fun vret => ⌜vret = (Vlong a)↑⌝ ** (qq (↦_m, q) (encode_val Mint64 (Vlong a)))
@@ -87,7 +88,7 @@ Section SPEC.
   Definition foo_spec : fspec :=
     (mk_simple
       (fun '(key, ptr, m, q, tg, ofs) => (
-        (ord_pure 3%nat),
+        (ord_pure 30%nat),
         (fun varg => ∃ v, ⌜varg = [Vlong key; ptr]↑ /\ ((8|Ptrofs.unsigned ofs)%Z)⌝
                           ** (ptr (↦_m, 1) (encode_val Mint64 v))
                           ** live_(m,tg,q) (Val.subl ptr (Vptrofs ofs))

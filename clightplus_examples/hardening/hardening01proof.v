@@ -154,8 +154,7 @@ Section PROOF.
     { ss. }
 
     iFrame. iSplit; ss.
-    iExists (Vlong (Ptrofs.to_int64 i0)). iFrame.
-    unfold Val.xorl. ss.
+    iExists (Ptrofs.to_int64 i0). iFrame. unfold Val.xorl. ss.
   Qed.
     
   Lemma decode_sim:
@@ -224,7 +223,8 @@ Section PROOF.
     set (H := hide 1).
 
     iIntros "[INV PRE]". des_ifs_safe. ss.
-    iDestruct "PRE" as "[[[% PRE] PRE'] %]".
+    iDestruct "PRE" as "[[[PRE'' PRE] PRE'] %]".
+    iDestruct "PRE''" as "[[% %] RELT]".
     des. clarify. hred_r.
 
     unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
@@ -245,32 +245,57 @@ Section PROOF.
     iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. unfold hardeningStb. unseal "stb". ss. }
-      { instantiate (1:=(_,_)). ss. eapply Ord.S_lt. } 
+      { instantiate (1:=(_,_)). ss. eapply OrdArith.lt_from_nat. lia. }
       { ss. } }
     instantiate (1:=19). eapply Ord.S_lt. hred_r.
 
-    iSplitR "PRE PRE'".
+    iSplitR "PRE PRE' RELT".
     { iSplit; ss. }
     iIntros. des. clarify.
-    iExists _. iSplitR "PRE PRE'"; eauto.
+    iExists _. iSplitR "PRE PRE' RELT"; eauto.
     hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau. des_ifs_safe.
     hred_r.
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "PRE PRE'".
-    { iSplitR "PRE PRE'"; ss. iSplitL "PRE PRE'". 
-      { iFrame. instantiate (1:=Ptrofs.of_int64 i3).
-        unfold Vptrofs. des_ifs. rewrite Ptrofs.to_int64_of_int64; eauto. }
-      iSplits; ss.
-      unfold Vptrofs in Heq. des_ifs. rewrite Ptrofs.of_int64_to_int64; eauto. }
+    iPoseProof (equiv_dup with "RELT") as "RELT1".
+    iDestruct "RELT1" as "[RELT RELT1]".
+    iSplitL "PRE PRE' RELT".
+    { iSplitR "PRE PRE' RELT"; ss. iSplitL "PRE PRE' RELT". 
+      { iPoseProof (equiv_dup with "RELT") as "RELT'".
+        iDestruct "RELT'" as "[RELT1 RELT2]".
+        iCombine "RELT1 PRE" as "PTO".
+        iPoseProof (equiv_point_comm with "PTO") as "PTO'".
+        iFrame. instantiate (1:=i). unfold Vptrofs. des_ifs_safe.
+        rewrite Val.subl_addl_opp. rewrite Int64.sub_add_opp.
+        iPoseProof (equiv_slide with "RELT2") as "XX". instantiate (3:=(Ptrofs.neg i)).
+        unfold Vptrofs. des_ifs_safe. erewrite <- int64_ptrofs_neg; eauto.
+        iCombine "XX PRE'" as "LIVE'".
+        iPoseProof (equiv_live_comm with "LIVE'") as "LIVE".
+        unfold Val.addl. et. }
+      iSplits; eauto. }
+
     iIntros (st_src1 st_tgt1) "[INV [PRE PRE']]". unfold Vptrofs. des_ifs_safe.
     hred_r. rewrite decode_encode_item. rewrite cast_long; eauto. hred_r.
     hred_l.
     iApply isim_choose_src.
 
     iExists _. iApply isim_ret.
-    iFrame. iSplitL "PRE'"; et. iSplitR "PRE'"; eauto.
-    rewrite Ptrofs.to_int64_of_int64; eauto.
+    iFrame.
+    iPoseProof (equiv_dup with "RELT1") as "RELT1".
+    iDestruct "RELT1" as "[RELT RELT1]".
+    iSplitL "PRE PRE' RELT RELT1"; eauto.
+    iSplitR "PRE' RELT1"; eauto.
+    { iPoseProof (equiv_sym with "RELT") as "RELT".
+      iCombine "RELT PRE" as "PRE".
+      iPoseProof (equiv_point_comm with "PRE") as "PRE". eauto. }
+    rewrite Val.subl_addl_opp. rewrite Int64.sub_add_opp.
+    iPoseProof (equiv_slide with "RELT1") as "XX". instantiate (1:=(Ptrofs.neg i)).
+    unfold Vptrofs. des_ifs_safe. erewrite <- int64_ptrofs_neg; eauto.    
+    iPoseProof (equiv_sym with "XX") as "XX".
+    iCombine "XX PRE'" as "LIVE". unfold Val.addl.
+    iPoseProof (equiv_live_comm with "LIVE") as "LIVE". eauto.
   Qed.
+
+  Ltac ord_tac := eapply OrdArith.lt_from_nat; eapply Nat.lt_succ_diag_r.
   
   Lemma foo_sim:
     sim_fnsem wf top2
@@ -305,8 +330,77 @@ Section PROOF.
 
     unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
     iPoseProof (points_to_is_ptr with "PRE") as "#->".
-    hred_r. 
+    hred_r.
+    iApply isim_apc. iExists (Some (40%nat : Ord.t)).
+    iApply isim_ccallU_store; ss; oauto.
+    iSplitL "PRE PRE'".
+    { iSplitR "PRE PRE'"; ss.
+      iExists (encode_val Mint64 v0). 
+      iFrame.  iSplits; ss. destruct v0; ss. }
+    iIntros (st_src1 st_tgt1) "[INV' [PRE PRE']]". unfold Vptrofs. des_ifs_safe.
+    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
 
+    hexploit SKINCLENV.
+    { instantiate (2:= "encode"). unfold _hardening, prog, mkprogram. des_ifs_safe. ss.
+      left. eauto. }
+    i. des. rewrite H0. hred_r.
+    iPoseProof ((@point_cast_ptr _ _ Es) with "PRE") as "#->".
+    hred_r. rewrite cast_long; eauto. hred_r. des_ifs_safe.
+    replace (Init.Nat.pred (Pos.to_nat (Pos.of_succ_nat blk))) with blk by nia.
+
+    hexploit SKINCLGD; eauto.
+    { unfold _hardening, prog, mkprogram. des_ifs_safe. ss.
+      left. eauto. }
+    i. rewrite H1. hred_r. ss. hred_r.
+
+    (* iApply isim_apc. iExists (Some (20%nat : Ord.t)). *)
+    iApply isim_ccallU_pure; et.
+    { eapply fn_has_spec_in_stb; et.
+      { eapply STBINCL. stb_tac. unfold hardeningStb. unseal "stb". ss. }
+      { instantiate (1:=(_ , _ , _ , _, _ , _)). ss. eapply OrdArith.lt_from_nat. lia. }
+      { ss. } }
+    instantiate (1:=19). eapply OrdArith.lt_from_nat. lia. hred_r. ss.
+    iSplitL "PRE'".
+    { ss. iSplit; ss. iSplit; ss. iFrame. eauto. }
+    iIntros (st_src2 st_tgt2 ret_src ret_tgt) "[INV'' [PRE' %]]".
+    iDestruct "PRE'" as (iptr) "[[% ILIVE] RELT]".
+    rewrite H4. iExists _. iSplitR; ss.
+
+    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
+
+    hexploit SKINCLENV.
+    { instantiate (2:= "bar"). unfold _hardening, prog, mkprogram. des_ifs_safe. ss.
+      right. right. left. et. }
+    i. des. rewrite H5. hred_r.
+    rewrite cast_long; eauto. hred_r. rewrite cast_long; eauto. hred_r. des_ifs_safe.
+    replace (Init.Nat.pred (Pos.to_nat (Pos.of_succ_nat blk0))) with blk0 by nia.
+
+    hexploit SKINCLGD; eauto.
+    { unfold _hardening, prog, mkprogram. des_ifs_safe. ss. right. right. eauto. }
+    i. rewrite H3. hred_r.
+
+    iApply isim_ccallU_pure; et.
+    { eapply fn_has_spec_in_stb; et.
+      { eapply STBINCL. stb_tac. unfold hardeningStb. unseal "stb". ss. }
+      { instantiate (1:=(_ , _ , _ , _, _ , _, _, _ , _)). ss. eapply OrdArith.lt_from_nat. lia. }
+      { ss. } }
+    instantiate (1:=18). eapply OrdArith.lt_from_nat. lia.
+    ss.
+    iSplitL "ILIVE PRE RELT".
+    { ss. iSplit; ss. iSplit; ss. iFrame. iSplits; eauto.
+      rewrite Int64.xor_assoc. rewrite Int64.xor_idem. rewrite Int64.xor_zero. eauto. }
+    iIntros (st_src3 st_tgt3 ret_src ret_tgt) "[INV''' [[[% PRE'] PRE''] %]]". subst.
+    iExists _. iSplit; eauto.
+
+    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
+
+    rewrite cast_long; eauto. hred_r.
+    hred_l.
+    
+    iApply isim_choose_src.
+    iExists _. iApply isim_ret. iSplits; eauto.
+    Unshelve. ss. ss.
+  Qed.
     
   End SIMFUNS.
 
