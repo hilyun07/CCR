@@ -200,6 +200,114 @@ Section PROOF.
     esplits; eauto.
   Qed.
 
+  Lemma bar_sim:
+    sim_fnsem wf top2
+      ("bar", fun_to_tgt "hardening" (GlobalStb sk) (mk_pure bar_spec))
+      ("bar", cfunU (decomp_func sk ce f_bar)).
+  Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    unfold_comp hardening VALID.
+    econs; ss. red.
+
+    (* get_composite ce e. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto.
+    unfold f_bar. i; ss.
+    unfold decomp_func, function_entry_c. ss.
+
+    let H := fresh "HIDDEN" in
+    set (H := hide 1).
+
+    iIntros "[INV PRE]". des_ifs_safe. ss.
+    iDestruct "PRE" as "[[[% PRE] PRE'] %]".
+    des. clarify. hred_r.
+
+    unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
+
+    exploit SKINCLENV.
+    { instantiate (2:= "decode"). unfold _hardening, prog, mkprogram. des_ifs_safe. ss.
+      right. left. eauto. }
+    i. des. r in x0. rewrite x0. hred_r. des_ifs_safe.
+    rewrite cast_long; eauto. rewrite cast_long; eauto. hred_r.
+    replace (Init.Nat.pred (Pos.to_nat (Pos.of_succ_nat blk))) with blk by nia.
+
+    exploit SKINCLGD; eauto.
+    { unfold _hardening, prog, mkprogram. des_ifs_safe. ss.
+      right. left. eauto. }
+    i. rewrite x1. hred_r.
+
+    iApply isim_apc. iExists (Some (20%nat : Ord.t)).
+    iApply isim_ccallU_pure; et.
+    { eapply fn_has_spec_in_stb; et.
+      { eapply STBINCL. stb_tac. unfold hardeningStb. unseal "stb". ss. }
+      { instantiate (1:=(_,_)). ss. eapply Ord.S_lt. } 
+      { ss. } }
+    instantiate (1:=19). eapply Ord.S_lt. hred_r.
+
+    iSplitR "PRE PRE'".
+    { iSplit; ss. }
+    iIntros. des. clarify.
+    iExists _. iSplitR "PRE PRE'"; eauto.
+    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau. des_ifs_safe.
+    hred_r.
+    iApply isim_ccallU_load; ss; oauto.
+    iSplitL "PRE PRE'".
+    { iSplitR "PRE PRE'"; ss. iSplitL "PRE PRE'". 
+      { iFrame. instantiate (1:=Ptrofs.of_int64 i3).
+        unfold Vptrofs. des_ifs. rewrite Ptrofs.to_int64_of_int64; eauto. }
+      iSplits; ss.
+      unfold Vptrofs in Heq. des_ifs. rewrite Ptrofs.of_int64_to_int64; eauto. }
+    iIntros (st_src1 st_tgt1) "[INV [PRE PRE']]". unfold Vptrofs. des_ifs_safe.
+    hred_r. rewrite decode_encode_item. rewrite cast_long; eauto. hred_r.
+    hred_l.
+    iApply isim_choose_src.
+
+    iExists _. iApply isim_ret.
+    iFrame. iSplitL "PRE'"; et. iSplitR "PRE'"; eauto.
+    rewrite Ptrofs.to_int64_of_int64; eauto.
+  Qed.
+  
+  Lemma foo_sim:
+    sim_fnsem wf top2
+      ("foo", fun_to_tgt "hardening" (GlobalStb sk) (mk_pure foo_spec))
+      ("foo", cfunU (decomp_func sk ce f_foo)).
+  Proof.
+    Local Opaque encode_val.
+    Local Opaque cast_to_ptr.
+    unfold_comp hardening VALID.
+    econs; ss. red.
+
+    (* get_composite ce e. *)
+    dup SKINCL. rename SKINCL0 into SKINCLENV.
+    apply incl_incl_env in SKINCLENV.
+    unfold incl_env in SKINCLENV.
+    pose proof sk_incl_gd as SKINCLGD.
+
+    apply isim_fun_to_tgt; auto.
+    unfold f_foo. i; ss.
+    unfold decomp_func, function_entry_c. ss.
+
+    let H := fresh "HIDDEN" in
+    set (H := hide 1).
+
+    iIntros "[INV PRE]". des_ifs_safe. ss.
+    
+    iDestruct "PRE" as "[PRE %]".
+    iDestruct "PRE" as (v0) "[PRE PRE']".
+    iDestruct "PRE" as "[[% %] PRE]".
+
+    des. clarify. hred_r.
+
+    unhide. remove_tau. unhide. remove_tau. unhide. remove_tau.
+    iPoseProof (points_to_is_ptr with "PRE") as "#->".
+    hred_r. 
+
+    
   End SIMFUNS.
 
 End PROOF.

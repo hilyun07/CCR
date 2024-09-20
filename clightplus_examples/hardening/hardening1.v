@@ -60,19 +60,21 @@ Section SPEC.
         (fun vret => ⌜vret = (Val.xorl (Vlong ptr) (Vlong key))↑⌝)
     )))%I.
 
-
-
   (* long bar(uintptr_t key, uintptr_t ptr) { *)
   (*   long *q = decode(key, ptr); *)
   (*   return *q; *)
   (* } *)
-
+(* { q = key ^ ptr , q |->v } {r=v. *)
   Definition bar_spec : fspec :=
     (mk_simple
-      (fun '(key, ptr) => (
-        (ord_pure 1%nat),
-        (fun varg => ⌜varg = [Vlong key; (Vlong ptr)]↑⌝),
-        (fun vret => ⌜vret = (Val.xorl (Vlong ptr) (Vlong key))↑⌝)
+      (fun '(key, ptr, qq, a, m, q, tg, ofs, qqq) => (
+        (ord_pure 2%nat),
+        (fun varg => ⌜varg = [Vlong key; (Vlong ptr)]↑
+                      /\ (qq = Val.xorl (Vlong ptr) (Vlong key)) /\ ((8|Ptrofs.unsigned ofs)%Z)⌝
+                          ** (qq (↦_m, q) (encode_val Mint64 (Vlong a)))
+                          ** live_(m,tg,qqq) (Val.subl qq (Vptrofs ofs))),
+        (fun vret => ⌜vret = (Vlong a)↑⌝ ** (qq (↦_m, q) (encode_val Mint64 (Vlong a)))
+                                         ** live_(m,tg,qqq) (Val.subl qq (Vptrofs ofs)))
     )))%I.
   
   (* long foo(uintptr_t key, long *p) { *)
@@ -84,9 +86,12 @@ Section SPEC.
 
   Definition foo_spec : fspec :=
     (mk_simple
-      (fun '(key, ptr) => (
-        (ord_pure 1%nat),
-        (fun varg => ⌜varg = [Vlong key; (Vlong ptr)]↑⌝),
+      (fun '(key, ptr, m, q, tg, ofs) => (
+        (ord_pure 3%nat),
+        (fun varg => ∃ v, ⌜varg = [Vlong key; ptr]↑ /\ ((8|Ptrofs.unsigned ofs)%Z)⌝
+                          ** (ptr (↦_m, 1) (encode_val Mint64 v))
+                          ** live_(m,tg,q) (Val.subl ptr (Vptrofs ofs))
+                           ),
         (fun vret => ⌜vret = (Vlong (Int64.repr 42))↑⌝)
     )))%I.
 
