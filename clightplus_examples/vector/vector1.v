@@ -38,24 +38,26 @@ Section PROP.
 
   Fixpoint list_points_to ptr m (cs : list cell) : iProp :=
     match cs with
-    | [] => True%I
+    | [] => ptr (↦_m,1) []
     | c :: cs' => cell_points_to ptr m c ** list_points_to (Val.addl ptr (Vptrofs (Ptrofs.repr (cell_size c)))) m cs'
     end.
 
   Definition is_vector_handler (v : val) (data : val) (esize capacity length: nat) mᵥ tgᵥ pᵥ qᵥ : iProp :=
     ( ∃ ofsᵥ,
-      ⌜ (8 | Ptrofs.unsigned ofsᵥ)%Z ⌝
-      ∗ v (↦_mᵥ,pᵥ) (encode_val Mptr data
-                       ++ encode_val Mint64 (Vlong (Int64.repr esize))
-                       ++ encode_val Mint64 (Vlong (Int64.repr capacity))
-                       ++ encode_val Mint64 (Vlong (Int64.repr length)))
+      ⌜ (8 | Ptrofs.unsigned ofsᵥ)%Z
+      /\ is_ptr_val data
+      ⌝
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 0))) (↦_mᵥ,pᵥ) (encode_val Mptr data)
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 8))) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr esize)))
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 16))) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr capacity)))
+      ∗ (Val.addl v (Vptrofs (Ptrofs.repr 24))) (↦_mᵥ,pᵥ) (encode_val Mint64 (Vlong (Int64.repr length)))
       ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ
     )%I.
 
   Definition is_vector_fixed (v : val) (data : val) (esize capacity length : nat) (cells : list cell) mᵥ tgᵥ pᵥ qᵥ m_data q_data : iProp :=
     ( ⌜ esize > 0
       /\ capacity > 0
-      /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
+      /\ (esize * capacity <= Int64.max_unsigned)%Z
       /\ length <= capacity
       /\ Datatypes.length cells = length
       /\ Forall (fun c => cell_size c = esize) cells
@@ -69,40 +71,19 @@ Section PROP.
     ( ∃ (data : val) (m_data : metadata) (unused_length : nat) (unused : list memval),
       ⌜ esize > 0
       /\ capacity > 0
-      /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
+      /\ (esize * capacity <= Int64.max_unsigned)%Z
       /\ (length + unused_length)%nat = capacity
       /\ Datatypes.length cells = length
       /\ Datatypes.length unused = (esize * unused_length)%nat
       /\ Forall (fun c => cell_size c = esize) cells
       /\ Forall (fun c => exists mvs, c = owned mvs 1) cells
+      /\ Z.of_nat (esize * (length + unused_length)) = sz m_data
       ⌝
       ∗ is_vector_handler v data esize capacity length mᵥ tgᵥ 1 qᵥ
       ∗ list_points_to data m_data cells
       ∗ data (⊨_m_data,Dynamic,1) Ptrofs.zero
       ∗ (Val.addl data (Vptrofs (Ptrofs.repr (esize * length)))) (↦_m_data,1) unused
     )%I.
-
-  Lemma is_vector_fix
-    v esize capacity length cells mᵥ tgᵥ qᵥ
-    : bi_entails
-        (is_vector v esize capacity length cells mᵥ tgᵥ qᵥ)
-        (∃ data m_data,
-            ⌜ Forall (fun c => exists mvs, c = owned mvs 1) cells ⌝
-            ∗ is_vector_fixed v data esize capacity length cells mᵥ tgᵥ 1 qᵥ m_data 1
-            ∗ (∀ qᵥ' cells',
-                ⌜ Forall (fun c => exists mvs, c = owned mvs 1) cells' ⌝
-                -∗ is_vector_fixed v data esize capacity length cells' mᵥ tgᵥ 1 qᵥ' m_data 1
-                -∗ is_vector v esize capacity length cells' mᵥ tgᵥ qᵥ' )).
-  Proof.
-    iIntros "V".
-    iDestruct "V" as (data m_data unused_length unused) "[% [V1 [V2 [V3 V4]]]]". des.
-    iExists data, m_data. iSplit; ss. iSplitL "V1 V2 V3".
-    - iFrame. iPureIntro. splits; ss; lia.
-    - iIntros (qᵥ' cells') "% V".
-      iDestruct "V" as "[% [V1 [V2 V3]]]". des.
-      iExists data, m_data, (capacity - length), unused.
-      iFrame. iPureIntro. splits; ss; lia.
-  Qed.
 
 End PROP.
 
@@ -113,7 +94,6 @@ Section SPEC.
   Context `{@GRA.inG blocksizeRA Σ}.
   Context `{@GRA.inG blockaddressRA Σ}.
 
-  (* TODO : Fix specs *)
   Definition vector_init_spec : fspec :=
     @mk_simple
       _
@@ -124,8 +104,8 @@ Section SPEC.
              ⌜ varg = [v; Vlong (Int64.repr esize); Vlong (Int64.repr capacity)]↑
              /\ esize > 0
              /\ capacity > 0
-             /\ esize * capacity <= Z.to_nat Ptrofs.max_unsigned
-             /\ Datatypes.length mvsᵥ = 24
+             /\ (esize * capacity <= Int64.max_unsigned)%Z
+             /\ Datatypes.length mvsᵥ = 32
              ⌝
              ∗ v (↦_mᵥ,1) mvsᵥ
              ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ
@@ -146,7 +126,9 @@ Section SPEC.
              ∗ is_vector v esize capacity length cells mᵥ tgᵥ qᵥ
          , fun vret =>
              ∃ mvsᵥ ofsᵥ,
-             ⌜vret = Vundef↑⌝
+             ⌜vret = Vundef↑
+             /\ Datatypes.length mvsᵥ = 32
+             ⌝
              ∗ v (↦_mᵥ,1) mvsᵥ
              ∗ v (⊨_mᵥ,tgᵥ,qᵥ) ofsᵥ
          )%I
@@ -206,7 +188,7 @@ Section SPEC.
          , fun varg =>
              ⌜varg = [v; Vlong (Int64.repr min_capacity)]↑
              /\ min_capacity > 0
-             /\ esize * min_capacity < Z.to_nat Ptrofs.max_unsigned
+             /\ (esize * min_capacity <= Int64.max_unsigned)%Z
              ⌝
              ∗ is_vector v esize capacity length cells mᵥ tgᵥ qᵥ
          , fun vret =>
@@ -248,7 +230,7 @@ Section SPEC.
            index, mvs_index, p_index, dst, mvs_dst, ofs_dst, m_dst, tg_dst, q_dst) =>
          ( ord_pure 1%nat
          , fun varg =>
-             ⌜ varg = [v; Vlong (Int64.repr (index : nat)); dst]↑
+             ⌜ varg = [v; Vlong (Int64.repr index); dst]↑
              /\ cells !! index = Some (owned mvs_index p_index)
              /\ Datatypes.length mvs_dst = esize
              ⌝
@@ -272,7 +254,7 @@ Section SPEC.
            index, mvs_index, src, mvs_src, ofs_src, m_src, tg_src, p_src, q_src) =>
          ( ord_pure 1%nat
          , fun varg =>
-             ⌜ varg = [v; Vlong (Int64.repr (index : nat)); src]↑
+             ⌜ varg = [v; Vlong (Int64.repr index); src]↑
              /\ cells !! index = Some (owned mvs_index 1)
              /\ Datatypes.length mvs_src = esize
              ⌝
@@ -294,7 +276,7 @@ Section SPEC.
       (fun '(v, esize, capacity, length, cells, mᵥ, tgᵥ, qᵥ, index, mvs_index) =>
          ( ord_pure 1%nat
          , fun varg =>
-             ⌜varg = [v; (Vlong (Int64.repr (index : nat)))]↑
+             ⌜varg = [v; Vlong (Int64.repr index)]↑
              /\ cells !! index = Some (owned mvs_index 1)
              ⌝
              ∗ is_vector v esize capacity length cells mᵥ tgᵥ qᵥ
