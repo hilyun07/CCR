@@ -103,7 +103,7 @@ Section MEM.
         R_src R_tgt
         (Q: Any.t -> Any.t -> R_src -> R_tgt -> iProp)
         r g f_src f_tgt st_src st_tgt
-        chunk vaddr m tg q0 ofs q1 mvs itr_src (ktr_tgt: val -> _)
+        chunk vaddr m q mvs itr_src (ktr_tgt: val -> _)
         fuel0
         (STBINCL: stb_incl (to_stb MemStb) stb)
         (DEPTH: ord_lt (ord_pure 0%nat) o)
@@ -111,8 +111,8 @@ Section MEM.
     :
       bi_entails
         (inv_with le I w0 st_src st_tgt
-        ** (vaddr (↦_m,q1) mvs
-            ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))
+        ** (∃ ofs, vaddr (↦_m,q) mvs
+            ** vaddr ⊨ m # ofs
             ** ⌜List.length mvs = size_chunk_nat chunk
                /\ Mem.change_check chunk mvs = false
                /\ chunk <> Many64
@@ -120,25 +120,24 @@ Section MEM.
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr (↦_m,q1) mvs
-                ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))))
+             ** vaddr (↦_m,q) mvs
 
-             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (decode_val chunk mvs))))
+             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt (decode_val chunk mvs)))))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "load" (chunk, vaddr) >>= ktr_tgt)).
   Proof.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. ss. }
-      { instantiate (1:=(_, _, _, _, _, _, _, _)). ss. }
+      { instantiate (1:=(_, _, _, _, _)). ss. }
       { ss. } }
     ss.
     iSplitL "INV PRE".
     { iFrame. iSplit; ss.
-      iDestruct "PRE" as "[[? ?] %]".
-      des. clarify. iFrame. iPureIntro. ss. }
+      iDestruct "PRE" as (ofs) "[[? ?] %]".
+      des. clarify. iExists _. iFrame. iPureIntro. ss. }
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "POST'".
     iDestruct "POST'" as "[? [POST' %]]".
-    iDestruct "POST'" as (v) "[[% ?] ?]".
+    iDestruct "POST'" as (v) "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
     iApply "POST". iFrame.
@@ -149,7 +148,7 @@ Section MEM.
         R_src R_tgt
         (Q: Any.t -> Any.t -> R_src -> R_tgt -> iProp)
         r g f_src f_tgt st_src st_tgt
-        m chunk vaddr ofs tg q v_new itr_src (ktr_tgt: unit -> _)
+        m chunk vaddr v_new itr_src (ktr_tgt: unit -> _)
         fuel0
         (STBINCL: stb_incl (to_stb MemStb) stb)
         (DEPTH: ord_lt (ord_pure 0%nat) o)
@@ -157,16 +156,15 @@ Section MEM.
     :
       bi_entails
         (inv_with le I w0 st_src st_tgt
-        ** (∃ mvs_old,
+        ** (∃ mvs_old ofs,
             ⌜length mvs_old = size_chunk_nat chunk
             /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)%Z⌝
             ** vaddr (↦_m,1) mvs_old
-            ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)))
+            ** vaddr ⊨ m # ofs)
 
         ** (∀ st_src st_tgt,
             ((inv_with le I w0 st_src st_tgt)
-             ** (vaddr (↦_m,1) (encode_val chunk v_new)
-                ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))))
+             ** (vaddr (↦_m,1) (encode_val chunk v_new)))
 
             -* isim le I mn stb o (g, g, true, true) Q (Some fuel1) (st_src, itr_src) (st_tgt, ktr_tgt tt)))
         (isim le I mn stb o (r, g, f_src, f_tgt) Q (Some fuel0) (st_src, itr_src) (st_tgt, ccallU "store" (chunk, vaddr, v_new) >>= ktr_tgt)).
@@ -174,16 +172,16 @@ Section MEM.
     iIntros "[[INV PRE] POST]". iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. ss. }
-      { instantiate (1:=(_, _, _, _, _, _, _)). ss. }
+      { instantiate (1:=(_, _, _, _)). ss. }
       { ss. } }
     ss.
     iSplitL "INV PRE".
     { iFrame. iSplit; ss.
-      iDestruct "PRE" as (mvs_old) "[[% ?] ?]".
-      des. clarify. iExists _. iFrame. iPureIntro. ss. }
+      iDestruct "PRE" as (mvs_old ofs) "[[% ?] ?]".
+      des. clarify. iExists _, _. iFrame. iPureIntro. ss. }
     iIntros (st_src0 st_tgt0 ret_src ret_tgt) "POST'".
     iDestruct "POST'" as "[? [POST' %]]".
-    iDestruct "POST'" as (mvs_new) "[[% ?] ?]".
+    iDestruct "POST'" as (mvs_new) "[% ?]".
     des. clarify.
     iExists _. iSplit; ss.
     iApply "POST". iFrame.

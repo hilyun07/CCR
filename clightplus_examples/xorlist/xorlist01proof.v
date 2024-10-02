@@ -170,10 +170,11 @@ Section PROOF.
 
     iPoseProof (xorlist_tl_deen with "LIST") as "%". rename H0 into hd_deen.
     iPoseProof (xorlist_tl_not_Vundef with "LIST") as "%". rename H0 into hd_notundef.
+    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
-    iIntros (st_src1 st_tgt1) "[INV [hd_hdl_point hd_hdl_ofs]]".
+    iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
+    iIntros (st_src1 st_tgt1) "[INV hd_hdl_point]".
     rewrite hd_deen.
     (* node* hd = *hd_handler end *)
 
@@ -185,10 +186,11 @@ Section PROOF.
 
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into tl_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into tl_notundef.
+    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
-    iIntros (st_src2 st_tgt2) "[INV [tl_hdl_point tl_hdl_ofs]]".
+    iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
+    iIntros (st_src2 st_tgt2) "[INV tl_hdl_point]".
     rewrite tl_deen.
     (* node* tl = *tl_handler end *)
 
@@ -207,11 +209,12 @@ Section PROOF.
     replace (points_to _ _ _ _) with (points_to p_new m_new (repeat Undef 8 ++ repeat Undef 8) 1) by reflexivity.
     iPoseProof (points_to_split with "new_point") as "[new_point_item new_point_key]".
     iPoseProof (sub_null_r with "new_ofs") as "%". rename H0 into new_sub_r.
+    iPoseProof (live_has_offset with "new_ofs") as "[new_ofs new_ofs_ofs]".
 
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV new_point_item new_ofs"; iFrame.
-    { rewrite new_sub_r. iExists _. iFrame. ss. iPureIntro. split; et. exists 0. ss. }
-    iIntros (st_src3 st_tgt3) "[INV [new_point_item new_ofs]]".
+    iSplitL "INV new_point_item new_ofs_ofs"; iFrame.
+    { iExists _, _. iFrame. ss. iPureIntro. split; et. exists 0. ss. }
+    iIntros (st_src3 st_tgt3) "[INV new_point_item]".
     (* entry->item = item end *)
 
     hred_r. unhide. remove_tau.
@@ -239,10 +242,11 @@ Section PROOF.
       unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss. hred_r.
       replace (Coqlib.align _ _) with 8%Z by et.
       replace (Vlong (Int64.repr _)) with Vnullptr by et.
+      iPoseProof (live_has_offset with "new_ofs") as "[new_ofs new_ofs_ofs]".
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV new_point_key new_ofs"; iFrame.
-      { iExists _. iFrame. iSplit; cycle 1. { iApply live_slide. rewrite new_sub_r. et. } { iPureIntro. split; ss. exists 1. ss. } }
-      iIntros (st_src5 st_tgt5) "[INV [new_point_key new_ofs]]".
+      iSplitL "INV new_point_key new_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. iSplit; cycle 1. { iApply _has_offset_slide. iFrame. } { iPureIntro. split; ss. exists 1. ss. } }
+      iIntros (st_src5 st_tgt5) "[INV new_point_key]".
       (* entry->link = 0 end *)
 
       hred_r. unhide. remove_tau. unhide. hred_r. unhide. remove_tau. unhide. remove_tau.
@@ -250,19 +254,21 @@ Section PROOF.
       (* hd_handler = *tl_handler = entry start *)
       rewrite new_cast_ptr. hred_r. unhide. remove_tau.
       rewrite tl_hdl_is_point. hred_r. rewrite new_cast_ptr. hred_r.
+      iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-      { iExists _. iFrame. rewrite encode_val_length. iPureIntro. ss. }
-      iIntros (st_src7 st_tgt7) "[INV [tl_hdl_point tl_hdl_ofs]]".
+      iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. rewrite encode_val_length. iPureIntro. ss. }
+      iIntros (st_src7 st_tgt7) "[INV tl_hdl_point]".
 
       hred_r. unhide. remove_tau. rewrite hd_hdl_ptr. hred_r.
       rewrite new_cast_ptr. hred_r.
+      iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-      { iExists _. iFrame. rewrite encode_val_length. iPureIntro. ss. }
-      iIntros (st_src8 st_tgt8) "[INV [hd_hdl_point hd_hdl_ofs]]".
+      iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. rewrite encode_val_length. iPureIntro. ss. }
+      iIntros (st_src8 st_tgt8) "[INV hd_hdl_point]".
 
       hred_r. remove_tau. hred_l. iApply isim_choose_src.
       iExists _. iApply isim_ret. iFrame. iSplit; ss. iSplit; ss.
@@ -271,7 +277,6 @@ Section PROOF.
 
       iExists _,_,_,_,_,_. iFrame.
       iSplit; ss.
-      iPoseProof (live_slide_rev with "new_ofs") as "new_ofs".
       change Vnullptr with (Vptrofs Ptrofs.zero) at 3 4.
       iPoseProof (equiv_refl_live with "new_ofs") as "[new_ofs new_equiv]".
       iPoseProof (equiv_dup with "NULL_tl") as "[? ?]".
@@ -308,13 +313,14 @@ Section PROOF.
     unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss. hred_r.
     rewrite cast_ptrofs. hred_r.
     replace (Coqlib.align _ _) with 8%Z by et.
+    iPoseProof (live_has_offset with "new_ofs") as "[new_ofs new_ofs_ofs]".
 
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV new_point_key new_ofs"; iFrame.
-    { iExists _. iFrame. iSplit; cycle 1.
-      { iApply live_slide. rewrite new_sub_r. ss. }
+    iSplitL "INV new_point_key new_ofs_ofs"; iFrame.
+    { iExists _,_. iFrame. iSplit; cycle 1.
+      { iApply _has_offset_slide. ss. }
       { iPureIntro. split; ss. exists 1. ss. } }
-    iIntros (st_src6 st_tgt6) "[INV [new_point_key new_ofs]]".
+    iIntros (st_src6 st_tgt6) "[INV new_point_key]".
     (* entry->link = (intptr_t)hd end *)
 
     hred_r. unhide. remove_tau. unhide. hred_r. unhide. remove_tau.
@@ -323,7 +329,7 @@ Section PROOF.
     rewrite new_cast_ptr. hred_r.
     iApply isim_ccallU_capture1; ss; oauto.
     iSplitL "INV new_ofs"; iFrame.
-    { rewrite new_sub_r. iPoseProof (live_slide_rev with "new_ofs") as "new_ofs". et. }
+    { rewrite new_sub_r. et. }
     iIntros (st_src7 st_tgt7 i_new) "[INV [new_ofs new_addr]]".
 
     hred_r. unhide. remove_tau.
@@ -339,12 +345,13 @@ Section PROOF.
     replace (Coqlib.align _ _) with 8%Z by et.
 
     iPoseProof (points_to_split with "tl_point") as "[tl_point_item tl_point_key]".
+    iPoseProof (live_has_offset_ofs with "tl_ofs") as "[tl_ofs tl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV tl_point_key tl_ofs".
-    { iFrame. iSplit.
-      { iApply live_slide. rewrite tl_sub_r. ss. }
+    iSplitL "INV tl_point_key tl_ofs_ofs".
+    { iFrame. iExists _. iSplit.
+      { iApply _has_offset_slide. ss. }
       { iPureIntro. splits; ss. exists 1. ss. } }
-    iIntros (st_src8 st_tgt8) "[INV [tl_point_key tl_ofs]]".
+    iIntros (st_src8 st_tgt8) "[INV tl_point_key]".
 
     unfold Mptr. rewrite ptr64.
     rewrite decode_encode_ofs. hred_r.
@@ -353,11 +360,12 @@ Section PROOF.
     des_ifs_safe.
 
     hred_r. rewrite cast_long; et. hred_r.
+    iPoseProof (live_has_offset_ofs with "tl_ofs") as "[tl_ofs tl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV tl_point_key tl_ofs".
-    { iFrame. iExists _. iFrame.
+    iSplitL "INV tl_point_key tl_ofs_ofs".
+    { iFrame. iExists _,_. iFrame. iSplit. 2:{ iApply _has_offset_slide. et. }
       iPureIntro. split; ss. exists 1. ss. }
-    iIntros (st_src9 st_tgt9) "[INV [tl_point_key tl_ofs]]".
+    iIntros (st_src9 st_tgt9) "[INV tl_point_key]".
     (* hd->link = hd->link ^ (intptr_t)entry end *)
 
     hred_r. unhide. remove_tau.
@@ -365,11 +373,12 @@ Section PROOF.
     (* *hd_handler = entry start *)
     rewrite tl_hdl_is_point. hred_r.
     rewrite new_cast_ptr. hred_r.
+    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV tl_hdl_point tl_hdl_ofs".
-    { iFrame. iExists _. iFrame. iPureIntro.
+    iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs".
+    { iFrame. iExists _,_. iFrame. iPureIntro.
       rewrite encode_val_length. ss. }
-    iIntros (st_src10 st_tgt10) "[INV [tl_hdl_point tl_hdl_ofs]]".
+    iIntros (st_src10 st_tgt10) "[INV tl_hdl_point]".
     (* *hd_handler = entry end *)
 
     (* prove post condition *)
@@ -380,7 +389,6 @@ Section PROOF.
     iCombine "tl_point_item tl_point_key" as "tl_point".
     iPoseProof (points_to_collect with "new_point") as "new_point".
     iPoseProof (points_to_collect with "tl_point") as "tl_point".
-    iPoseProof (live_slide_rev with "tl_ofs") as "tl_ofs".
     iPoseProof (null_equiv with "prev_addr") as "%".
     assert (i_prev = Ptrofs.zero).
     { unfold Vptrofs, Vnullptr in *.
@@ -403,7 +411,7 @@ Section PROOF.
     iCombine "tl_addr' tl_point" as "tl_point".
     iPoseProof (equiv_point_comm with "tl_point") as "tl_point".
     iPoseProof (equiv_dup with "tl_addr") as "[tl_addr tl_addr']".
-    iCombine "tl_addr' tl_ofs" as "tl_ofs".
+    iCombine "tl_addr' tl_ofs" as "tl_ofs". rewrite tl_sub_r.
     iPoseProof (equiv_live_comm with "tl_ofs") as "tl_ofs".
     iPoseProof (equiv_sym with "tl_addr") as "tl_addr".
     iExists _,_,_. iFrame.
@@ -494,10 +502,11 @@ Section PROOF.
 
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into hd_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into hd_notundef.
+    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
-    iIntros (st_src1 st_tgt1) "[INV [hd_hdl_point hd_hdl_ofs]]".
+    iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
+    iIntros (st_src1 st_tgt1) "[INV hd_hdl_point]".
     rewrite hd_deen.
     (* node* hd = *hd_handler end *)
 
@@ -509,10 +518,11 @@ Section PROOF.
 
     iPoseProof (xorlist_tl_deen with "LIST") as "%". rename H0 into tl_deen.
     iPoseProof (xorlist_tl_not_Vundef with "LIST") as "%". rename H0 into tl_notundef.
+    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
-    iIntros (st_src2 st_tgt2) "[INV [tl_hdl_point tl_hdl_ofs]]".
+    iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
+    iIntros (st_src2 st_tgt2) "[INV tl_hdl_point]".
     rewrite tl_deen.
     (* node* tl = *tl_handler end *)
 
@@ -531,11 +541,12 @@ Section PROOF.
     replace (points_to _ _ _ _) with (points_to p_new m_new (repeat Undef 8 ++ repeat Undef 8) 1) by reflexivity.
     iPoseProof (points_to_split with "new_point") as "[new_point_item new_point_key]".
     iPoseProof (sub_null_r with "new_ofs") as "%". rename H0 into new_sub_r.
+    iPoseProof (live_has_offset with "new_ofs") as "[new_ofs new_ofs_ofs]".
 
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV new_point_item new_ofs"; iFrame.
-    { rewrite new_sub_r. iExists _. iFrame. ss. iPureIntro. split; et. exists 0. ss. }
-    iIntros (st_src3 st_tgt3) "[INV [new_point_item new_ofs]]".
+    iSplitL "INV new_point_item new_ofs_ofs"; iFrame.
+    { iExists _, _. iFrame. ss. iPureIntro. split; et. exists 0. ss. }
+    iIntros (st_src3 st_tgt3) "[INV new_point_item]".
     (* entry->item = item end *)
 
     hred_r. unhide. remove_tau.
@@ -563,10 +574,12 @@ Section PROOF.
       unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss. hred_r.
       replace (Coqlib.align _ _) with 8%Z by et.
       replace (Vlong (Int64.repr _)) with Vnullptr by et.
+      iPoseProof (live_has_offset with "new_ofs") as "[new_ofs new_ofs_ofs]".
+
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV new_point_key new_ofs"; iFrame.
-      { iExists _. iFrame. iSplit; cycle 1.  { iApply live_slide. rewrite new_sub_r. et. } { iPureIntro. split; ss. exists 1. ss. } }
-      iIntros (st_src5 st_tgt5) "[INV [new_point_key new_ofs]]".
+      iSplitL "INV new_point_key new_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. iSplit; cycle 1.  { iApply _has_offset_slide. et. } { iPureIntro. split; ss. exists 1. ss. } }
+      iIntros (st_src5 st_tgt5) "[INV new_point_key]".
       (* entry->link = 0 end *)
 
       hred_r. unhide. remove_tau. unhide. hred_r. unhide. remove_tau. unhide. remove_tau.
@@ -574,19 +587,21 @@ Section PROOF.
       (* hd_handler = *tl_handler = entry start *)
       rewrite new_cast_ptr. hred_r. unhide. remove_tau.
       rewrite tl_hdl_is_point. hred_r. rewrite new_cast_ptr. hred_r.
+      iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-      { iExists _. iFrame. rewrite encode_val_length. iPureIntro. ss. }
-      iIntros (st_src7 st_tgt7) "[INV [tl_hdl_point tl_hdl_ofs]]".
+      iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. rewrite encode_val_length. iPureIntro. ss. }
+      iIntros (st_src7 st_tgt7) "[INV tl_hdl_point]".
 
       hred_r. unhide. remove_tau. rewrite hd_hdl_ptr. hred_r.
       rewrite new_cast_ptr. hred_r.
+      iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-      { iExists _. iFrame. rewrite encode_val_length. iPureIntro. ss. }
-      iIntros (st_src8 st_tgt8) "[INV [hd_hdl_point hd_hdl_ofs]]".
+      iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. rewrite encode_val_length. iPureIntro. ss. }
+      iIntros (st_src8 st_tgt8) "[INV hd_hdl_point]".
 
       hred_r. remove_tau. hred_l. iApply isim_choose_src.
       iExists _. iApply isim_ret. iFrame. iSplit; ss. iSplit; ss.
@@ -595,7 +610,6 @@ Section PROOF.
 
       iExists _,_,_,_,_,_. iFrame.
       iSplit; ss.
-      iPoseProof (live_slide_rev with "new_ofs") as "new_ofs".
       change Vnullptr with (Vptrofs Ptrofs.zero) at 3 4.
       iPoseProof (equiv_refl_live with "new_ofs") as "[new_ofs new_equiv]".
       iPoseProof (equiv_dup with "NULL_hd") as "[? ?]".
@@ -632,13 +646,14 @@ Section PROOF.
     unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss. hred_r.
     rewrite cast_ptrofs. hred_r.
     replace (Coqlib.align _ _) with 8%Z by et.
+    iPoseProof (live_has_offset with "new_ofs") as "[new_ofs new_ofs_ofs]".
 
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV new_point_key new_ofs"; iFrame.
-    { iExists _. iFrame. iSplit; cycle 1.
-      { iApply live_slide. rewrite new_sub_r. ss. }
+    iSplitL "INV new_point_key new_ofs_ofs"; iFrame.
+    { iExists _,_. iFrame. iSplit; cycle 1.
+      { iApply _has_offset_slide. ss. }
       { iPureIntro. split; ss. exists 1. ss. } }
-    iIntros (st_src6 st_tgt6) "[INV [new_point_key new_ofs]]".
+    iIntros (st_src6 st_tgt6) "[INV new_point_key]".
     (* entry->link = (intptr_t)hd end *)
 
     hred_r. unhide. remove_tau. unhide. hred_r. unhide. remove_tau.
@@ -647,7 +662,7 @@ Section PROOF.
     rewrite new_cast_ptr. hred_r.
     iApply isim_ccallU_capture1; ss; oauto.
     iSplitL "INV new_ofs"; iFrame.
-    { rewrite new_sub_r. iApply live_slide_rev. et. }
+    { rewrite new_sub_r. et. }
     iIntros (st_src7 st_tgt7 i_new) "[INV [new_ofs new_addr]]".
 
     hred_r. unhide. remove_tau.
@@ -663,12 +678,13 @@ Section PROOF.
     replace (Coqlib.align _ _) with 8%Z by et.
 
     iPoseProof (points_to_split with "hd_point") as "[hd_point_item hd_point_key]".
+    iPoseProof (live_has_offset_ofs with "hd_ofs") as "[hd_ofs hd_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV hd_point_key hd_ofs".
-    { iFrame. iSplit.
-      { iApply live_slide. rewrite hd_sub_r. ss. }
+    iSplitL "INV hd_point_key hd_ofs_ofs".
+    { iFrame. iExists _. iSplit.
+      { iApply _has_offset_slide. ss. }
       { iPureIntro. splits; ss. exists 1. ss. } }
-    iIntros (st_src8 st_tgt8) "[INV [hd_point_key hd_ofs]]".
+    iIntros (st_src8 st_tgt8) "[INV hd_point_key]".
 
     unfold Mptr. rewrite ptr64.
     rewrite decode_encode_ofs. hred_r.
@@ -677,11 +693,12 @@ Section PROOF.
     des_ifs_safe.
 
     hred_r. rewrite cast_long; et. hred_r.
+    iPoseProof (live_has_offset_ofs with "hd_ofs") as "[hd_ofs hd_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV hd_point_key hd_ofs".
-    { iFrame. iExists _. iFrame.
-      iPureIntro. split; ss. exists 1. ss. }
-    iIntros (st_src9 st_tgt9) "[INV [hd_point_key hd_ofs]]".
+    iSplitL "INV hd_point_key hd_ofs_ofs".
+    { iFrame. iExists _,_. iFrame. iSplit. 2:{ iApply _has_offset_slide. et. }
+      iPureIntro. split; ss. exists 1. ss. } 
+    iIntros (st_src9 st_tgt9) "[INV hd_point_key]".
     (* hd->link = hd->link ^ (intptr_t)entry end *)
 
     hred_r. unhide. remove_tau.
@@ -689,11 +706,12 @@ Section PROOF.
     (* *hd_handler = entry start *)
     rewrite hd_hdl_ptr. hred_r.
     rewrite new_cast_ptr. hred_r.
+    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV hd_hdl_point hd_hdl_ofs".
-    { iFrame. iExists _. iFrame. iPureIntro.
+    iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs".
+    { iFrame. iExists _,_. iFrame. iPureIntro.
       rewrite encode_val_length. ss. }
-    iIntros (st_src10 st_tgt10) "[INV [hd_hdl_point hd_hdl_ofs]]".
+    iIntros (st_src10 st_tgt10) "[INV hd_hdl_point]".
     (* *hd_handler = entry end *)
 
     (* prove post condition *)
@@ -704,7 +722,6 @@ Section PROOF.
     iCombine "hd_point_item hd_point_key" as "hd_point".
     iPoseProof (points_to_collect with "new_point") as "new_point".
     iPoseProof (points_to_collect with "hd_point") as "hd_point".
-    iPoseProof (live_slide_rev with "hd_ofs") as "hd_ofs".
     iPoseProof (null_equiv with "prev_addr") as "%".
     assert (i_prev = Ptrofs.zero).
     { unfold Vptrofs, Vnullptr in *.
@@ -722,7 +739,7 @@ Section PROOF.
     iCombine "hd_addr' hd_point" as "hd_point".
     iPoseProof (equiv_point_comm with "hd_point") as "hd_point".
     iPoseProof (equiv_dup with "hd_addr") as "[hd_addr hd_addr']".
-    iCombine "hd_addr' hd_ofs" as "hd_ofs".
+    iCombine "hd_addr' hd_ofs" as "hd_ofs". rewrite hd_sub_r.
     iPoseProof (equiv_live_comm with "hd_ofs") as "hd_ofs".
     iPoseProof (equiv_sym with "hd_addr") as "hd_addr".
     iExists _,_,_. iFrame.
@@ -787,10 +804,11 @@ Section PROOF.
 
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into tl_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into tl_notundef.
+    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
-    iIntros (st_src0 st_tgt0) "[INV [tl_hdl_point tl_hdl_ofs]]".
+    iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
+    iIntros (st_src0 st_tgt0) "[INV tl_hdl_point]".
     rewrite tl_deen.
     (* node hd_old = *hdH end *)
 
@@ -845,11 +863,11 @@ Section PROOF.
     iPoseProof (points_to_split with "tl_point") as "[tl_point_item tl_point_key]".
     change Archi.ptr64 with true. hred_r.
     change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs Ptrofs.zero). iPoseProof (add_null_r with "tl_ofs") as "%". rewrite H0. rename H0 into tl_add_null.
+    iPoseProof (live_has_offset with "tl_ofs") as "[tl_ofs tl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    rewrite tl_sub_r.
-    iSplitL "INV tl_point_item tl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. exists 0. ss. }
-    iIntros (st_src2 st_tgt2) "[INV [tl_point_item tl_ofs]]". rewrite decode_encode_item.
+    iSplitL "INV tl_point_item tl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. exists 0. ss. }
+    iIntros (st_src2 st_tgt2) "[INV tl_point_item]". rewrite decode_encode_item.
     (* item = hd_old->item end *)
 
     hred_r. unhide. remove_tau. unhide. remove_tau.
@@ -859,19 +877,21 @@ Section PROOF.
     unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss.
     change Archi.ptr64 with true. hred_r.
     change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs (Ptrofs.repr 8)).
+    iPoseProof (live_has_offset with "tl_ofs") as "[tl_ofs tl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV tl_point_key tl_ofs"; iFrame.
-    { iSplit. { iApply live_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
-    iIntros (st_src3 st_tgt3) "[INV [tl_point_key tl_ofs]]". change Mptr with Mint64. rewrite decode_encode_ofs.
+    iSplitL "INV tl_point_key tl_ofs_ofs"; iFrame.
+    { iExists _. iSplit. { iApply _has_offset_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
+    iIntros (st_src3 st_tgt3) "[INV tl_point_key]". change Mptr with Mint64. rewrite decode_encode_ofs.
     (* hd_new = (node* )hd_old->link end *)
 
     (* hdH* = hd_new start *)
     hred_r. rewrite ptrofs_cast_ptr. hred_r. unhide. remove_tau. unhide. remove_tau.
     rewrite tl_hdl_ptr. hred_r. rewrite ptrofs_cast_ptr. hred_r.
+    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. et. }
-    iIntros (st_src4 st_tgt4) "[INV [tl_hdl_point tl_hdl_ofs]]".
+    iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length. et. }
+    iIntros (st_src4 st_tgt4) "[INV tl_hdl_point]".
     (* hdH* = hd_new end *)
 
     (* if (hd_new == NULL) start *)
@@ -901,11 +921,12 @@ Section PROOF.
       iPoseProof (points_to_is_ptr with "hd_hdl_point") as "%". rewrite H0. rename H0 into hd_hdl_ptr.
       hred_r. change Archi.ptr64 with true. hred_r.
       rewrite cast_long; et. hred_r.
+      iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-      { iExists _. iFrame. iPureIntro. rewrite encode_val_length; et. }
-      iIntros (st_src6 st_tgt6) "[INV [hd_hdl_point hd_hdl_ofs]]".
+      iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length; et. }
+      iIntros (st_src6 st_tgt6) "[INV hd_hdl_point]".
       (* tlH* = NULL end *)
 
       hred_r. unhide. remove_tau.
@@ -925,7 +946,6 @@ Section PROOF.
       replace (Val.addl tl_old (Vlong _))
         with (Val.addl tl_old (Vptrofs (Ptrofs.repr (strings.length (inj_bytes (encode_int 8 (Int64.unsigned tl_item))))))) by et.
       iPoseProof (points_to_collect with "tl_point") as "tl_point".
-      iPoseProof (live_slide_rev with "tl_ofs") as "tl_ofs".
 
       iApply isim_ccallU_mfree; ss; oauto.
       iSplitL "INV tl_point tl_ofs"; iFrame.
@@ -965,10 +985,11 @@ Section PROOF.
       unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss.
       change Archi.ptr64 with true. hred_r.
       change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs (Ptrofs.repr 8)).
+      iPoseProof (live_has_offset with "tl_prev_ofs") as "[tl_prev_ofs tl_prev_ofs_ofs]".
       iApply isim_ccallU_load; ss; oauto.
-      iSplitL "INV tl_prev_point_key tl_prev_ofs"; iFrame.
-      { iSplit. { iApply live_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
-      iIntros (st_src6 st_tgt6) "[INV [tl_prev_point_key tl_prev_ofs]]".
+      iSplitL "INV tl_prev_point_key tl_prev_ofs_ofs"; iFrame.
+      { iExists _. iSplit. { iApply _has_offset_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
+      iIntros (st_src6 st_tgt6) "[INV tl_prev_point_key]".
       change Mptr with Mint64. rewrite decode_encode_ofs.
       (* hd_new = (node* )hd_old->link end *)
 
@@ -980,7 +1001,7 @@ Section PROOF.
 
       iApply isim_ccallU_capture1; ss; oauto.
       iSplitL "INV tl_ofs"; iFrame.
-      { rewrite tl_sub_r. iApply live_slide_rev. et. }
+      { rewrite tl_sub_r. et. }
       iIntros (st_src7 st_tgt7 i) "[INV [tl_ofs tl_equiv']]".
 
       iCombine "tl_equiv' tl_equiv" as "tl_equiv". iPoseProof (capture_unique with "tl_equiv") as "%". clarify. iDestruct "tl_equiv" as "[_ tl_equiv]".
@@ -993,10 +1014,12 @@ Section PROOF.
       hred_r. rewrite cast_long; et. hred_r.
 
       change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs (Ptrofs.repr 8)).
+      iPoseProof (live_has_offset with "tl_prev_ofs") as "[tl_prev_ofs tl_prev_ofs_ofs]".
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV tl_prev_point_key tl_prev_ofs"; iFrame.
-      { iExists _. iFrame. iPureIntro. rewrite encode_val_length. split; ss. exists 1. ss. }
-      iIntros (st_src8 st_tgt8) "[INV [tl_prev_point_key tl_prev_ofs]]".
+      iSplitL "INV tl_prev_point_key tl_prev_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. iSplit. 2:{ iApply _has_offset_slide. et. }
+        iPureIntro. rewrite encode_val_length. split; ss. exists 1. ss. }
+      iIntros (st_src8 st_tgt8) "[INV tl_prev_point_key]".
       (* hd_new->link = link ^ (intptr_t)hd_old end *)
 
       hred_r. unhide. remove_tau.
@@ -1027,7 +1050,7 @@ Section PROOF.
       hred_l. iApply isim_choose_src. iExists _.
       iApply isim_ret. iFrame. iSplit; ss. rewrite last_last. iSplit; ss.
       change 8%Z with (Z.of_nat (strings.length (encode_val Mint64 (Vlong tl_prev_item)))).
-      iCombine "tl_prev_point_item tl_prev_point_key" as "tl_prev_point".  iPoseProof (points_to_collect with "tl_prev_point") as "tl_prev_point". iPoseProof (live_slide_rev with "tl_prev_ofs") as "tl_prev_ofs".
+      iCombine "tl_prev_point_item tl_prev_point_key" as "tl_prev_point".  iPoseProof (points_to_collect with "tl_prev_point") as "tl_prev_point".
       iExists _,_,_,_,_,_. iFrame. iSplit; ss.
       rewrite removelast_last. rewrite <- (rev_involutive (rev lnext ++ _)).
       iApply rev_xorlist. rewrite rev_app_distr. rewrite rev_involutive.
@@ -1091,10 +1114,11 @@ Section PROOF.
     hred_r. iApply isim_apc. iExists (Some (20%nat : Ord.t)).
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into hd_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into hd_notundef.
+    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
-    iIntros (st_src0 st_tgt0) "[INV [hd_hdl_point hd_hdl_ofs]]".
+    iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
+    iIntros (st_src0 st_tgt0) "[INV hd_hdl_point]".
     rewrite hd_deen.
     (* node hd_old = *hdH end *)
 
@@ -1149,11 +1173,12 @@ Section PROOF.
     iPoseProof (points_to_split with "hd_point") as "[hd_point_item hd_point_key]".
     change Archi.ptr64 with true. hred_r.
     change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs Ptrofs.zero). iPoseProof (add_null_r with "hd_ofs") as "%". rewrite H0. rename H0 into hd_add_null.
+    iPoseProof (live_has_offset with "hd_ofs") as "[hd_ofs hd_ofs_ofs]".
+
     iApply isim_ccallU_load; ss; oauto.
-    rewrite hd_sub_r.
-    iSplitL "INV hd_point_item hd_ofs"; iFrame.
-    { iPureIntro. rewrite encode_val_length. splits; et. exists 0. ss. }
-    iIntros (st_src2 st_tgt2) "[INV [hd_point_item hd_ofs]]". rewrite decode_encode_item.
+    iSplitL "INV hd_point_item hd_ofs_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. exists 0. ss. }
+    iIntros (st_src2 st_tgt2) "[INV hd_point_item]". rewrite decode_encode_item.
     (* item = hd_old->item end *)
 
     hred_r. unhide. remove_tau. unhide. remove_tau.
@@ -1163,19 +1188,21 @@ Section PROOF.
     unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss.
     change Archi.ptr64 with true. hred_r.
     change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs (Ptrofs.repr 8)).
+    iPoseProof (live_has_offset with "hd_ofs") as "[hd_ofs hd_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
-    iSplitL "INV hd_point_key hd_ofs"; iFrame.
-    { iSplit. { iApply live_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
-    iIntros (st_src3 st_tgt3) "[INV [hd_point_key hd_ofs]]". change Mptr with Mint64. rewrite decode_encode_ofs.
+    iSplitL "INV hd_point_key hd_ofs_ofs"; iFrame.
+    { iExists _. iSplit. { iApply _has_offset_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
+    iIntros (st_src3 st_tgt3) "[INV hd_point_key]". change Mptr with Mint64. rewrite decode_encode_ofs.
     (* hd_new = (node* )hd_old->link end *)
 
     (* hdH* = hd_new start *)
     hred_r. rewrite ptrofs_cast_ptr. hred_r. unhide. remove_tau. unhide. remove_tau.
     rewrite hd_hdl_ptr. hred_r. rewrite ptrofs_cast_ptr. hred_r.
+    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
-    iSplitL "INV hd_hdl_point hd_hdl_ofs"; iFrame.
-    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. et. }
-    iIntros (st_src4 st_tgt4) "[INV [hd_hdl_point hd_hdl_ofs]]".
+    iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length. et. }
+    iIntros (st_src4 st_tgt4) "[INV hd_hdl_point]".
     (* hdH* = hd_new end *)
 
     (* if (hd_new == NULL) start *)
@@ -1205,11 +1232,12 @@ Section PROOF.
       iPoseProof (points_to_is_ptr with "tl_hdl_point") as "%". rewrite H0. rename H0 into tl_hdl_ptr.
       hred_r. change Archi.ptr64 with true. hred_r.
       rewrite cast_long; et. hred_r.
+      iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV tl_hdl_point tl_hdl_ofs"; iFrame.
-      { iExists _. iFrame. iPureIntro. rewrite encode_val_length; et. }
-      iIntros (st_src6 st_tgt6) "[INV [tl_hdl_point tl_hdl_ofs]]".
+      iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length; et. }
+      iIntros (st_src6 st_tgt6) "[INV tl_hdl_point]".
       (* tlH* = NULL end *)
 
       hred_r. unhide. remove_tau.
@@ -1229,7 +1257,6 @@ Section PROOF.
       replace (Val.addl tl_old (Vlong _))
         with (Val.addl tl_old (Vptrofs (Ptrofs.repr (strings.length (inj_bytes (encode_int 8 (Int64.unsigned hd_item))))))) by et.
       iPoseProof (points_to_collect with "hd_point") as "hd_point".
-      iPoseProof (live_slide_rev with "hd_ofs") as "hd_ofs".
 
       iApply isim_ccallU_mfree; ss; oauto.
       iSplitL "INV hd_point hd_ofs"; iFrame.
@@ -1268,10 +1295,12 @@ Section PROOF.
       unfold __Node, ident. rewrite get_co. hred_r. rewrite co_co_members. ss.
       change Archi.ptr64 with true. hred_r.
       change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs (Ptrofs.repr 8)).
+
+      iPoseProof (live_has_offset with "hd_next_ofs") as "[hd_next_ofs hd_next_ofs_ofs]".
       iApply isim_ccallU_load; ss; oauto.
-      iSplitL "INV hd_next_point_key hd_next_ofs"; iFrame.
-      { iSplit. { iApply live_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
-      iIntros (st_src6 st_tgt6) "[INV [hd_next_point_key hd_next_ofs]]".
+      iSplitL "INV hd_next_point_key hd_next_ofs_ofs"; iFrame.
+      { iExists _. iSplit. { iApply _has_offset_slide. et. } iPureIntro. rewrite encode_val_length. splits; et. exists 1. ss. }
+      iIntros (st_src6 st_tgt6) "[INV hd_next_point_key]".
       change Mptr with Mint64. rewrite decode_encode_ofs.
       (* hd_new = (node* )hd_old->link end *)
 
@@ -1283,7 +1312,7 @@ Section PROOF.
 
       iApply isim_ccallU_capture1; ss; oauto.
       iSplitL "INV hd_ofs"; iFrame.
-      { rewrite hd_sub_r. iApply live_slide_rev. et. }
+      { rewrite hd_sub_r. et. }
       iIntros (st_src7 st_tgt7 i) "[INV [hd_ofs hd_equiv']]".
 
       iCombine "hd_equiv' hd_equiv" as "hd_equiv". iPoseProof (capture_unique with "hd_equiv") as "%". clarify. iDestruct "hd_equiv" as "[_ hd_equiv]".
@@ -1296,10 +1325,12 @@ Section PROOF.
       hred_r. rewrite cast_long; et. hred_r.
 
       change (Vptrofs (Ptrofs.repr (Coqlib.align _ _))) with (Vptrofs (Ptrofs.repr 8)).
+      iPoseProof (live_has_offset with "hd_next_ofs") as "[hd_next_ofs hd_next_ofs_ofs]".
       iApply isim_ccallU_store; ss; oauto.
-      iSplitL "INV hd_next_point_key hd_next_ofs"; iFrame.
-      { iExists _. iFrame. iPureIntro. rewrite encode_val_length. split; ss. exists 1. ss. }
-      iIntros (st_src8 st_tgt8) "[INV [hd_next_point_key hd_next_ofs]]".
+      iSplitL "INV hd_next_point_key hd_next_ofs_ofs"; iFrame.
+      { iExists _,_. iFrame. iSplit. 2:{ iApply _has_offset_slide. et. }
+        iPureIntro. rewrite encode_val_length. split; ss. exists 1. ss. }
+      iIntros (st_src8 st_tgt8) "[INV hd_next_point_key]".
       (* hd_new->link = link ^ (intptr_t)hd_old end *)
 
       hred_r. unhide. remove_tau.
@@ -1329,7 +1360,7 @@ Section PROOF.
       hred_l. iApply isim_choose_src. iExists _.
       iApply isim_ret. iFrame. iSplit; ss. iSplit; ss.
       change 8%Z with (Z.of_nat (strings.length (encode_val Mint64 (Vlong hd_next_item)))).
-      iCombine "hd_next_point_item hd_next_point_key" as "hd_next_point".  iPoseProof (points_to_collect with "hd_next_point") as "hd_next_point". iPoseProof (live_slide_rev with "hd_next_ofs") as "hd_next_ofs".
+      iCombine "hd_next_point_item hd_next_point_key" as "hd_next_point".  iPoseProof (points_to_collect with "hd_next_point") as "hd_next_point".
       iExists _,_,_,_,_,_. iFrame. iSplit; ss.
       iExists _,_,_. iFrame. rewrite Ptrofs.xor_zero_l.
       iSplit; ss. replace (Vlong (Int64.xor i i0)) with (Vptrofs i_hd_nn); et.

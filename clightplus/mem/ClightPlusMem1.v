@@ -415,6 +415,30 @@ Section RULES.
     apply int64_ptrofs_neg; et.
   Qed.
 
+  Lemma live_has_offset_ofs
+      vaddr m tg q k :
+    live_(m, tg, q) (Val.subl vaddr (Vptrofs k)) ⊢ live_(m, tg, q) (Val.subl vaddr (Vptrofs k)) ** vaddr ⊨ m # k.
+  Proof.
+    unfold is_alive, has_offset. iIntros "A"; des_ifs.
+    iDestruct "A" as "[A A']".
+    iPoseProof (_has_offset_dup with "A'") as "[A' A'']".
+    iFrame. iApply _has_offset_slide_rev. rewrite Ptrofs.add_neg_zero.
+    unfold Val.subl, Val.addl. des_ifs.
+    - unfold Vptrofs in *. des_ifs. rewrite <- int64_ptrofs_neg; et. rewrite Int64.sub_add_opp. et.
+    - unfold Vptrofs in *. des_ifs. rewrite !Ptrofs.of_int64_to_int64; et.
+      rewrite Ptrofs.sub_add_opp. et.
+  Qed.
+
+  Lemma live_has_offset
+      vaddr m tg q :
+    live_(m, tg, q) vaddr ⊢ live_(m, tg, q) vaddr ** vaddr ⊨ m # Ptrofs.zero.
+  Proof.
+    unfold is_alive, has_offset. iIntros "A"; des_ifs.
+    iDestruct "A" as "[A A']".
+    iPoseProof (_has_offset_dup with "A'") as "[A' A'']".
+    iFrame.
+  Qed.
+
   Lemma live_slide
       vaddr m tg q k :
     live_(m, tg, q) vaddr ⊢ live_(m, tg, q) (Val.subl (Val.addl vaddr (Vptrofs k)) (Vptrofs k)).
@@ -845,6 +869,16 @@ Section RULES.
     iExists _. iFrame. et.
   Qed.
 
+  Lemma _equiv_has_offset_comm
+      p q m ofs :
+    p (≃_m) q ** p ⊨ m # ofs ⊢ q ⊨ m # ofs.
+  Proof.
+    iIntros "[A B]". unfold equiv_prov. iDestruct "A" as (ofs0) "[A A']".
+    iCombine "A B" as "C".
+    iPoseProof (_has_offset_unique with "C") as "%".
+    clarify.
+  Qed.
+
   Lemma _equiv_offset_comm
       p q tg f m ofs :
     p (≃_m) q ** p (⊨_m,tg,f) ofs ⊢ q (⊨_m,tg,f) ofs.
@@ -1099,33 +1133,31 @@ Section SPEC.
 
   (* input: chunk * val, output: val *)
   Definition load_spec: fspec :=
-    (mk_simple (fun '(chunk, vaddr, m, tg, q0, ofs, q1, mvs) => (
+    (mk_simple (fun '(chunk, vaddr, m, q, mvs) => (
                     (ord_pure 0%nat),
-                    (fun varg => ⌜varg = (chunk, vaddr)↑
+                    (fun varg => ∃ ofs, ⌜varg = (chunk, vaddr)↑
                                  /\ List.length mvs = size_chunk_nat chunk
                                  /\ Mem.change_check chunk mvs = false
                                  /\ chunk <> Many64
                                  /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)⌝
-                                 ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))
-                                 ** vaddr (↦_m,q1) mvs),
+                                 ** vaddr ⊨ m # ofs
+                                 ** vaddr (↦_m,q) mvs),
                     (fun vret => ∃ v, ⌜vret = v↑ /\ decode_val chunk mvs = v⌝
-                                 ** live_(m,tg,q0) (Val.subl vaddr (Vptrofs ofs))
-                                 ** vaddr (↦_m,q1) mvs)
+                                 ** vaddr (↦_m,q) mvs)
     )))%I.
 
   (* input: chunk * val * val, output: unit *)
   Definition store_spec: fspec :=
     (mk_simple
-      (fun '(chunk, vaddr, m, ofs, tg, q, v_new) => (
+      (fun '(chunk, vaddr, m, v_new) => (
             (ord_pure 0%nat),
-            (fun varg => ∃ mvs_old, ⌜varg = (chunk, vaddr, v_new)↑
+            (fun varg => ∃ mvs_old ofs, ⌜varg = (chunk, vaddr, v_new)↑
                          /\ List.length mvs_old = size_chunk_nat chunk
                          /\ ((size_chunk chunk) | Ptrofs.unsigned ofs)⌝
-                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
+                         ** vaddr ⊨ m # ofs
                          ** vaddr (↦_m,1) mvs_old),
             (fun vret => ∃ mvs_new, ⌜vret = tt↑
                          /\ encode_val chunk v_new = mvs_new⌝
-                         ** live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs))
                          ** vaddr (↦_m,1) mvs_new)
     )))%I.
 

@@ -115,21 +115,21 @@ Section PROOF.
     iPoseProof (equiv_point_comm with "tl") as "tl_point".
     iPoseProof (sub_null_r with "hd_alloc") as "%". rename H4 into hd_sub_r.
     iPoseProof (sub_null_r with "tl_alloc") as "%". rename H4 into tl_sub_r.
+    iPoseProof (live_has_offset with "hd_alloc") as "[hd_alloc hd_ofs]"; et.
 
     iApply isim_ccallU_store; ss; oauto.
-    rewrite hd_sub_r.
-    iSplitL "INV hd_point hd_alloc"; iFrame.
-    { iExists _. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
-    iIntros (st_src2 st_tgt2) "[INV [hd_point hd_alloc]]".
+    iSplitL "INV hd_point hd_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
+    iIntros (st_src2 st_tgt2) "[INV hd_point]".
     unfold Mptr. rewrite Heqb1.
     hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
 
     rewrite Heqb1. hred_r.
+    iPoseProof (live_has_offset with "tl_alloc") as "[tl_alloc tl_ofs]"; et.
     iApply isim_ccallU_store; ss; oauto.
-    rewrite tl_sub_r.
-    iSplitL "INV tl_point tl_alloc"; iFrame.
-    { iExists _. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
-    iIntros (st_src3 st_tgt3) "[INV [tl_point tl_alloc]]".
+    iSplitL "INV tl_point tl_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
+    iIntros (st_src3 st_tgt3) "[INV tl_point]".
     unfold Mptr. rewrite Heqb1. hred_r.
     remove_tau. unhide. remove_tau. unhide. remove_tau.
     unhide. remove_tau. unhide. remove_tau.
