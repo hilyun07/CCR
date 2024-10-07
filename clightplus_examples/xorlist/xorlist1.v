@@ -138,11 +138,11 @@ Section PROP.
   Lemma xorlist_tl_deen q m_prev m_next hd_prev hd tl tl_next xs
     : frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs ⊢ ⌜decode_val Mptr (encode_val Mptr tl) = tl⌝.
   Proof.
-    ginduction xs; i; ss.
-    - iIntros "[A B]". iApply decode_encode_ptr_equiv. iApply equiv_sym. et.
-    - ss. iIntros "A". destruct a; clarify.
+    iIntros "A". iInduction xs as [|item xs'] "IH" forall (m_prev m_next hd_prev hd tl tl_next); ss.
+    - iApply decode_encode_ptr_equiv. iApply equiv_sym. iDestruct "A" as "[$ _]".
+    - destruct item; clarify.
       iDestruct "A" as (i_prev i_next m_hd) "[_ A]".
-      iApply IHxs. et.
+      iApply "IH". et.
   Qed.
 
   Lemma xorlist_tl_not_Vundef q m_prev m_next hd_prev hd tl tl_next xs
