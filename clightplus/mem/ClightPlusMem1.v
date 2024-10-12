@@ -941,6 +941,58 @@ Section RULES.
     change Ptrofs.modulus with (Ptrofs.max_unsigned + 1) in *. nia.
   Qed.
 
+  Lemma live_notnull_ofs
+      vaddr m tg q ofs
+      (WEAK: weak_valid m ofs):
+    live_(m,tg,q) (Val.subl vaddr (Vptrofs ofs)) ⊢ ⌜vaddr <> Vnullptr⌝.
+  Proof.
+    iIntros "A". unfold is_alive, has_offset. des_ifs.
+    iDestruct "A" as "[_ A]". iDestruct "A" as "[_ A]".
+    unfold _has_offset. des_ifs.
+    - iDestruct "A" as (a) "[A %]". des. iPureIntro. ii. clarify.
+      unfold weak_valid in WEAK.
+      hexploit paddr_no_overflow_cond; et.
+      { rewrite <- H0. destruct ofs; ss. change (Ptrofs.unsigned Ptrofs.zero) with 0. nia. }
+      i. rewrite H1 in Heq; clarify. 
+      unfold Vnullptr, Vptrofs in Heq0. des_ifs. ss.
+      inv Heq0. unfold Int64.sub in H3.
+      change (Int64.unsigned Int64.zero) with 0 in H3.
+      unfold Ptrofs.to_int64 in H3. rewrite (Int64.unsigned_repr (Ptrofs.unsigned ofs)) in H3.
+      2:{ apply Ptrofs.unsigned_range_2. }
+      rewrite Int64.unsigned_repr_eq in H3.
+      rewrite Z.sub_0_l in H3.
+      destruct (dec (Ptrofs.unsigned ofs) 0).
+      { unfold Ptrofs.to_int64 in H0. rewrite e in H0.
+        unfold Ptrofs.sub in H0. change (Ptrofs.unsigned (Ptrofs.of_int64 _)) with 0 in H0.
+        apply (f_equal Ptrofs.unsigned) in H0.
+        rewrite Ptrofs.unsigned_repr_eq in H0.
+        destruct (dec (Ptrofs.unsigned a) 0); et.
+        rewrite Z_mod_nz_opp_full in H0. 
+        2:{ rewrite Z.mod_small; et. apply Ptrofs.unsigned_range. }
+        rewrite Z.mod_small in H0; et. 2:{ apply Ptrofs.unsigned_range. }
+        change (Ptrofs.unsigned Ptrofs.zero) with 0 in H0. destruct a; ss. nia. }
+      rewrite Z_mod_nz_opp_full in H3. 
+      2:{ rewrite Z.mod_small; et; apply Ptrofs.unsigned_range. }
+      rewrite Z.mod_small in H3. 2:{ apply Ptrofs.unsigned_range. }
+      unfold Ptrofs.to_int64, Ptrofs.of_int64, Ptrofs.sub, Int64.sub in H0.
+      rewrite (Int64.unsigned_repr (Ptrofs.unsigned _)) in H0.
+      2:{ apply Ptrofs.unsigned_range_2. }
+      change (Int64.unsigned Int64.zero) with 0 in H0.
+      rewrite Z.sub_0_l in H0.
+      rewrite Int64.unsigned_repr_eq in H0.
+      rewrite Z_mod_nz_opp_full in H0. 2:{ rewrite Z.mod_small; et. apply Ptrofs.unsigned_range. }
+      rewrite Z.mod_small in H0. 2:{ apply Ptrofs.unsigned_range. }
+      rewrite Ptrofs.unsigned_repr_eq in H0.
+      rewrite Z.mod_small in H0.
+      2:{ destruct ofs. ss. change Int64.modulus with Ptrofs.modulus. nia. }
+      destruct a; ss.
+      apply (f_equal Ptrofs.unsigned) in H0.
+      change (Ptrofs.unsigned Ptrofs.zero) with 0 in H0.
+      rewrite Ptrofs.unsigned_repr in H0. 2:{ nia. }
+      destruct ofs; ss. change Int64.modulus with (Ptrofs.max_unsigned + 1) in H0. nia.
+    - iDestruct "A" as "%". des. destruct vaddr; ss; clarify.
+  Qed.
+
   Lemma point_notundef
       p q m mvs :
     p (↦_m, q) mvs ⊢ ⌜p <> Vundef⌝.

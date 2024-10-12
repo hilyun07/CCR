@@ -1610,6 +1610,16 @@ Section SIMMODSEM.
     econs; ss. red; ss. apply isim_fun_to_tgt; ss.
     i. iIntros "[INV PRE]". des_ifs. ss.
     iDestruct "PRE" as "[[[% A] P] %]"; des; clarify.
+    unfold sub_ptrF. hred_r.
+    iPoseProof (live_notnull_ofs with "A") as "%"; et.
+    iPoseProof (live_notnull_ofs with "P") as "%"; et.
+    assert (check_val v0 v = Ret tt).
+    { unfold check_val. des_ifs.
+      { exfalso. apply H0. unfold Vnullptr. des_ifs. f_equal.
+        apply Int64.same_if_eq. et. }
+      { exfalso. apply H1. unfold Vnullptr. des_ifs. f_equal.
+        apply Int64.same_if_eq. et. } }
+    rewrite H8. clear H0 H1 H8.
     iPoseProof (live_offset_exchage with "A") as "A".
     iPoseProof (live_offset_exchage with "P") as "P".
     do 2 unfold has_offset, _has_offset, points_to.
