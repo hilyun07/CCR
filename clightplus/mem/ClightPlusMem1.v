@@ -1318,9 +1318,9 @@ Section SPEC.
 
   (* memcpy *)
   Definition memcpy_hoare0 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
-      fun '(vaddr, vaddr', tg, tg', qp, q, q', ofs_src, ofs_dst, m_src, m_dst, mvs_src) => (
+      fun '(vaddr, vaddr', qp, m_src, m_dst, mvs_src) => (
             (ord_pure 0%nat),
-            (fun varg => ∃ al sz mvs_dst,
+            (fun varg => ∃ al sz mvs_dst ofs_src ofs_dst,
                          ⌜varg = (al, sz, [vaddr; vaddr'])↑
                          /\ List.length mvs_src = List.length mvs_dst
                          /\ List.length mvs_dst = Z.to_nat sz
@@ -1328,30 +1328,27 @@ Section SPEC.
                          /\ (al | Ptrofs.unsigned ofs_src)
                          /\ (al | Ptrofs.unsigned ofs_dst)
                          /\ 0 ≤ sz /\ (al | sz)⌝
-                         ** live_(m_src,tg',q') (Val.subl vaddr' (Vptrofs ofs_src))
-                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
+                         ** vaddr' ⊨ m_src # ofs_src
+                         ** vaddr ⊨ m_dst # ofs_dst
                          ** vaddr' (↦_m_src,qp) mvs_src
                          ** vaddr (↦_m_dst,1) mvs_dst),
             (fun vret => ⌜vret = Vundef↑⌝
-                         ** live_(m_src,tg',q') (Val.subl vaddr' (Vptrofs ofs_src))
-                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
                          ** vaddr' (↦_m_src,qp) mvs_src
                          ** vaddr (↦_m_dst,1) mvs_src)
           )%I.
 
   Definition memcpy_hoare1 : _ -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
-      fun '(vaddr, m_dst, tg, q, ofs_dst, mvs_dst) => (
+      fun '(vaddr, m_dst, mvs_dst) => (
             (ord_pure 0%nat),
-            (fun varg => ∃ al sz,
+            (fun varg => ∃ al sz ofs_dst,
                          ⌜varg = (al, sz, [vaddr; vaddr])↑
                          /\ List.length mvs_dst = Z.to_nat sz
                          /\ (al = 1 \/ al = 2 \/ al = 4 \/ al = 8)
                          /\ (al | Ptrofs.unsigned ofs_dst)
                          /\ 0 ≤ sz /\ (al | sz)⌝
-                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
+                         ** vaddr ⊨ m_dst # ofs_dst
                          ** vaddr (↦_m_dst,1) mvs_dst),
             (fun vret => ⌜vret = Vundef↑⌝
-                         ** live_(m_dst,tg,q) (Val.subl vaddr (Vptrofs ofs_dst))
                          ** vaddr (↦_m_dst,1) mvs_dst)
           )%I.
 

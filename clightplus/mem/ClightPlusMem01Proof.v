@@ -3282,9 +3282,7 @@ Section SIMMODSEM.
     (* rule 1 : two objects are disjoint, copy contents *)
     - unfold memcpy_hoare0. des_ifs_safe. ss. clarify.
       iDestruct "PRE" as "[PRE %]".
-      iDestruct "PRE" as (al sz mvs_dst) "[[[[% F] D] P] A]".
-      iPoseProof (live_offset_exchage with "F") as "F".
-      iPoseProof (live_offset_exchage with "D") as "D".
+      iDestruct "PRE" as (al sz mvs_dst ofs_src ofs_dst) "[[[[% F] D] P] A]".
       do 2 unfold has_offset, points_to, _has_offset.
       destruct (blk m0) eqn:UU; clarify. destruct (blk m) eqn:UU'; clarify.
       do 7 (destruct H1 as [? H1]). clarify. hred_r.
@@ -3293,8 +3291,8 @@ Section SIMMODSEM.
       iDestruct "P" as (ofs) "[[CNT_PRE [SZ0_PRE P]] %]".
       iDestruct "A" as "[SZ1_PRE A]".
       iDestruct "A" as (ofs0) "[[CNT0_PRE [SZ2_PRE A]] %]".
-      iDestruct "D" as "[ALLOC_PRE [SZ3_PRE D]]".
-      iDestruct "F" as "[ALLOC0_PRE [SZ4_PRE F]]".
+      iDestruct "D" as "[SZ3_PRE D]".
+      iDestruct "F" as "[SZ4_PRE F]".
       assert (AL3: dec al 1 || dec al 2 || dec al 4 || dec al 8) by now des; clarify.
       rename H0 into R0, H1 into R1. clear AL.
       iCombine "MEM CNT_PRE" as "MEM".
@@ -3324,16 +3322,16 @@ Section SIMMODSEM.
           apply Consent.extends in wfcnt; et. red in wfcnt. des.
           destruct ofs; ss. hexploit (SIM_CNT ofs1); try nia. intro sim. rewrite wfcnt3 in *.
           inv sim. clarify. rewrite PERM. et.
-        - f_equal. apply nth_error_ext. i. destruct (Coqlib.zlt i1 (Z.to_nat sz)); cycle 1.
+        - f_equal. apply nth_error_ext. i. destruct (Coqlib.zlt i (Z.to_nat sz)); cycle 1.
           { edestruct nth_error_None. rewrite H1. 2:{ rewrite Mem.getN_length. nia. }
             edestruct nth_error_None. rewrite H3; et. nia. }
           rewrite nth_error_getN; try nia.
-          specialize (wfcnt (Ptrofs.unsigned ofs + i1)). destruct Coqlib.zle; destruct Coqlib.zlt; try nia.
+          specialize (wfcnt (Ptrofs.unsigned ofs + i)). destruct Coqlib.zle; destruct Coqlib.zlt; try nia.
           ss. destruct nth_error eqn:?; cycle 1. { apply nth_error_None in Heqo. nia. }
           destruct Pos.eq_dec; clarify. ss.
           apply Consent.extends in wfcnt; et. red in wfcnt. des.
-          destruct ofs; ss. hexploit (SIM_CNT (intval + i1)); try nia. intro sim. rewrite wfcnt3 in *.
-          inv sim. clarify. rewrite <- Heqo. replace (Z.to_nat _) with i1 by nia. et. }
+          destruct ofs; ss. hexploit (SIM_CNT (intval + i)); try nia. intro sim. rewrite wfcnt3 in *.
+          inv sim. clarify. rewrite <- Heqo. replace (Z.to_nat _) with i by nia. et. }
       assert (PREM: Mem.range_perm mem_tgt b0 (Ptrofs.unsigned ofs0) (Ptrofs.unsigned ofs0 + length mvs_dst) Cur Writable).
       { unfold Mem.range_perm, Mem.perm. i.
         specialize (wfcnt0 ofs1). destruct Coqlib.zle; destruct Coqlib.zlt; try nia.
@@ -3364,14 +3362,9 @@ Section SIMMODSEM.
           destruct Coqlib.zle, Coqlib.zlt; ss; try nia; et. }
         iSplit; ss. iFrame. iSplitR "A MEM_POST"; cycle 1.
         { iExists _. iFrame. iPureIntro. nia. }
-        iSplitR "P CNT_PRE"; cycle 1.
-        { iExists _. iFrame. et. }
-        iSplitR "ALLOC_PRE D SZ2_PRE".
-        2:{ iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. destruct (blk m); clarify. iFrame. }
-        iSplitR; et.
-        iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. destruct (blk m0); clarify. iFrame.
+        iSplitR "P CNT_PRE"; et. iExists _. iFrame. et.
       * hred_r. iApply isim_pget_tgt. hred_r.
-        iAssert ⌜i0 = ofs /\ i = ofs0⌝%I as "%".
+        iAssert ⌜ofs_src = ofs /\ ofs_dst = ofs0⌝%I as "%".
         { des_ifs.
           - iDestruct "F" as (a) "[F %]". iDestruct "D" as (a0) "[D %]".
             iDestruct "P" as (a1) "[P %]". iDestruct "A" as (a2) "[A %]".
@@ -3514,13 +3507,8 @@ Section SIMMODSEM.
         { iSplit; ss. iFrame.
           iSplitR "D MEM_POST".
           2:{ iExists _. iFrame. iPureIntro. nia. }
-          iSplitR "F CNT_PRE".
-          2:{ iExists _. iFrame. iPureIntro. nia. }
-          iSplitR "A ALLOC_PRE SZ2_PRE".
-          2:{ iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. destruct (blk m); clarify. iFrame. }
-          iSplitR.
-          2:{ iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. destruct (blk m0); clarify. iFrame. }
-          et. }
+          iSplitR "F CNT_PRE"; et.
+          iExists _. iFrame. iPureIntro. nia. }
         iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. splits; et; ss.
         clear AL3.
         econs; ss; et; cycle 1.
@@ -3554,13 +3542,12 @@ Section SIMMODSEM.
             inv sim; clarify. econs; et. i. apply Qwrite. eapply antisymmetry; et.
     (* rule 2 : two objects are same, nop *)
     - unfold memcpy_hoare1. des_ifs_safe. ss. clarify.
-      iDestruct "PRE" as "[PRE %]". iDestruct "PRE" as (al sz) "[[% P] A]".
-      iPoseProof (live_offset_exchage with "P") as "P".
+      iDestruct "PRE" as "[PRE %]". iDestruct "PRE" as (al sz ofs_dst) "[[% P] A]".
       do 2 unfold has_offset, points_to, _has_offset.
       destruct blk eqn:UU; clarify.
       iDestruct "A" as "[SZ_PRE A]".
       iDestruct "A" as (ofs) "[[CNT_PRE [SZ0_PRE A]] %]".
-      iDestruct "P" as "[ALLOC_PRE [SZ3_PRE P]]".
+      iDestruct "P" as "[SZ3_PRE P]".
       do 5 (destruct H1 as [? H1]). clarify. hred_r.
       rename H3 into LEN, H4 into AL, H5 into AL0, H1 into AL1, H6 into R, H0 into R1.
       assert (AL3: dec al 1 || dec al 2 || dec al 4 || dec al 8) by now des; clarify. clear AL.
@@ -3583,16 +3570,16 @@ Section SIMMODSEM.
           apply Consent.extends in wfcnt; et. red in wfcnt. des.
           destruct ofs; ss. hexploit (SIM_CNT ofs0); try nia. intro sim. rewrite wfcnt0 in *.
           inv sim. clarify. rewrite PERM. et.
-        - f_equal. apply nth_error_ext. i. destruct (Coqlib.zlt i0 (Z.to_nat sz)); cycle 1.
+        - f_equal. apply nth_error_ext. i. destruct (Coqlib.zlt i (Z.to_nat sz)); cycle 1.
           { edestruct nth_error_None. rewrite H1. 2:{ rewrite Mem.getN_length. nia. }
             edestruct nth_error_None. rewrite H3; et. nia. }
           rewrite nth_error_getN; try nia.
-          specialize (wfcnt (Ptrofs.unsigned ofs + i0)). destruct Coqlib.zle; destruct Coqlib.zlt; try nia.
+          specialize (wfcnt (Ptrofs.unsigned ofs + i)). destruct Coqlib.zle; destruct Coqlib.zlt; try nia.
           ss. destruct nth_error eqn:?; cycle 1. { apply nth_error_None in Heqo. nia. }
           destruct Pos.eq_dec in wfcnt; clarify.
           apply Consent.extends in wfcnt; et. red in wfcnt. des.
-          destruct ofs; ss. hexploit (SIM_CNT (intval + i0)); try nia. intro sim. rewrite wfcnt0 in *.
-          inv sim. clarify. rewrite <- Heqo. replace (Z.to_nat _) with i0 by nia. et. }
+          destruct ofs; ss. hexploit (SIM_CNT (intval + i)); try nia. intro sim. rewrite wfcnt0 in *.
+          inv sim. clarify. rewrite <- Heqo. replace (Z.to_nat _) with i by nia. et. }
       assert (PERM: Mem.range_perm mem_tgt b (Ptrofs.unsigned ofs) (Ptrofs.unsigned ofs + length l) Cur Writable).
       { unfold Mem.range_perm, Mem.perm. i.
         specialize (wfcnt ofs0). destruct Coqlib.zle; destruct Coqlib.zlt; try nia.
@@ -3607,12 +3594,10 @@ Section SIMMODSEM.
         iSplitL "MEM".
         { iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. split; et. econs; et. }
         iSplit; ss. iFrame.
-        iSplitR "A CNT_PRE".
-        2:{ iExists _. iFrame. et. }
-        iSplitR; et.
-        iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. destruct (blk m); clarify. iFrame. }
+        iSplitR "A CNT_PRE"; et.
+        iExists _. iFrame. et. }
       hred_r. iApply isim_pget_tgt. hred_r.
-      iAssert ⌜i = ofs⌝%I as "%"; clarify.
+      iAssert ⌜ofs_dst = ofs⌝%I as "%"; clarify.
       { des_ifs.
         - iDestruct "P" as (a1) "[P %]". iDestruct "A" as (a2) "[A %]".
           iCombine "P A" as "B". rewrite _has_base_unique. iDestruct "B" as "%".
@@ -3677,10 +3662,8 @@ Section SIMMODSEM.
       hred_l. iApply isim_choose_src. iExists _.
       iApply isim_ret. iSplitL "MEM"; cycle 1.
       { iSplit; ss. iFrame.
-        iSplitR "A CNT_PRE".
-        2:{ iExists _. iFrame. iPureIntro. nia. }
-        iSplitR; et.
-        iApply live_offset_exchage_rev. unfold has_offset, _has_offset. ss. destruct (blk m); clarify. iFrame. }
+        iSplitR "A CNT_PRE"; et.
+        iExists _. iFrame. iPureIntro. nia. }
       iExists _. iSplit; ss. iExists _,_. iFrame. iPureIntro. splits; et; ss.
       econs; ss; et; cycle 1.
       *** i. specialize (SIM_ALLOC ob). des_ifs. des. split; et.
