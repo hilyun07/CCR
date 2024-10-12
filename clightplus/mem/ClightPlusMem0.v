@@ -334,14 +334,17 @@ Section MODSEM.
       let init := gvar_init v in
       let sz := init_data_list_size init in
       let (m1, b) := Mem.alloc m 0 sz in
-      match store_zeros m1 b 0 sz with
-      | Some m2 =>
-          match store_init_data_list m2 b 0 init with
-          | Some m3 => Mem.drop_perm m3 b 0 sz (Genv.perm_globvar v)
-          | None => None
-          end
-      | None => None
-      end
+      if Coqlib.zlt 0 (init_data_list_size init)
+      then
+        match store_zeros m1 b 0 sz with
+        | Some m2 =>
+            match store_init_data_list m2 b 0 init with
+            | Some m3 => Mem.drop_perm m3 b 0 sz (Genv.perm_globvar v)
+            | None => None
+            end
+        | None => None
+        end
+      else None
     end.
 
   Fixpoint alloc_globals (m: mem) (sk: Sk.t) : option mem :=

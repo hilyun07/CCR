@@ -284,7 +284,8 @@ Lemma alloc_global_exists sk:
   | Gfun f => True
   | Gvar v =>
         Genv.init_data_list_aligned 0 v.(gvar_init)
-        /\ forall symb ofs, In (Init_addrof symb ofs) v.(gvar_init) -> exists idx, SkEnv.id2blk (load_skenv sk) (string_of_ident symb) = Some idx
+        /\ (forall symb ofs, In (Init_addrof symb ofs) v.(gvar_init) -> exists idx, SkEnv.id2blk (load_skenv sk) (string_of_ident symb) = Some idx)
+        /\ (0 < init_data_list_size v.(gvar_init))%Z
   end
   -> exists m', alloc_global sk m idg = Some m'.
 Proof.
@@ -294,7 +295,7 @@ Proof.
     unfold Mem.range_perm, Mem.perm. ss. i. rewrite PMap.gss.
     destruct zle; destruct zlt; try nia; ss. econs.
   Local Opaque Mem.alloc.
-  - des. ss. destruct Mem.alloc eqn:?.
+  - des. ss. rename H1 into SZPOS. destruct Mem.alloc eqn:?.
     set (sz := init_data_list_size (gvar_init v)).
     assert (P1: Mem.range_perm m0 b 0 sz Cur Freeable) by (red; intros; eapply Mem.perm_alloc_2; eauto).
     hexploit Genv.store_zeros_exists; et.
@@ -316,7 +317,8 @@ Proof.
 Qed.
 
 Lemma load_mem_exists sk
-  (COND: forall id v, In (id, Gvar v) sk -> Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk) (string_of_ident symb) = Some idx)) :
+  (COND: forall id v, In (id, Gvar v) sk -> Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk) (string_of_ident symb) = Some idx)
+        /\ (0 < init_data_list_size v.(gvar_init))%Z) :
   exists m, load_mem sk = Some m.
 Proof.
   unfold load_mem. revert COND. generalize Mem.empty. generalize sk at 1 4.
@@ -386,7 +388,7 @@ Lemma addrof_is_wf_in_global clight_prog sk_mem sk :
     -> SkEnv.id2blk (load_skenv (Sk.canon (Sk.add sk_mem sk))) (string_of_ident symb) <> None /\ chk_ident symb = true.
 Proof.
   i. unfold mem_skel in H. des_ifs. revert m H1. set (List.map _ _) as sk_mem.
-  i. red in m. hexploit m; et. i. des. hexploit H0; et. i. des.
+  i. red in m. hexploit m; et. i. destruct H as [H [H0 _]]. des. hexploit H0; et. i. des.
   rewrite H3. split; et. generalize Sk.le_canon_rev. i. ss. apply H4 in H1. apply in_app in H1.
   clear - H1 H2 Heq. unfold get_sk in Heq. des_ifs. bsimpl. des.
   - unfold sk_mem in H1. rewrite in_map_iff in H1. des. destruct x; ss; clarify.
@@ -1113,7 +1115,7 @@ Proof.
   hexploit H2; et. i. unfold chk_ident in H0. destruct Pos.eq_dec; clarify. rewrite e. et.
 Qed.
 
-Theorem compile_init_mem_success clight_prog mn md sk_mem:
+Theorem compile_init_mem_success clight_prog mn md sk_mem :
   compile clight_prog mn = OK md ->
   mem_skel clight_prog = OK sk_mem ->
   exists m tm,
@@ -1122,7 +1124,8 @@ Theorem compile_init_mem_success clight_prog mn md sk_mem:
   /\ match_mem (Sk.canon (Sk.add sk_mem (Mod.sk md))) (globalenv clight_prog) m tm.
 Proof.
   i. hexploit compile_match_genv; et. i. unfold compile, mem_skel in *. des_ifs.
-  ss. dup m. rename m0 into X. apply load_mem_exists in m. des. rewrite m. revert H1 m. set (List.map _ _) as sk_mem. i.
+  ss. dup m. rename m0 into X. apply load_mem_exists in m. des.
+  revert H1 m. set (List.map _ _) as sk_mem. i.
   assert (exists tm, Genv.init_mem clight_prog = Some tm /\
           match_mem (sort (Sk.add sk_mem t)) (Genv.globalenv clight_prog) m0 tm); [|des;et].
   clear - Heq H1 m X.

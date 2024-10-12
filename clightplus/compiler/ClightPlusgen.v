@@ -574,7 +574,7 @@ Section DECOMP_PROG.
 
   Definition mem_keywords := List.map ident_of_string ["malloc"; "free"; "capture"]%string.
 
-  Definition mem_init_cond (sk sk': Sk.t) := forall s v, In (s, Gvar v) sk -> Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk') (string_of_ident symb) = Some idx).
+  Definition mem_init_cond (sk sk': Sk.t) := forall s v, In (s, Gvar v) sk -> Genv.init_data_list_aligned 0 (gvar_init v) /\ (forall symb ofs, In (Init_addrof symb ofs) (gvar_init v) -> exists idx, SkEnv.id2blk (load_skenv sk') (string_of_ident symb) = Some idx) /\ (0 < init_data_list_size v.(gvar_init))%Z.
 
   Definition init_data_list_aligned_dec il p : { Genv.init_data_list_aligned p il} + { ~ Genv.init_data_list_aligned p il}.
   Proof.
@@ -594,6 +594,17 @@ Section DECOMP_PROG.
       + right. ii. hexploit H; et. i. des. clarify.
   Qed.
 
+  (* Definition normal_var_dec (sk: Sk.t): { forall s v, In (s, Gvar v) sk -> (0 < init_data_list_size v.(gvar_init))%Z } + { ~ forall s v, In (s, Gvar v) sk -> (0 < init_data_list_size v.(gvar_init))%Z }. *)
+  (* Proof. *)
+  (*   induction sk. { left. i. ss. } *)
+  (*   destruct IHsk. *)
+  (*   - destruct a. destruct g. { left. i. eapply l. ss. des; clarify. et. } *)
+  (*     destruct (Coqlib.zlt 0 (init_data_list_size (gvar_init v))). *)
+  (*     { left. i. ss. des; clarify. et. } *)
+  (*     right. ii. ss. hexploit H; et.  *)
+  (*   - right. ii. apply n. i. ss. et. *)
+  (* Qed. *)
+
   Definition mem_init_cond_dec sk sk' : { mem_init_cond sk sk'} + { ~ mem_init_cond sk sk'}.
   Proof.
     revert sk'. induction sk; i. { left. ss. }
@@ -603,6 +614,8 @@ Section DECOMP_PROG.
       + left. ii. red in m. ss. des; et. clarify.
       + destruct (init_data_list_aligned_dec (gvar_init v) 0); cycle 1.
         { right. ii. apply n. red in H. hexploit H; et. { ss. et. } i. des. et. }
+        destruct (Coqlib.zlt 0 (init_data_list_size v.(gvar_init))); cycle 1.
+        { right. ii. specialize (H s v). hexploit H; ss; et. i. des. nia. }
         destruct (addr_find_dec sk' (gvar_init v)).
         { left. ii. ss. des; et. clarify. }
         right. ii. red in H. hexploit H; et. { ss. et. } i. des. et.

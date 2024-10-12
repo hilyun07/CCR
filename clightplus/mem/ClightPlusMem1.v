@@ -20,7 +20,7 @@ Set Implicit Arguments.
 Local Open Scope Z.
 
 (* zero size allocation is not allowed because there's no guarentee to base address *)
-Record metadata := { blk : option block; sz : Z; SZPOS: blk <> None -> 0 < sz }.
+Record metadata := { blk : option block; sz : Z }.
 
 Section PRED.
 
@@ -80,9 +80,7 @@ Section PRED.
   Definition is_alive m tg q vaddr : iProp := has_offset vaddr m Ptrofs.zero tg q.
 
   Definition m_null : metadata.
-  Proof.
-    eapply (@Build_metadata None 0). i. clarify.
-  Defined.
+  Proof. eapply (@Build_metadata None 0). Defined.
 
   Definition disjoint (m m0: metadata) : Prop :=
     m.(blk) <> m0.(blk).
@@ -369,20 +367,20 @@ Section RULES.
     - iDestruct "A" as "%". iDestruct "B" as "%". des.
       rewrite <- H0. rewrite <- H1. iCombine "As Bs" as "C".
       iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
-      rewrite (proof_irr SZPOS0 SZPOS1). et.
     - iDestruct "A" as (a) "[Ac %]". iDestruct "B" as (a0) "[Bc %]". des.
       rewrite Heq. rewrite Heq0.
       destruct (Pos.eq_dec b b0).
       + clarify. iCombine "As Bs" as "C".
         iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
-        rewrite (proof_irr SZPOS0 SZPOS1). et.
       + unfold _allocated_with, _has_size, _has_base, __allocated_with.
         iCombine "Aa As Ac Ba Bs Bc" as "C". ur. rewrite ! URA.unit_idl.
         ur. des_ifs. assert (f0 = fun _ => Consent.unit). { inv Heq3. extensionalities. ss. }
         clarify. iOwnWf "C" as wf. des. ur in wf. des.
         clear wf wf0 wf1 wf2 wf4. hexploit wf3; et.
-        { instantiate (1:= sz m0). destruct m0. ss. hexploit SZPOS0; try nia. clarify. }
-        { instantiate (1:= sz m1). destruct m1. ss. hexploit SZPOS0; try nia. clarify. }
+        { instantiate (1:= sz m0). destruct m0. ss.
+          unfold valid in X. ss. destruct (Ptrofs.sub) in X. ss. nia. }
+        { instantiate (1:= sz m1). destruct m1. ss.
+          unfold valid in X0. ss. destruct (Ptrofs.sub) in X0. ss. nia. }
         { des_ifs. ur. et. }
         { clear wf3. des_ifs. }
         { clear wf3. instantiate (1:= a). des_ifs. }
@@ -633,21 +631,19 @@ Section RULES.
     - iDestruct "A" as "%". iDestruct "B" as "%". des.
       rewrite <- H2. rewrite <- H3. iCombine "As Bs" as "C".
       iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
-      rewrite (proof_irr SZPOS0 SZPOS1). et.
     - iDestruct "A" as (a) "[Ac %]". iDestruct "B" as (a0) "[Bc %]". des.
       rewrite Heq. rewrite Heq0.
       destruct (Pos.eq_dec b b0).
       + clarify. iCombine "As Bs" as "C".
         iPoseProof (_has_size_unique with "C") as "%". destruct m1. destruct m0. ss. clarify.
-        rewrite (proof_irr SZPOS0 SZPOS1). et.
       + unfold _points_to, _has_size, _has_base, __points_to.
         assert (exists x0, hd_error mvs0 = Some x0). { destruct mvs0; ss; et. }
         assert (exists x1, hd_error mvs1 = Some x1). { destruct mvs1; ss; et. }
         iCombine "Ap As Ac Bp Bs Bc" as "C". ur. rewrite ! URA.unit_idl. rewrite ! URA.unit_id.
         ur. clarify. iOwnWf "C" as wf. des. ur in wf. des.
         clear wf wf0 wf1 wf2 wf3. hexploit wf4; et; clear wf4.
-        { instantiate (1:=sz m0). instantiate (1:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)). destruct m0, Ptrofs.sub. ss. hexploit SZPOS0; clarify. nia. }
-        { instantiate (1:=sz m1). instantiate (1:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)). destruct m1, (Ptrofs.sub _ a0). ss. hexploit SZPOS0; clarify. nia. }
+        { instantiate (1:=sz m0). instantiate (1:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a)). destruct m0, Ptrofs.sub. ss. nia. }
+        { instantiate (1:=sz m1). instantiate (1:=Ptrofs.unsigned (Ptrofs.sub (Ptrofs.of_int64 i) a0)). destruct m1, (Ptrofs.sub _ a0). ss. nia. }
         { ur. destruct Pos.eq_dec; destruct Coqlib.zle; destruct Coqlib.zlt; ss; try nia.
           destruct Pos.eq_dec; ss. replace (Z.to_nat _) with 0%nat by nia. destruct mvs0; ss.
           ur. clarify. }
@@ -1491,10 +1487,13 @@ Section MRS.
                   | Nonempty => None
                   end
       in
-      match store_init_data_list ε b 0 optq (gvar_init v) with
-      | Some res' => Some (p ⋅ res', a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (__has_size (Some b) (init_data_list_size (gvar_init v))))
-      | None => None
-      end
+      if Coqlib.zlt 0 (init_data_list_size (gvar_init v))
+      then
+        match store_init_data_list ε b 0 optq (gvar_init v) with
+        | Some res' => Some (p ⋅ res', a ⋅ (__allocated_with b Unfreeable (1/2)%Qp), s ⋅ (__has_size (Some b) (init_data_list_size (gvar_init v))))
+        | None => None
+        end
+      else None
     end.
 
   Fixpoint alloc_globals (res : ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) (b: block) (sk: Sk.t) : option (ClightPlusMemRA.__pointstoRA * ClightPlusMemRA.__allocatedRA * ClightPlusMemRA._blocksizeRA) :=

@@ -103,7 +103,8 @@ Section PROOFSINGLE.
 
     set (sort _) as sk_init in *.
     hexploit compile_match_genv; et. i.
-    hexploit compile_init_mem_success; et. i. des. rewrite H3 in INIT_TMEM. clarify.
+    hexploit compile_init_mem_success; et.
+    i. des. rewrite H3 in INIT_TMEM. clarify.
     eapply step_function_entry with (modl:=md) (ge:=globalenv clight_prog) (sk:=sk_init); et.
     { unfold get_ce. ss. econs. split; i.
       - apply alist_find_some_iff; et. rewrite CoqlibC.NoDup_norepet. apply Maps.PTree.elements_keys_norepet.
