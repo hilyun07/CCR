@@ -210,24 +210,33 @@ Lemma match_sem_ptr_match
     (MV2: Val.lessdef v2 v2') :
   exists v', Cop.cmp_ptr m' o v1' v2' = Some v' /\ Val.lessdef v v'.
 Proof.
-  unfold Cop.cmp_ptr, Coqlib.option_map, Val.cmplu_bool in OP. des_ifs.
+  unfold Cop.cmp_ptr, Coqlib.option_map, IntPtrRel.cmplu_join_common in OP. des_ifs.
   - inv MV1. inv MV2. unfold Cop.cmp_ptr. ss. des_ifs. ss. et.
-  - inv MV1. inv MV2. apply andb_prop in Heq2. des.
+  - inv MV1. inv MV2. unfold Val.cmplu_bool in Heq. des_ifs. apply andb_prop in Heq3. des.
     hexploit Mem.weak_valid_pointer_extends; et.
     i. unfold Mem.weak_valid_pointer in *.
     unfold Cop.cmp_ptr. ss. des_ifs. rewrite Heq. ss. et.
-  - inv MV1. inv MV2. apply andb_prop in Heq2. des.
-    hexploit Mem.weak_valid_pointer_extends; et.
-    i. unfold Mem.weak_valid_pointer in *.
+  - inv MV1. inv MV2.
+    eapply IntPtrRel.cmplu_join_lessdef in Heq; et. red in Heq.
     unfold Cop.cmp_ptr. ss. des_ifs. rewrite Heq. ss. et.
-  - inv MV1. inv MV2. apply andb_prop in Heq2. des.
+  - inv MV1. inv MV2. unfold Val.cmplu_bool in Heq. des_ifs. apply andb_prop in Heq3. des.
     hexploit Mem.weak_valid_pointer_extends; et. i. move Heq2 at bottom.
     hexploit Mem.weak_valid_pointer_extends; et. i.
     unfold Mem.weak_valid_pointer in *.
-    unfold Cop.cmp_ptr. ss. des_ifs. ss. et.
-  - inv MV1. inv MV2. bsimpl. des. hexploit Mem.valid_pointer_extends; et. i. move Heq2 at bottom.
-    hexploit Mem.valid_pointer_extends; et. i.
+    unfold Cop.cmp_ptr. ss. des_ifs. ss. rewrite Heq. ss. et.
+  - inv MV1. inv MV2. 
+    eapply IntPtrRel.cmplu_join_lessdef in Heq; et. red in Heq.
     unfold Cop.cmp_ptr. ss. des_ifs. rewrite Heq. ss. et.
+  - inv MV1. inv MV2. unfold Val.cmplu_bool in Heq. des_ifs.
+    + apply andb_prop in Heq2. des.
+      hexploit Mem.weak_valid_pointer_extends; et. i. move Heq2 at bottom.
+      hexploit Mem.weak_valid_pointer_extends; et. i.
+      unfold Mem.weak_valid_pointer in *.
+      unfold Cop.cmp_ptr. ss. des_ifs. ss. et.
+    + apply andb_prop in Heq2. des.
+      hexploit Mem.valid_pointer_extends; et. i. move Heq2 at bottom.
+      hexploit Mem.valid_pointer_extends; et. i.
+      unfold Cop.cmp_ptr. ss. des_ifs. ss. rewrite Heq. ss. et.
 Qed.
 
 Lemma match_to_ptr_match
@@ -250,54 +259,54 @@ Proof.
   - hexploit Mem.to_int_extends. apply MM. 2: et. et. i. rewrite H in *. clarify.
 Qed.
 
-Lemma match_sem_ptr_join_match
-    m m' o v1 v2 v
-    (MM: Mem.extends m m')
-    (OP: Cop.cmp_ptr_join m o v1 v2 = Some v) :
-  exists v', Cop.cmp_ptr_join m' o v1 v2 = Some v' /\ Val.lessdef v v'.
-Proof.
-  unfold Cop.cmp_ptr_join in OP. des_ifs.
-  - re. clarify.
-    hexploit match_sem_ptr_match. et. apply Heq. apply match_to_ptr_match; et.
-    apply match_to_ptr_match; et. i. des.
-    hexploit match_sem_ptr_match. et. apply Heq0. apply match_to_int_match; et.
-    apply match_to_int_match; et. i. des. inv H0. inv H2.
-    unfold Cop.cmp_ptr_join. des_ifs; et. unfold Int.eq in *. des_ifs.
-  - hexploit match_sem_ptr_match. et. apply Heq. apply match_to_ptr_match; et.
-    apply match_to_ptr_match; et. i. des. inv H0.
-    unfold Cop.cmp_ptr_join. des_ifs; et; exfalso.
-    all: try solve [clear -Heq2; unfold Cop.cmp_ptr, Coqlib.option_map in Heq2; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]].
-    clear Heq Heq0. unfold Cop.cmp_ptr, Coqlib.option_map in *. des_ifs.
-    hexploit IntPtrRel.cmplu_no_angelic; et. i. rewrite H in *. rewrite H0 in *.
-    clarify. unfold Int.eq in *. des_ifs.
-  - hexploit match_sem_ptr_match. et. apply Heq0. apply match_to_int_match; et.
-    apply match_to_int_match; et. i. des. inv H0.
-    unfold Cop.cmp_ptr_join. des_ifs; et. 2:{ re. clarify. et. } all: exfalso.
-    all: try solve [clear -Heq1; unfold Cop.cmp_ptr, Coqlib.option_map in Heq1; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]].
-    clear Heq Heq0. unfold Cop.cmp_ptr, Coqlib.option_map in *. des_ifs.
-    hexploit IntPtrRel.cmplu_no_angelic; et. i. rewrite H in *. rewrite H0 in *.
-    clarify. unfold Int.eq in *. des_ifs.
-Qed.
+(* Lemma match_sem_ptr_join_match *)
+(*     m m' o v1 v2 v *)
+(*     (MM: Mem.extends m m') *)
+(*     (OP: Cop.cmp_ptr_join m o v1 v2 = Some v) : *)
+(*   exists v', Cop.cmp_ptr_join m' o v1 v2 = Some v' /\ Val.lessdef v v'. *)
+(* Proof. *)
+(*   unfold Cop.cmp_ptr_join in OP. des_ifs. *)
+(*   - re. clarify. *)
+(*     hexploit match_sem_ptr_match. et. apply Heq. apply match_to_ptr_match; et. *)
+(*     apply match_to_ptr_match; et. i. des. *)
+(*     hexploit match_sem_ptr_match. et. apply Heq0. apply match_to_int_match; et. *)
+(*     apply match_to_int_match; et. i. des. inv H0. inv H2. *)
+(*     unfold Cop.cmp_ptr_join. des_ifs; et. unfold Int.eq in *. des_ifs. *)
+(*   - hexploit match_sem_ptr_match. et. apply Heq. apply match_to_ptr_match; et. *)
+(*     apply match_to_ptr_match; et. i. des. inv H0. *)
+(*     unfold Cop.cmp_ptr_join. des_ifs; et; exfalso. *)
+(*     all: try solve [clear -Heq2; unfold Cop.cmp_ptr, Coqlib.option_map in Heq2; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]]. *)
+(*     clear Heq Heq0. unfold Cop.cmp_ptr, Coqlib.option_map in *. des_ifs. *)
+(*     hexploit IntPtrRel.cmplu_no_angelic; et. i. rewrite H in *. rewrite H0 in *. *)
+(*     clarify. unfold Int.eq in *. des_ifs. *)
+(*   - hexploit match_sem_ptr_match. et. apply Heq0. apply match_to_int_match; et. *)
+(*     apply match_to_int_match; et. i. des. inv H0. *)
+(*     unfold Cop.cmp_ptr_join. des_ifs; et. 2:{ re. clarify. et. } all: exfalso. *)
+(*     all: try solve [clear -Heq1; unfold Cop.cmp_ptr, Coqlib.option_map in Heq1; des_ifs; try solve [destruct b; ss; clarify| destruct b0; ss; clarify]]. *)
+(*     clear Heq Heq0. unfold Cop.cmp_ptr, Coqlib.option_map in *. des_ifs. *)
+(*     hexploit IntPtrRel.cmplu_no_angelic; et. i. rewrite H in *. rewrite H0 in *. *)
+(*     clarify. unfold Int.eq in *. des_ifs. *)
+(* Qed. *)
 
-Lemma match_sem_ptr_cmp_common_match
-    m m' o v1 v2 v
-    (MM: Mem.extends m m')
-    (OP: Cop.cmp_ptr_join_common m o v1 v2 = Some v) :
-  exists v', Cop.cmp_ptr_join_common m' o v1 v2 = Some v' /\ Val.lessdef v v'.
-Proof.
-  unfold Cop.cmp_ptr_join_common in OP. des_ifs.
-  - unfold Cop.cmp_ptr in *. des_ifs. ss. clarify. ss.
-    unfold Cop.cmp_ptr in *. ss. clarify. ss. esplits; eauto.
-  - unfold Cop.cmp_ptr in *. des_ifs. ss. clarify. ss.
-    unfold Cop.cmp_ptr in *. ss. clarify. ss. esplits; eauto. des_ifs.
-    hexploit Mem.weak_valid_pointer_extends; eauto. i. unfold Mem.weak_valid_pointer in *.
-    clarify.
-  - hexploit match_sem_ptr_join_match; et. i. des. ss. des_ifs. rewrite H. et.
-  - hexploit match_sem_ptr_join_match; et. i. des. ss. des_ifs. rewrite H. et.
-  - ss. des_ifs. hexploit match_sem_ptr_match; et.
-  - ss. des_ifs. hexploit match_sem_ptr_join_match; et.
-  - ss. des_ifs. hexploit match_sem_ptr_match; et.
-Qed.
+(* Lemma match_sem_ptr_cmp_common_match *)
+(*     m m' o v1 v2 v *)
+(*     (MM: Mem.extends m m') *)
+(*     (OP: Cop.cmp_ptr_join_common m o v1 v2 = Some v) : *)
+(*   exists v', Cop.cmp_ptr_join_common m' o v1 v2 = Some v' /\ Val.lessdef v v'. *)
+(* Proof. *)
+(*   unfold Cop.cmp_ptr_join_common in OP. des_ifs. *)
+(*   - unfold Cop.cmp_ptr in *. des_ifs. ss. clarify. ss. *)
+(*     unfold Cop.cmp_ptr in *. ss. clarify. ss. esplits; eauto. *)
+(*   - unfold Cop.cmp_ptr in *. des_ifs. ss. clarify. ss. *)
+(*     unfold Cop.cmp_ptr in *. ss. clarify. ss. esplits; eauto. des_ifs. *)
+(*     hexploit Mem.weak_valid_pointer_extends; eauto. i. unfold Mem.weak_valid_pointer in *. *)
+(*     clarify. *)
+(*   - hexploit match_sem_ptr_join_match; et. i. des. ss. des_ifs. rewrite H. et. *)
+(*   - hexploit match_sem_ptr_join_match; et. i. des. ss. des_ifs. rewrite H. et. *)
+(*   - ss. des_ifs. hexploit match_sem_ptr_match; et. *)
+(*   - ss. des_ifs. hexploit match_sem_ptr_join_match; et. *)
+(*   - ss. des_ifs. hexploit match_sem_ptr_match; et. *)
+(* Qed. *)
 
 (* TODO: integrate two kinds of lemma to forward sim-lemma *)
 
@@ -468,14 +477,8 @@ Proof.
       all: unfold Cop.sem_shift; des_ifs; esplits; eauto.
     + unfold Cop.sem_shift in OP'. des_ifs; ss.
       all: unfold Cop.sem_shift; des_ifs; esplits; eauto.
-  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify.
-    all: try solve [eapply match_sem_ptr_cmp_common_match; et].
-    + unfold Cop.cmp_ptr_join_common in OP'. des_ifs.
-    + des_ifs.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
+  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify;
+    try solve [eapply match_sem_ptr_match; et].
     + unfold Cop.sem_binarith in OP'. des_ifs; ss.
       all: hexploit (match_sem_cast m m' v' v'); eauto; i; des.
       all: hexploit (match_sem_cast m m' v0' v0'); eauto; i; des.
@@ -492,14 +495,8 @@ Proof.
     + exfalso.
       unfold Cop.sem_binarith in *. des_ifs.
       all: unfold Cop.sem_cast in Heq0; des_ifs.
-  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify.
-    all: try solve [eapply match_sem_ptr_cmp_common_match; et].
-    + unfold Cop.cmp_ptr_join_common in OP'. des_ifs.
-    + des_ifs.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
+  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify;
+    try solve [eapply match_sem_ptr_match; et].
     + unfold Cop.sem_binarith in OP'. des_ifs; ss.
       all: hexploit (match_sem_cast m m' v' v'); eauto; i; des.
       all: hexploit (match_sem_cast m m' v0' v0'); eauto; i; des.
@@ -516,14 +513,8 @@ Proof.
     + exfalso.
       unfold Cop.sem_binarith in *. des_ifs.
       all: unfold Cop.sem_cast in Heq0; des_ifs.
-  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify.
-    all: try solve [eapply match_sem_ptr_cmp_common_match; et].
-    + unfold Cop.cmp_ptr_join_common in OP'. des_ifs.
-    + des_ifs.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
+  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify;
+    try solve [eapply match_sem_ptr_match; et].
     + unfold Cop.sem_binarith in OP'. des_ifs; ss.
       all: hexploit (match_sem_cast m m' v' v'); eauto; i; des.
       all: hexploit (match_sem_cast m m' v0' v0'); eauto; i; des.
@@ -540,14 +531,8 @@ Proof.
     + exfalso.
       unfold Cop.sem_binarith in *. des_ifs.
       all: unfold Cop.sem_cast in Heq0; des_ifs.
-  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify.
-    all: try solve [eapply match_sem_ptr_cmp_common_match; et].
-    + unfold Cop.cmp_ptr_join_common in OP'. des_ifs.
-    + des_ifs.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
+  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify;
+    try solve [eapply match_sem_ptr_match; et].
     + unfold Cop.sem_binarith in OP'. des_ifs; ss.
       all: hexploit (match_sem_cast m m' v' v'); eauto; i; des.
       all: hexploit (match_sem_cast m m' v0' v0'); eauto; i; des.
@@ -564,14 +549,8 @@ Proof.
     + exfalso.
       unfold Cop.sem_binarith in *. des_ifs.
       all: unfold Cop.sem_cast in Heq0; des_ifs.
-  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify.
-    all: try solve [eapply match_sem_ptr_cmp_common_match; et].
-    + unfold Cop.cmp_ptr_join_common in OP'. des_ifs.
-    + des_ifs.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
+  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify;
+    try solve [eapply match_sem_ptr_match; et].
     + unfold Cop.sem_binarith in OP'. des_ifs; ss.
       all: hexploit (match_sem_cast m m' v' v'); eauto; i; des.
       all: hexploit (match_sem_cast m m' v0' v0'); eauto; i; des.
@@ -588,14 +567,8 @@ Proof.
     + exfalso.
       unfold Cop.sem_binarith in *. des_ifs.
       all: unfold Cop.sem_cast in Heq0; des_ifs.
-  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify.
-    all: try solve [eapply match_sem_ptr_cmp_common_match; et].
-    + unfold Cop.cmp_ptr_join_common in OP'. des_ifs.
-    + des_ifs.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
-      * eapply match_sem_ptr_join_match; et.
-      * eapply match_sem_ptr_match; et.
+  - unfold Cop.sem_cmp in *. des_ifs; inv MV; inv MV'; ss; clarify;
+    try solve [eapply match_sem_ptr_match; et].
     + unfold Cop.sem_binarith in OP'. des_ifs; ss.
       all: hexploit (match_sem_cast m m' v' v'); eauto; i; des.
       all: hexploit (match_sem_cast m m' v0' v0'); eauto; i; des.

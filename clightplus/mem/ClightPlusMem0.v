@@ -98,37 +98,15 @@ Section MODSEM.
         end
     . *)
 
-    Definition cmp_ptr m c v1 v2 : itree Es (option bool) :=
-      if Archi.ptr64
-      then Ret (Val.cmplu_bool (Mem.valid_pointer m) c v1 v2)
-      else Ret (Val.cmpu_bool (Mem.valid_pointer m) c v1 v2).
-
-    Definition cmp_ptr_join m c v1 v2 : itree Es (option bool) :=
-      ob1 <- cmp_ptr m c (to_ptr_val m v1) (to_ptr_val m v2);;
-      ob2 <- cmp_ptr m c (to_int_val m v1) (to_int_val m v2);;
-      match ob1, ob2 with
-      | Some b1, Some b2 =>
-        if Bool.eqb b1 b2 then Ret ob1
-        else Ret None
-      | Some b, None => Ret ob1
-      | None, Some b => Ret ob2
-      | None, None => Ret None
-      end.
-
     (* corresponds to Cop.cmp_ptr_join_common *)
     Definition cmp_ptrF : comparison * val * val -> itree Es bool :=
       fun varg =>
         mp <- trigger PGet;;
         m <- mp↓?;;
         let '(c, v1, v2) := varg in
-        match v1, v2 with
-        | Vint _, Vint _ | Vlong _, Vlong _ | Vptr _ _, Vptr _ _ => ob <- cmp_ptr m c v1 v2;; ob?
-        | Vint n, Vptr _ _ | Vptr _ _, Vint n => ob <- (if Int.eq n Int.zero then cmp_ptr m c v1 v2
-                                                        else cmp_ptr_join m c v1 v2);; ob?
-        | Vlong n, Vptr _ _ | Vptr _ _, Vlong n => ob <- (if Int64.eq n Int64.zero then cmp_ptr m c v1 v2
-                                                          else cmp_ptr_join m c v1 v2);; ob?
-        | _, _ => triggerUB
-        end.
+        if Archi.ptr64
+        then (cmplu_join_common m c v1 v2)?
+        else (cmpu_join_common m c v1 v2)?.
 
     Definition check_val v1 v2 : itree Es unit :=
       match v1, v2 with
