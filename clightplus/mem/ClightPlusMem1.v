@@ -898,6 +898,16 @@ Section RULES.
     p (≃_m) q ** live_(m,tg,f) p ⊢ live_(m,tg,f) q.
   Proof. apply _equiv_offset_comm. Qed.
 
+  Lemma equiv_live_comm_ofs
+      p q tg f m k :
+    p (≃_m) q ** live_(m,tg,f) (Val.subl p (Vptrofs k)) ⊢ live_(m,tg,f) (Val.subl q (Vptrofs k)).
+  Proof.
+    iIntros "[A B]".
+    iApply live_offset_exchage_rev.
+    iApply _equiv_offset_comm. iFrame.
+    iApply live_offset_exchage. iFrame.
+  Qed.
+
   Lemma null_equiv p : Vnullptr (≃_m_null) p ⊢ ⌜p = Vnullptr⌝.
   Proof.
     iIntros "A".
