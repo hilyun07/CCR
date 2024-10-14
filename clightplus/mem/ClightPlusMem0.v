@@ -108,19 +108,9 @@ Section MODSEM.
         then (cmplu_join_common m c v1 v2)?
         else (cmpu_join_common m c v1 v2)?.
 
-    Definition check_val v1 v2 : itree Es unit :=
-      match v1, v2 with
-      | Vptr _ _, Vptr _ _ | Vlong _, Vlong _ => Ret tt
-      | Vptr _ _, Vlong n | Vlong n, Vptr _ _ => if Int64.eq n Int64.zero
-                                                 then triggerUB
-                                                 else Ret tt
-      | _, _ => Ret tt 
-      end.
-
     Definition sub_ptrF : Z * val * val -> itree Es val :=
       fun varg =>
         let '(sz, v1, v2) := varg in
-          check_val v1 v2;;;
           mp <- trigger (PGet);;
           m <- mp↓?;;
           n <- (Cop._sem_ptr_sub_join_common v1 v2 m)?;;
