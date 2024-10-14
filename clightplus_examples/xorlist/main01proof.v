@@ -63,8 +63,7 @@ Section PROOF.
     inversion VALID_link. clear VALID_link. subst.
     clear a. simpl in ce.
     set (compile _ _) in VALID_comp.
-    eassert (r = Errors.OK _).
-    { reflexivity. }
+    eassert (r = Errors.OK _). { reflexivity. }
     rewrite H0 in *. clear r H0.
     inversion VALID_comp. clear VALID_comp. subst.
     econs; ss. red.
@@ -146,8 +145,7 @@ Section PROOF.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p0. ss. }
-      { ss. des_ifs_safe. destruct p0. ss. }
-      }
+      { ss. des_ifs_safe. destruct p0. ss. } }
     { instantiate (1:=5). oauto. }
     iPoseProof (live_has_offset with "hd_alloc") as "[hd_alloc hd_alloc_ofs]".
     iPoseProof (live_has_offset with "tl_alloc") as "[tl_alloc tl_alloc_ofs]".
@@ -169,14 +167,12 @@ Section PROOF.
     hred_r. unfold __Node, ident. des_ifs_safe.
 
     replace (pred _) with blk0 by nia. move SKINCL1 at bottom.
-    erewrite SKINCLGD; et; [|ss; et].
-    hred_r. ss.
+    erewrite SKINCLGD; et; [|ss; et]. hred_r. ss.
     iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p0. ss. }
-      { ss. des_ifs_safe. destruct p0. ss. }
-      }
+      { ss. des_ifs_safe. destruct p0. ss. } }
     { instantiate (1:=4). oauto. }
     iSplitR "hd_alloc tl_alloc".
     { iFrame.
@@ -194,14 +190,12 @@ Section PROOF.
     hred_r. unfold __Node, ident. des_ifs_safe.
 
     replace (pred _) with blk1 by nia. move SKINCL1 at bottom.
-    erewrite SKINCLGD; et; [|ss; et].
-    hred_r. ss.
+    erewrite SKINCLGD; et; [|ss; et]. hred_r. ss.
     iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p. ss. }
-      { ss. des_ifs_safe. destruct p. ss. }
-      }
+      { ss. des_ifs_safe. destruct p. ss. } }
     { instantiate (1:=3). oauto. }
     iSplitR "hd_alloc tl_alloc".
     { iFrame.
@@ -213,29 +207,24 @@ Section PROOF.
     hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
     unfold sem_mul_c. hred_r. rewrite Heqb1. hred_r.
     remove_tau. unhide. remove_tau.
-    unhide. remove_tau.
-    unhide. remove_tau.
+    unhide. remove_tau. unhide. remove_tau.
 
     set (("delete_tl", Gfun _)) in *.
 
     hexploit (SKINCLENV1 (fst p) (snd p)).
-    { right. right. right. right. clearbody p. destruct p.
-      ss. et. }
+    { right. right. right. right. clearbody p. destruct p. ss. et. }
     i. des. unfold p in FIND. ss. rewrite FIND. rename FIND into delete_tl_loc.
     hred_r. unfold __Node, ident. des_ifs_safe.
 
     replace (pred _) with blk2 by nia. move SKINCL1 at bottom.
     erewrite SKINCLGD.
     5:{ eapply SKINCL1. instantiate (1:=(snd p)). instantiate (1:=(fst p)). clearbody p. destruct p. do 4 right. ss. et. }
-    all: et. 2:{ ss. }
-    unfold p. ss.
-    hred_r. ss.
+    all: et. 2:{ ss. } unfold p. ss. hred_r. ss.
     iApply isim_ccallU_pure; et.
     { eapply fn_has_spec_in_stb; et.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p0. ss. }
-      { ss. des_ifs_safe. destruct p0. ss. }
-      }
+      { ss. des_ifs_safe. destruct p0. ss. } }
     { instantiate (1:=2). oauto. }
     iSplitR "hd_alloc tl_alloc".
     { iFrame.
@@ -247,8 +236,7 @@ Section PROOF.
     hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
     unfold sem_mul_c. hred_r. rewrite Heqb1. hred_r.
     remove_tau. unhide. remove_tau.
-    unhide. remove_tau.
-    unhide. remove_tau.
+    unhide. remove_tau. unhide. remove_tau.
 
     unfold full_xorlist.
     iDestruct "X" as (md m1 hd tl ofs ofs1) "[[[[[[D C] %] B] A] %] ?]".
