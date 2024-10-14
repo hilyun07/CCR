@@ -170,7 +170,7 @@ Section PROOF.
 
     iPoseProof (xorlist_tl_deen with "LIST") as "%". rename H0 into hd_deen.
     iPoseProof (xorlist_tl_not_Vundef with "LIST") as "%". rename H0 into hd_notundef.
-    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
     { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
@@ -186,7 +186,7 @@ Section PROOF.
 
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into tl_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into tl_notundef.
-    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
     { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
@@ -254,7 +254,7 @@ Section PROOF.
       (* hd_handler = *tl_handler = entry start *)
       rewrite new_cast_ptr. hred_r. unhide. remove_tau.
       rewrite tl_hdl_is_point. hred_r. rewrite new_cast_ptr. hred_r.
-      iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+      iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
@@ -263,7 +263,7 @@ Section PROOF.
 
       hred_r. unhide. remove_tau. rewrite hd_hdl_ptr. hred_r.
       rewrite new_cast_ptr. hred_r.
-      iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+      iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
@@ -373,7 +373,7 @@ Section PROOF.
     (* *hd_handler = entry start *)
     rewrite tl_hdl_is_point. hred_r.
     rewrite new_cast_ptr. hred_r.
-    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs".
     { iFrame. iExists _,_. iFrame. iPureIntro.
@@ -502,7 +502,7 @@ Section PROOF.
 
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into hd_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into hd_notundef.
-    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
     { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
@@ -518,7 +518,7 @@ Section PROOF.
 
     iPoseProof (xorlist_tl_deen with "LIST") as "%". rename H0 into tl_deen.
     iPoseProof (xorlist_tl_not_Vundef with "LIST") as "%". rename H0 into tl_notundef.
-    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
     { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
@@ -587,7 +587,7 @@ Section PROOF.
       (* hd_handler = *tl_handler = entry start *)
       rewrite new_cast_ptr. hred_r. unhide. remove_tau.
       rewrite tl_hdl_is_point. hred_r. rewrite new_cast_ptr. hred_r.
-      iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+      iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
@@ -596,7 +596,7 @@ Section PROOF.
 
       hred_r. unhide. remove_tau. rewrite hd_hdl_ptr. hred_r.
       rewrite new_cast_ptr. hred_r.
-      iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+      iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
@@ -706,7 +706,7 @@ Section PROOF.
     (* *hd_handler = entry start *)
     rewrite hd_hdl_ptr. hred_r.
     rewrite new_cast_ptr. hred_r.
-    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs".
     { iFrame. iExists _,_. iFrame. iPureIntro.
@@ -804,7 +804,7 @@ Section PROOF.
 
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into tl_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into tl_notundef.
-    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
     { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
@@ -887,7 +887,7 @@ Section PROOF.
     (* hdH* = hd_new start *)
     hred_r. rewrite ptrofs_cast_ptr. hred_r. unhide. remove_tau. unhide. remove_tau.
     rewrite tl_hdl_ptr. hred_r. rewrite ptrofs_cast_ptr. hred_r.
-    iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.
     { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length. et. }
@@ -921,7 +921,7 @@ Section PROOF.
       iPoseProof (points_to_is_ptr with "hd_hdl_point") as "%". rewrite H0. rename H0 into hd_hdl_ptr.
       hred_r. change Archi.ptr64 with true. hred_r.
       rewrite cast_long; et. hred_r.
-      iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+      iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
@@ -1114,7 +1114,7 @@ Section PROOF.
     hred_r. iApply isim_apc. iExists (Some (20%nat : Ord.t)).
     iPoseProof (xorlist_hd_deen with "LIST") as "%". rename H0 into hd_deen.
     iPoseProof (xorlist_hd_not_Vundef with "LIST") as "%". rename H0 into hd_notundef.
-    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_load; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
     { iExists _. iFrame. iPureIntro. rewrite encode_val_length. splits; et. apply Memory.Mem.encode_val_change_check_false. }
@@ -1198,7 +1198,7 @@ Section PROOF.
     (* hdH* = hd_new start *)
     hred_r. rewrite ptrofs_cast_ptr. hred_r. unhide. remove_tau. unhide. remove_tau.
     rewrite hd_hdl_ptr. hred_r. rewrite ptrofs_cast_ptr. hred_r.
-    iPoseProof (live_has_offset_ofs with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
+    iPoseProof (_has_offset_dup with "hd_hdl_ofs") as "[hd_hdl_ofs hd_hdl_ofs_ofs]".
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV hd_hdl_point hd_hdl_ofs_ofs"; iFrame.
     { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length. et. }
@@ -1232,7 +1232,7 @@ Section PROOF.
       iPoseProof (points_to_is_ptr with "tl_hdl_point") as "%". rewrite H0. rename H0 into tl_hdl_ptr.
       hred_r. change Archi.ptr64 with true. hred_r.
       rewrite cast_long; et. hred_r.
-      iPoseProof (live_has_offset_ofs with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
+      iPoseProof (_has_offset_dup with "tl_hdl_ofs") as "[tl_hdl_ofs tl_hdl_ofs_ofs]".
 
       iApply isim_ccallU_store; ss; oauto.
       iSplitL "INV tl_hdl_point tl_hdl_ofs_ofs"; iFrame.

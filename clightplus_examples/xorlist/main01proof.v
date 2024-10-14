@@ -149,13 +149,14 @@ Section PROOF.
       { ss. des_ifs_safe. destruct p0. ss. }
       }
     { instantiate (1:=5). oauto. }
-    iSplitL.
+    iPoseProof (live_has_offset with "hd_alloc") as "[hd_alloc hd_alloc_ofs]".
+    iPoseProof (live_has_offset with "tl_alloc") as "[tl_alloc tl_alloc_ofs]".
+    iSplitR "hd_alloc tl_alloc".
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Local, Local, Int64.repr (Int.signed (Int.repr 3)), [])). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Int64.repr (Int.signed (Int.repr 3)), [])). ss.
       iSplit; et. iSplit; et. unfold full_xorlist.
       iExists _, _, _, _, _, _.
       iPoseProof (equiv_dup with "NULL") as "[? ?]".
-      rewrite hd_sub_r. rewrite tl_sub_r.
       iFrame. iPureIntro. splits; try exists 0; ss. }
     iIntros (st_src4 st_tgt4 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -177,9 +178,9 @@ Section PROOF.
       { ss. des_ifs_safe. destruct p0. ss. }
       }
     { instantiate (1:=4). oauto. }
-    iSplitL.
+    iSplitR "hd_alloc tl_alloc".
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Local, Local, Int64.repr (Int.signed (Int.repr 7)), _)). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Int64.repr (Int.signed (Int.repr 7)), _)). ss.
       iSplit; et. }
     iIntros (st_src5 st_tgt5 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -202,9 +203,9 @@ Section PROOF.
       { ss. des_ifs_safe. destruct p. ss. }
       }
     { instantiate (1:=3). oauto. }
-    iSplitL.
+    iSplitR "hd_alloc tl_alloc".
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _, _, _)). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _)). ss.
       iSplit; et. }
     iIntros (st_src6 st_tgt6 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -236,9 +237,9 @@ Section PROOF.
       { ss. des_ifs_safe. destruct p0. ss. }
       }
     { instantiate (1:=2). oauto. }
-    iSplitL.
+    iSplitR "hd_alloc tl_alloc".
     { iFrame.
-      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _, _, _)). ss.
+      instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _)). ss.
       iSplit; et. }
     iIntros (st_src7 st_tgt7 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
@@ -253,10 +254,20 @@ Section PROOF.
     iDestruct "X" as (md m1 hd tl ofs ofs1) "[[[[[[D C] %] B] A] %] ?]".
 
     iApply isim_ccallU_sfree; ss; oauto.
-    iPoseProof (live_trivial with "A") as "%".
-    iPoseProof (live_trivial with "C") as "%".
     des. clarify.
-    iSplitL "INV B A"; iFrame.
+    iEval (replace (Vptr b Ptrofs.zero) with (Val.subl (Vptr b Ptrofs.zero) (Vptrofs Ptrofs.zero))) in "hd_alloc".
+    iEval (replace (Vptr b0 Ptrofs.zero) with (Val.subl (Vptr b0 Ptrofs.zero) (Vptrofs Ptrofs.zero))) in "tl_alloc".
+    iPoseProof (live_trivial with "hd_alloc") as "%".
+    iPoseProof (live_trivial with "tl_alloc") as "%".
+    iPoseProof (points_to_trivial with "D") as "%".
+    iPoseProof (points_to_trivial with "B") as "%".
+    iEval (replace (Val.subl (Vptr b Ptrofs.zero) (Vptrofs Ptrofs.zero)) with (Vptr b Ptrofs.zero)) in "D".
+    iEval (replace (Val.subl (Vptr b0 Ptrofs.zero) (Vptrofs Ptrofs.zero)) with (Vptr b0 Ptrofs.zero)) in "B".
+    assert (m = md).
+    { destruct m. destruct md. ss. clarify. f_equal. apply proof_irr. }
+    assert (m0 = m1).
+    { destruct m0. destruct m1. ss. clarify. f_equal. apply proof_irr. }
+    clarify. iSplitL "INV B tl_alloc"; iFrame.
     { iExists _,_,_. iFrame. iPureIntro.
       des. rewrite encode_val_length. unfold size_chunk_nat.
       change (size_chunk Mptr) with 8%Z in *. splits; et. }
@@ -264,7 +275,7 @@ Section PROOF.
     hred_r.
 
     iApply isim_ccallU_sfree; ss; oauto.
-    iSplitL "INV D C"; iFrame.
+    iSplitL "INV D hd_alloc"; iFrame.
     { iExists _,_,_. iFrame. iPureIntro.
       des. rewrite encode_val_length. unfold size_chunk_nat.
       change (size_chunk Mptr) with 8%Z in *. splits; et. }

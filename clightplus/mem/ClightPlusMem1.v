@@ -661,6 +661,18 @@ Section RULES.
         i. exfalso. hexploit (paddr_no_overflow_cond_lt i); et; try nia. move H7 at bottom.
         hexploit (paddr_no_overflow_cond_lt i); et; try nia.
   Qed.
+  
+  Lemma points_to_trivial
+      b m q ofs mvs :
+    (Vptr b ofs) (↦_m,q) mvs ⊢ ⌜m.(blk) = Some b⌝.
+  Proof.
+    iIntros "A". unfold points_to. des_ifs.
+    iDestruct "A" as "(A & B)".
+    iDestruct "B" as (ofs0) "((B & C) & D)".
+    unfold _has_offset.
+    iDestruct "C" as "(C & %)". des. clarify.
+    rewrite <- Heq. rewrite H0. et.
+  Qed.
 
   Lemma equiv_refl_point
       m p q mvs :
