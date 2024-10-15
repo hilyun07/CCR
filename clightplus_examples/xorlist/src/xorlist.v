@@ -15,7 +15,7 @@ Module Info.
   Definition abi := "standard".
   Definition bitsize := 64.
   Definition big_endian := false.
-  Definition source_file := "clight_examples/xorlist/src/xorlist.c".
+  Definition source_file := "clightplus_examples/xorlist/src/xorlist.c".
   Definition normalized := false.
 End Info.
 
@@ -729,7 +729,7 @@ Definition public_idents : list ident :=
  ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
  ___builtin_ais_annot :: nil).
 
-Definition prog : Clight.program :=
+Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
 
 
