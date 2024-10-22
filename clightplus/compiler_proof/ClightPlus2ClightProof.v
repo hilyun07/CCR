@@ -835,6 +835,19 @@ Proof.
     i. des. hexploit IHOP; et. i. des. esplits; et. econs; et.
 Qed.
 
+Lemma match_bind_parameters_match
+    ge e m m0 l vl vl' m'
+    (OP: bind_parameters ge e m l vl m')
+    (MM: Mem.extends m m0)
+    (MV: Val.lessdef_list vl vl') :
+  exists m0', bind_parameters ge e m0 l vl' m0' /\ Mem.extends m' m0'.
+Proof.
+  ginduction OP; i; ss.
+  - esplits; et. inv MV. econs.
+  - inv MV. hexploit match_assign_loc; et. i. des. hexploit match_assign_loc_match; et. i.
+    hexploit IHOP; et. i. des. esplits; et. econs; et.
+Qed.
+
 Require Import ClightPlusLenvSim.
 
 Lemma match_bind_parameter_temps
@@ -882,12 +895,25 @@ Proof.
   esplits; et. econs; et.
 Qed.
 
+Lemma match_function_entry1_match
+    ge f args args' m m' e le m1
+    (OP: function_entry1 ge f args m e le m1)
+    (MV: Val.lessdef_list args args')
+    (MM: Mem.extends m m') :
+  exists m1' le', function_entry1 ge f args' m' e le' m1' /\ match_temps le le' /\ Mem.extends m1 m1'.
+Proof.
+  inv OP. hexploit match_alloc_variables_match; et. i. des.
+  hexploit match_bind_parameters_match; et. i. des. esplits; et.
+  { econs; et. } ii. destruct ((create_undef_temps (fn_temps f)) ! id).
+  { econs. et. } econs.
+Qed.
+
 Require Import ClightPlusExprgen ClightPlusSimAll.
 
 Lemma match_states_bsim p gmtgt st_src st_tgt
   (M: match_states st_src st_tgt)
 :
-  NOSTUTTER.bsim (semantics3 p) (semantics2 p) gmtgt lt 0%nat st_src st_tgt.
+  NOSTUTTER.bsim (semantics3 p) (semantics1 p) gmtgt lt 0%nat st_src st_tgt.
 Proof.
   revert_until st_src. revert st_src. pcofix CIH.
   i. inv M.
@@ -1177,13 +1203,13 @@ Proof.
     i. des. { inv H. } inv H; des; clarify.
     + econs.
       * i. inv STEPTGT; des; clarify.
-        hexploit match_function_entry2_match. 2: et. all: et. i. des.
+        hexploit match_function_entry1_match. 2: et. all: et. i. des.
         assert (e = e0 /\ le' = le0 /\ m1' = m2).
-        { inv H. inv H5. hexploit alloc_variables_determ. apply H7. apply H11. i. des. clarify. }
+        { inv H. inv H5. hexploit alloc_variables_determ. apply H7. apply H3. i. des. clarify. splits; et. hexploit bind_parameters_determ. apply H4. apply H8. et. }
         des. clarify.
         left. esplits. econs. left. apply plus_one. econs; et. right. apply CIH. econs; et.
       * i. inv FINALTGT.
-      * right. hexploit match_function_entry2_match. 2: et. all: et. i. des.
+      * right. hexploit match_function_entry1_match. 2: et. all: et. i. des.
         econs. econs. econs; et.
     + econs.
       * i. inv STEPTGT.
@@ -1238,8 +1264,8 @@ Proof.
       * inv H. inv NEXT. right. econs. econs. econs.
 Qed.
 
-Lemma semantics2to3 p:
-  forall obs1, program_observes (Clight.semantics2 p) obs1 ->
+Lemma semantics1to3 p:
+  forall obs1, program_observes (Clight.semantics1 p) obs1 ->
   exists obs0, program_observes (semantics3 p) obs0 /\ observation_improves obs0 obs1.
 Proof.
   apply backward_simulation_observation_improves.

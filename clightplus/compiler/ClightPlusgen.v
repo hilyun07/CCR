@@ -49,17 +49,26 @@ Fixpoint alloc_variables_c (ce: comp_env) (e: env)
     alloc_variables_c ce (alist_add id (b, ty) e) vars'
   end.
 
+Fixpoint bind_parameters_c (ce: comp_env) (e: env) (formals: list (ident * type))
+  (vargs: list val) : itree eff unit :=
+  match formals, vargs with
+  | [], [] => Ret tt
+  | (id, ty) :: xl, v :: vl =>
+      '(b, ty1) <- (alist_find id e)?;;
+      (if type_eq ty ty1 then Ret tt else triggerUB);;;
+      assign_loc_c ce ty (Vptr b Ptrofs.zero) v;;;
+      bind_parameters_c ce e xl vl
+  | _, _ => triggerUB
+  end.
+
 Definition function_entry_c
            (ce: comp_env) (f: function) (vargs: list val)
   : itree eff (env * temp_env) :=
-  if (id_list_norepet_c (var_names (fn_vars f)) &&
-      id_list_norepet_c (var_names (fn_params f)) &&
-      id_list_disjoint_c (var_names (fn_params f))
-                         (var_names (fn_temps f)))%bool
+  if (id_list_norepet_c (var_names (fn_params f) ++ var_names (fn_vars f)))%bool
   then
-    e <- alloc_variables_c ce [] (fn_vars f);;
-    le <- (bind_parameter_temps (fn_params f) vargs (create_undef_temps (fn_temps f)))?;;
-    Ret (e, le)
+    e <- alloc_variables_c ce [] (fn_params f ++ fn_vars f);;
+    bind_parameters_c ce e (fn_params f) vargs;;;
+    Ret (e, create_undef_temps (fn_temps f))
   else triggerUB.
 
 Section DECOMP.

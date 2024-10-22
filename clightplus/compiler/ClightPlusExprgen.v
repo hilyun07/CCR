@@ -33,7 +33,7 @@ Section SEM.
 
   Definition semantics3 (p: program) :=
   let ge := globalenv p in
-  Semantics_gen step2 (initial_state p) eq (concrete_snapshot (Genv.globalenv p)) final_state is_external ge ge.
+  Semantics_gen step1 (initial_state p) eq (concrete_snapshot (Genv.globalenv p)) final_state is_external ge ge.
 
 End SEM.
 

@@ -16,6 +16,7 @@ Require Import ClightPlusMatchEnv.
 Require Import ClightPlusMatchStmt.
 Require Import ClightPlusLenvSim.
 Require Import ClightPlusMemSim.
+Require Import ClightPlusExprSim.
 
 From compcert Require Import Values Ctypes Clight Clightdefs.
 
@@ -208,6 +209,47 @@ Section PROOF.
       erewrite match_sizeof; et.
   Qed.
 
+  Lemma step_bind_parameters pstate ge tce ce f_table modl cprog sk_mem sk tge e te m tm
+    (PSTATE: pstate "Mem"%string = m↑)
+    (EQ1: tce = ge.(genv_cenv))
+    (EQ2: tge = ge.(genv_genv))
+    (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
+    (MGE: match_ge sk tge)
+    (ME: match_e sk tge e te)
+    (MCE: match_ce ce tce)
+    (MM: match_mem sk tge m tm)
+    l vl
+ r b tstate mn ktr
+    (NEXT: forall m' tm',
+            bind_parameters ge te tm l (List.map (map_val sk tge) vl) tm' ->
+            match_mem sk tge m' tm' ->
+            paco4
+              (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
+              (ktr (update pstate "Mem" m'↑, tt))
+              tstate)
+  :
+    paco4
+      (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
+      (`r0: (p_state * unit) <-
+        (EventsL.interp_Es
+          (prog f_table)
+          (transl_all mn (bind_parameters_c ce e l vl))
+          pstate);; ktr r0)
+      tstate.
+  Proof.
+    depgen e. depgen te. depgen pstate. depgen m. revert tm vl. depgen l. induction l; i.
+    - ss. remove_UBcase.
+      replace pstate with (update pstate "Mem" m↑)
+        by now unfold update; apply func_ext; i; des_ifs.
+      eapply NEXT; et. econs; et.
+    - ss. remove_UBcase. unfold unwrapU. remove_UBcase. remove_UBcase.
+      eapply step_assign_loc; et. i. eapply IHl; et. i.
+      rewrite update_shadow. eapply NEXT; et. econs; et. inv ME.
+      apply Maps.PTree.elements_complete. rewrite ME0.
+      change (i, _) with (map_env_entry sk ge (i, (b0, t1))).
+      eapply in_map. eapply alist_find_some; et.
+  Qed.
+
   Lemma norepet l : id_list_norepet_c l = true -> Coqlib.list_norepet l.
   Proof. induction l; i; econs; try eapply IHl; unfold id_list_norepet_c in *; des_ifs; inv l0; et. Qed.
 
@@ -229,7 +271,7 @@ Section PROOF.
     f vl
  r b tstate mn ktr
     (NEXT: forall e' le' te' tle' m' tm',
-            function_entry2 ge f (List.map (map_val sk tge) vl) tm te' tle' tm' ->
+            function_entry1 ge f (List.map (map_val sk tge) vl) tm te' tle' tm' ->
             match_mem sk tge m' tm' ->
             match_e sk tge e' te' ->
             match_le sk tge le' tle' ->
@@ -250,18 +292,16 @@ Section PROOF.
     unfold function_entry_c. remove_UBcase.
     eapply step_alloc_variables with (te := empty_env) (modl:=modl) (sk_mem := sk_mem); et.
     { econs; ss. econs. }
-    i. sim_red. unfold unwrapU. remove_UBcase.
-    hexploit (@match_bind_parameter_temps sk ge); et.
-    - instantiate (1:=create_undef_temps (fn_temps f)). econs. i. clear -H2. set (fn_temps f) as l in *. clearbody l.
-      induction l; ss. destruct a. destruct (Pos.eq_dec id i).
-      { subst. rewrite Maps.PTree.gss. ss. rewrite eq_rel_dec_correct in H2. des_ifs. }
-      rewrite Maps.PTree.gso; et. ss. rewrite eq_rel_dec_correct in H2. des_ifs.
-      apply IHl; et.
-    - i. des. eapply NEXT; et. bsimpl. des.
-      econs; et. { apply norepet; et. } { apply norepet; et. }
-      apply disjoint; et.
+    i. sim_red. unfold unwrapU. remove_UBcase. eapply step_bind_parameters; et.
+    i. sim_red. rewrite update_shadow. eapply NEXT; et.
+    - econs; et. apply norepet. et.
+    - econs. i. assert (sv = Vundef).
+      { clear - H4. induction (fn_temps f); ss. des_ifs. et. }
+      subst. ss. clear - H4. revert id H4. induction (fn_temps f); ss.
+      i. des_ifs_safe. ss. unfold rel_dec in H4. ss. destruct dec; ss; clarify.
+      { rewrite Maps.PTree.gss. et. } rewrite Maps.PTree.gso; et.
   Qed.
-
+      
   Lemma return_cont pstate f_table modl cprog sk_mem sk tge le tle e te m tm
     (PSTATE: pstate "Mem"%string = m↑)
     (EQ3: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))

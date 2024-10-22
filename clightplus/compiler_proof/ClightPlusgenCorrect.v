@@ -111,9 +111,11 @@ Section PROOFSINGLE.
     { unfold sk_init. ss. rewrite H2. et. }
     i. pfold. econs 4. { i. inv H9. et. } { eexists. econs. et. }
     i. inv STEP. ss. unfold hide in H5. inv H5. inv H14.
-    rewrite H13 in *. clarify. hexploit alloc_variables_determ;[apply H12|apply H17|].
-    i. des. clarify. econs 8; et. left.
-
+    hexploit alloc_variables_determ;[apply H10|apply H12|].
+    i. des. clarify.
+    hexploit bind_parameters_determ;[apply H11|apply H13|].
+    i. des. clarify.
+    econs 8; et. left.
     eapply match_states_sim; et.
     { i. ss. clear - COMP H14. unfold compile, get_sk in COMP. des_ifs. ss.
       clear - H14. apply in_map_iff in H14. des. destruct x. ss. clarify.
@@ -137,7 +139,7 @@ Section PROOFSINGLE.
       { instantiate (1:= init_pstate). unfold init_pstate. unfold update. ss. }
       { ii. hexploit compile_sk_incl; et. i.
         set (ModSemL.fnsems _). eassert (a = (ModSemL.fnsems (MemSem sk_mem)) ++ _) by ss.
-        rewrite H19. rewrite alist_find_app_o.
+        rewrite H16. rewrite alist_find_app_o.
         assert (alist_find s (ModSemL.fnsems (MemSem sk_mem)) = None).
         { destruct (alist_find s) eqn:?; et.
           apply alist_find_some in Heqo.
@@ -145,18 +147,18 @@ Section PROOFSINGLE.
           bsimpl. des. rewrite forallb_forall in Heq3. hexploit Heq3; et. i.
           Local Opaque in_dec. ss. exfalso. destruct in_dec; clarify.
           apply n. des; clarify; ss; tauto. }
-        rewrite H20. move H14 at bottom. set (List.map _ _).
+        rewrite H17. move H14 at bottom. set (List.map _ _).
         assert (alist_find s l <> None).
         { destruct (alist_find s l) eqn:?; clarify.
-          clear a H19. eapply alist_find_none in Heqo. exfalso. apply Heqo.
+          clear a H16. eapply alist_find_none in Heqo. exfalso. apply Heqo.
           unfold l. rewrite in_map_iff. set (sort _).
           eexists (s, cfunU (decomp_func a (get_ce clight_prog) f)). split; et.
-          generalize Sk.le_canon_rev. i. clear H20.
-          ss. apply H19 in H14. unfold Sk.add in H14.
+          generalize Sk.le_canon_rev. i. clear H17.
+          ss. apply H16 in H14. unfold Sk.add in H14.
           ss. apply in_app in H14. des.
           { unfold mem_skel in MEMSKEL.
             des_ifs. rewrite in_map_iff in H14. des. destruct x; ss. clarify.
-            apply filter_In in H20. des.
+            apply filter_In in H17. des.
             unfold compile, get_sk in COMP. des_ifs.
             bsimpl. des. rewrite forallb_forall in Heq4. hexploit Heq4; et. i.
             destruct in_dec; clarify. ss. destruct in_dec; clarify. ss. exfalso. tauto. }
@@ -168,7 +170,7 @@ Section PROOFSINGLE.
         unfold l in Heqo. rewrite alist_find_map_snd in Heqo. uo. des_ifs.
         hexploit in_tgt_prog_defs_decomp; et. i. des. clarify.
         replace f0 with f. { eexists. f_equal. extensionalities. des_ifs. }
-        clear -H23 H18 COMP.
+        clear -H20 H15 COMP.
         assert (alist_find (ident_of_string s) (prog_defs clight_prog) = Some (Gfun (Internal f))); clarify.
         apply alist_find_some_iff; et. unfold compile, get_sk in COMP. des_ifs. destruct list_norepet_dec; clarify.
         apply CoqlibC.NoDup_norepet. et. }

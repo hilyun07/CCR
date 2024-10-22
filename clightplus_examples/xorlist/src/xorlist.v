@@ -105,11 +105,10 @@ Definition f_add_hd := {|
   fn_params := ((_hd_handler, (tptr (tptr (Tstruct __Node noattr)))) ::
                 (_tl_handler, (tptr (tptr (Tstruct __Node noattr)))) ::
                 (_item, tlong) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_entry, (tptr (Tstruct __Node noattr))) ::
-               (_hd, (tptr (Tstruct __Node noattr))) ::
-               (_tl, (tptr (Tstruct __Node noattr))) ::
-               (_t'4, (tptr (Tstruct __Node noattr))) ::
+  fn_vars := ((_entry, (tptr (Tstruct __Node noattr))) ::
+              (_hd, (tptr (Tstruct __Node noattr))) ::
+              (_tl, (tptr (Tstruct __Node noattr))) :: nil);
+  fn_temps := ((_t'4, (tptr (Tstruct __Node noattr))) ::
                (_t'3, (tptr (Tstruct __Node noattr))) ::
                (_t'2, (tptr (Tstruct __Node noattr))) ::
                (_t'1, (tptr tvoid)) :: nil);
@@ -119,73 +118,72 @@ Definition f_add_hd := {|
     (Scall (Some _t'1)
       (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid) cc_default))
       ((Esizeof (Tstruct __Node noattr) tulong) :: nil))
-    (Sset _entry
+    (Sassign (Evar _entry (tptr (Tstruct __Node noattr)))
       (Ecast (Etempvar _t'1 (tptr tvoid)) (tptr (Tstruct __Node noattr)))))
   (Ssequence
-    (Sset _hd
-      (Ederef (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+    (Sassign (Evar _hd (tptr (Tstruct __Node noattr)))
+      (Ederef (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
         (tptr (Tstruct __Node noattr))))
     (Ssequence
-      (Sset _tl
-        (Ederef (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+      (Sassign (Evar _tl (tptr (Tstruct __Node noattr)))
+        (Ederef (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
           (tptr (Tstruct __Node noattr))))
       (Ssequence
         (Sassign
           (Efield
-            (Ederef (Etempvar _entry (tptr (Tstruct __Node noattr)))
-              (Tstruct __Node noattr)) _item tlong) (Etempvar _item tlong))
-        (Sifthenelse (Ebinop Oeq
-                       (Etempvar _hd (tptr (Tstruct __Node noattr)))
+            (Ederef (Evar _entry (tptr (Tstruct __Node noattr)))
+              (Tstruct __Node noattr)) _item tlong) (Evar _item tlong))
+        (Sifthenelse (Ebinop Oeq (Evar _hd (tptr (Tstruct __Node noattr)))
                        (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                        tint)
           (Ssequence
             (Sassign
               (Efield
-                (Ederef (Etempvar _entry (tptr (Tstruct __Node noattr)))
+                (Ederef (Evar _entry (tptr (Tstruct __Node noattr)))
                   (Tstruct __Node noattr)) _link tlong)
               (Econst_int (Int.repr 0) tint))
             (Ssequence
               (Ssequence
                 (Sset _t'2
-                  (Ecast (Etempvar _entry (tptr (Tstruct __Node noattr)))
+                  (Ecast (Evar _entry (tptr (Tstruct __Node noattr)))
                     (tptr (Tstruct __Node noattr))))
                 (Sassign
                   (Ederef
-                    (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+                    (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
                     (tptr (Tstruct __Node noattr)))
                   (Etempvar _t'2 (tptr (Tstruct __Node noattr)))))
               (Sassign
                 (Ederef
-                  (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+                  (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
                   (tptr (Tstruct __Node noattr)))
                 (Etempvar _t'2 (tptr (Tstruct __Node noattr))))))
           (Ssequence
             (Ssequence
               (Sbuiltin (Some _t'3) EF_capture (Tcons (tptr tvoid) Tnil)
-                ((Etempvar _hd (tptr (Tstruct __Node noattr))) :: nil))
+                ((Evar _hd (tptr (Tstruct __Node noattr))) :: nil))
               (Sassign
                 (Efield
-                  (Ederef (Etempvar _entry (tptr (Tstruct __Node noattr)))
+                  (Ederef (Evar _entry (tptr (Tstruct __Node noattr)))
                     (Tstruct __Node noattr)) _link tlong)
                 (Etempvar _t'3 tlong)))
             (Ssequence
               (Ssequence
                 (Sbuiltin (Some _t'4) EF_capture (Tcons (tptr tvoid) Tnil)
-                  ((Etempvar _entry (tptr (Tstruct __Node noattr))) :: nil))
+                  ((Evar _entry (tptr (Tstruct __Node noattr))) :: nil))
                 (Sassign
                   (Efield
-                    (Ederef (Etempvar _hd (tptr (Tstruct __Node noattr)))
+                    (Ederef (Evar _hd (tptr (Tstruct __Node noattr)))
                       (Tstruct __Node noattr)) _link tlong)
                   (Ebinop Oxor
                     (Efield
-                      (Ederef (Etempvar _hd (tptr (Tstruct __Node noattr)))
+                      (Ederef (Evar _hd (tptr (Tstruct __Node noattr)))
                         (Tstruct __Node noattr)) _link tlong)
                     (Etempvar _t'4 tlong) tlong)))
               (Sassign
                 (Ederef
-                  (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+                  (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
                   (tptr (Tstruct __Node noattr)))
-                (Etempvar _entry (tptr (Tstruct __Node noattr)))))))))))
+                (Evar _entry (tptr (Tstruct __Node noattr)))))))))))
 |}.
 
 Definition f_add_tl := {|
@@ -194,11 +192,10 @@ Definition f_add_tl := {|
   fn_params := ((_hd_handler, (tptr (tptr (Tstruct __Node noattr)))) ::
                 (_tl_handler, (tptr (tptr (Tstruct __Node noattr)))) ::
                 (_item, tlong) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_entry, (tptr (Tstruct __Node noattr))) ::
-               (_hd, (tptr (Tstruct __Node noattr))) ::
-               (_tl, (tptr (Tstruct __Node noattr))) ::
-               (_t'4, (tptr (Tstruct __Node noattr))) ::
+  fn_vars := ((_entry, (tptr (Tstruct __Node noattr))) ::
+              (_hd, (tptr (Tstruct __Node noattr))) ::
+              (_tl, (tptr (Tstruct __Node noattr))) :: nil);
+  fn_temps := ((_t'4, (tptr (Tstruct __Node noattr))) ::
                (_t'3, (tptr (Tstruct __Node noattr))) ::
                (_t'2, (tptr (Tstruct __Node noattr))) ::
                (_t'1, (tptr tvoid)) :: nil);
@@ -208,73 +205,72 @@ Definition f_add_tl := {|
     (Scall (Some _t'1)
       (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid) cc_default))
       ((Esizeof (Tstruct __Node noattr) tulong) :: nil))
-    (Sset _entry
+    (Sassign (Evar _entry (tptr (Tstruct __Node noattr)))
       (Ecast (Etempvar _t'1 (tptr tvoid)) (tptr (Tstruct __Node noattr)))))
   (Ssequence
-    (Sset _hd
-      (Ederef (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+    (Sassign (Evar _hd (tptr (Tstruct __Node noattr)))
+      (Ederef (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
         (tptr (Tstruct __Node noattr))))
     (Ssequence
-      (Sset _tl
-        (Ederef (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+      (Sassign (Evar _tl (tptr (Tstruct __Node noattr)))
+        (Ederef (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
           (tptr (Tstruct __Node noattr))))
       (Ssequence
         (Sassign
           (Efield
-            (Ederef (Etempvar _entry (tptr (Tstruct __Node noattr)))
-              (Tstruct __Node noattr)) _item tlong) (Etempvar _item tlong))
-        (Sifthenelse (Ebinop Oeq
-                       (Etempvar _tl (tptr (Tstruct __Node noattr)))
+            (Ederef (Evar _entry (tptr (Tstruct __Node noattr)))
+              (Tstruct __Node noattr)) _item tlong) (Evar _item tlong))
+        (Sifthenelse (Ebinop Oeq (Evar _tl (tptr (Tstruct __Node noattr)))
                        (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                        tint)
           (Ssequence
             (Sassign
               (Efield
-                (Ederef (Etempvar _entry (tptr (Tstruct __Node noattr)))
+                (Ederef (Evar _entry (tptr (Tstruct __Node noattr)))
                   (Tstruct __Node noattr)) _link tlong)
               (Econst_int (Int.repr 0) tint))
             (Ssequence
               (Ssequence
                 (Sset _t'2
-                  (Ecast (Etempvar _entry (tptr (Tstruct __Node noattr)))
+                  (Ecast (Evar _entry (tptr (Tstruct __Node noattr)))
                     (tptr (Tstruct __Node noattr))))
                 (Sassign
                   (Ederef
-                    (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+                    (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
                     (tptr (Tstruct __Node noattr)))
                   (Etempvar _t'2 (tptr (Tstruct __Node noattr)))))
               (Sassign
                 (Ederef
-                  (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+                  (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
                   (tptr (Tstruct __Node noattr)))
                 (Etempvar _t'2 (tptr (Tstruct __Node noattr))))))
           (Ssequence
             (Ssequence
               (Sbuiltin (Some _t'3) EF_capture (Tcons (tptr tvoid) Tnil)
-                ((Etempvar _tl (tptr (Tstruct __Node noattr))) :: nil))
+                ((Evar _tl (tptr (Tstruct __Node noattr))) :: nil))
               (Sassign
                 (Efield
-                  (Ederef (Etempvar _entry (tptr (Tstruct __Node noattr)))
+                  (Ederef (Evar _entry (tptr (Tstruct __Node noattr)))
                     (Tstruct __Node noattr)) _link tlong)
                 (Etempvar _t'3 tlong)))
             (Ssequence
               (Ssequence
                 (Sbuiltin (Some _t'4) EF_capture (Tcons (tptr tvoid) Tnil)
-                  ((Etempvar _entry (tptr (Tstruct __Node noattr))) :: nil))
+                  ((Evar _entry (tptr (Tstruct __Node noattr))) :: nil))
                 (Sassign
                   (Efield
-                    (Ederef (Etempvar _tl (tptr (Tstruct __Node noattr)))
+                    (Ederef (Evar _tl (tptr (Tstruct __Node noattr)))
                       (Tstruct __Node noattr)) _link tlong)
                   (Ebinop Oxor
                     (Efield
-                      (Ederef (Etempvar _tl (tptr (Tstruct __Node noattr)))
+                      (Ederef (Evar _tl (tptr (Tstruct __Node noattr)))
                         (Tstruct __Node noattr)) _link tlong)
                     (Etempvar _t'4 tlong) tlong)))
               (Sassign
                 (Ederef
-                  (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+                  (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
                   (tptr (Tstruct __Node noattr)))
-                (Etempvar _entry (tptr (Tstruct __Node noattr)))))))))))
+                (Evar _entry (tptr (Tstruct __Node noattr)))))))))))
 |}.
 
 Definition f_delete_hd := {|
@@ -282,74 +278,72 @@ Definition f_delete_hd := {|
   fn_callconv := cc_default;
   fn_params := ((_hd_handler, (tptr (tptr (Tstruct __Node noattr)))) ::
                 (_tl_handler, (tptr (tptr (Tstruct __Node noattr)))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_item, tlong) :: (_hd_old, (tptr (Tstruct __Node noattr))) ::
-               (_hd_new, (tptr (Tstruct __Node noattr))) :: (_link, tlong) ::
-               (_t'1, (tptr (Tstruct __Node noattr))) :: nil);
+  fn_vars := ((_item, tlong) :: (_hd_old, (tptr (Tstruct __Node noattr))) ::
+              (_hd_new, (tptr (Tstruct __Node noattr))) :: (_link, tlong) ::
+              nil);
+  fn_temps := ((_t'1, (tptr (Tstruct __Node noattr))) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _item (Ecast (Econst_int (Int.repr 0) tint) tlong))
+  (Sassign (Evar _item tlong) (Econst_int (Int.repr 0) tint))
   (Ssequence
-    (Sset _hd_old
-      (Ederef (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+    (Sassign (Evar _hd_old (tptr (Tstruct __Node noattr)))
+      (Ederef (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
         (tptr (Tstruct __Node noattr))))
     (Ssequence
-      (Sifthenelse (Ebinop One
-                     (Etempvar _hd_old (tptr (Tstruct __Node noattr)))
+      (Sifthenelse (Ebinop One (Evar _hd_old (tptr (Tstruct __Node noattr)))
                      (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                      tint)
         (Ssequence
-          (Sset _item
+          (Sassign (Evar _item tlong)
             (Efield
-              (Ederef (Etempvar _hd_old (tptr (Tstruct __Node noattr)))
+              (Ederef (Evar _hd_old (tptr (Tstruct __Node noattr)))
                 (Tstruct __Node noattr)) _item tlong))
           (Ssequence
-            (Sset _hd_new
+            (Sassign (Evar _hd_new (tptr (Tstruct __Node noattr)))
               (Ecast
                 (Efield
-                  (Ederef (Etempvar _hd_old (tptr (Tstruct __Node noattr)))
+                  (Ederef (Evar _hd_old (tptr (Tstruct __Node noattr)))
                     (Tstruct __Node noattr)) _link tlong)
                 (tptr (Tstruct __Node noattr))))
             (Ssequence
               (Sassign
                 (Ederef
-                  (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+                  (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
                   (tptr (Tstruct __Node noattr)))
-                (Etempvar _hd_new (tptr (Tstruct __Node noattr))))
+                (Evar _hd_new (tptr (Tstruct __Node noattr))))
               (Ssequence
                 (Sifthenelse (Ebinop Oeq
-                               (Etempvar _hd_new (tptr (Tstruct __Node noattr)))
+                               (Evar _hd_new (tptr (Tstruct __Node noattr)))
                                (Ecast (Econst_int (Int.repr 0) tint)
                                  (tptr tvoid)) tint)
                   (Sassign
                     (Ederef
-                      (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+                      (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
                       (tptr (Tstruct __Node noattr)))
                     (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))
                   (Ssequence
-                    (Sset _link
+                    (Sassign (Evar _link tlong)
                       (Efield
-                        (Ederef
-                          (Etempvar _hd_new (tptr (Tstruct __Node noattr)))
+                        (Ederef (Evar _hd_new (tptr (Tstruct __Node noattr)))
                           (Tstruct __Node noattr)) _link tlong))
                     (Ssequence
                       (Sbuiltin (Some _t'1) EF_capture
                         (Tcons (tptr tvoid) Tnil)
-                        ((Etempvar _hd_old (tptr (Tstruct __Node noattr))) ::
+                        ((Evar _hd_old (tptr (Tstruct __Node noattr))) ::
                          nil))
                       (Sassign
                         (Efield
                           (Ederef
-                            (Etempvar _hd_new (tptr (Tstruct __Node noattr)))
+                            (Evar _hd_new (tptr (Tstruct __Node noattr)))
                             (Tstruct __Node noattr)) _link tlong)
-                        (Ebinop Oxor (Etempvar _link tlong)
-                          (Etempvar _t'1 tlong) tlong)))))
+                        (Ebinop Oxor (Evar _link tlong) (Etempvar _t'1 tlong)
+                          tlong)))))
                 (Scall None
                   (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
                                 cc_default))
-                  ((Etempvar _hd_old (tptr (Tstruct __Node noattr))) :: nil))))))
+                  ((Evar _hd_old (tptr (Tstruct __Node noattr))) :: nil))))))
         Sskip)
-      (Sreturn (Some (Etempvar _item tlong))))))
+      (Sreturn (Some (Evar _item tlong))))))
 |}.
 
 Definition f_delete_tl := {|
@@ -357,74 +351,72 @@ Definition f_delete_tl := {|
   fn_callconv := cc_default;
   fn_params := ((_hd_handler, (tptr (tptr (Tstruct __Node noattr)))) ::
                 (_tl_handler, (tptr (tptr (Tstruct __Node noattr)))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_item, tlong) :: (_tl_old, (tptr (Tstruct __Node noattr))) ::
-               (_tl_new, (tptr (Tstruct __Node noattr))) :: (_link, tlong) ::
-               (_t'1, (tptr (Tstruct __Node noattr))) :: nil);
+  fn_vars := ((_item, tlong) :: (_tl_old, (tptr (Tstruct __Node noattr))) ::
+              (_tl_new, (tptr (Tstruct __Node noattr))) :: (_link, tlong) ::
+              nil);
+  fn_temps := ((_t'1, (tptr (Tstruct __Node noattr))) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _item (Ecast (Econst_int (Int.repr 0) tint) tlong))
+  (Sassign (Evar _item tlong) (Econst_int (Int.repr 0) tint))
   (Ssequence
-    (Sset _tl_old
-      (Ederef (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+    (Sassign (Evar _tl_old (tptr (Tstruct __Node noattr)))
+      (Ederef (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
         (tptr (Tstruct __Node noattr))))
     (Ssequence
-      (Sifthenelse (Ebinop One
-                     (Etempvar _tl_old (tptr (Tstruct __Node noattr)))
+      (Sifthenelse (Ebinop One (Evar _tl_old (tptr (Tstruct __Node noattr)))
                      (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
                      tint)
         (Ssequence
-          (Sset _item
+          (Sassign (Evar _item tlong)
             (Efield
-              (Ederef (Etempvar _tl_old (tptr (Tstruct __Node noattr)))
+              (Ederef (Evar _tl_old (tptr (Tstruct __Node noattr)))
                 (Tstruct __Node noattr)) _item tlong))
           (Ssequence
-            (Sset _tl_new
+            (Sassign (Evar _tl_new (tptr (Tstruct __Node noattr)))
               (Ecast
                 (Efield
-                  (Ederef (Etempvar _tl_old (tptr (Tstruct __Node noattr)))
+                  (Ederef (Evar _tl_old (tptr (Tstruct __Node noattr)))
                     (Tstruct __Node noattr)) _link tlong)
                 (tptr (Tstruct __Node noattr))))
             (Ssequence
               (Sassign
                 (Ederef
-                  (Etempvar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
+                  (Evar _tl_handler (tptr (tptr (Tstruct __Node noattr))))
                   (tptr (Tstruct __Node noattr)))
-                (Etempvar _tl_new (tptr (Tstruct __Node noattr))))
+                (Evar _tl_new (tptr (Tstruct __Node noattr))))
               (Ssequence
                 (Sifthenelse (Ebinop Oeq
-                               (Etempvar _tl_new (tptr (Tstruct __Node noattr)))
+                               (Evar _tl_new (tptr (Tstruct __Node noattr)))
                                (Ecast (Econst_int (Int.repr 0) tint)
                                  (tptr tvoid)) tint)
                   (Sassign
                     (Ederef
-                      (Etempvar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
+                      (Evar _hd_handler (tptr (tptr (Tstruct __Node noattr))))
                       (tptr (Tstruct __Node noattr)))
                     (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))
                   (Ssequence
-                    (Sset _link
+                    (Sassign (Evar _link tlong)
                       (Efield
-                        (Ederef
-                          (Etempvar _tl_new (tptr (Tstruct __Node noattr)))
+                        (Ederef (Evar _tl_new (tptr (Tstruct __Node noattr)))
                           (Tstruct __Node noattr)) _link tlong))
                     (Ssequence
                       (Sbuiltin (Some _t'1) EF_capture
                         (Tcons (tptr tvoid) Tnil)
-                        ((Etempvar _tl_old (tptr (Tstruct __Node noattr))) ::
+                        ((Evar _tl_old (tptr (Tstruct __Node noattr))) ::
                          nil))
                       (Sassign
                         (Efield
                           (Ederef
-                            (Etempvar _tl_new (tptr (Tstruct __Node noattr)))
+                            (Evar _tl_new (tptr (Tstruct __Node noattr)))
                             (Tstruct __Node noattr)) _link tlong)
-                        (Ebinop Oxor (Etempvar _link tlong)
-                          (Etempvar _t'1 tlong) tlong)))))
+                        (Ebinop Oxor (Evar _link tlong) (Etempvar _t'1 tlong)
+                          tlong)))))
                 (Scall None
                   (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
                                 cc_default))
-                  ((Etempvar _tl_old (tptr (Tstruct __Node noattr))) :: nil))))))
+                  ((Evar _tl_old (tptr (Tstruct __Node noattr))) :: nil))))))
         Sskip)
-      (Sreturn (Some (Etempvar _item tlong))))))
+      (Sreturn (Some (Evar _item tlong))))))
 |}.
 
 Definition composites : list composite_definition :=

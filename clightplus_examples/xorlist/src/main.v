@@ -93,8 +93,9 @@ Definition f_main := {|
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := ((_head, (tptr (Tstruct __Node noattr))) ::
-              (_tail, (tptr (Tstruct __Node noattr))) :: nil);
-  fn_temps := ((_item, tlong) :: (_t'2, tlong) :: (_t'1, tlong) :: nil);
+              (_tail, (tptr (Tstruct __Node noattr))) :: (_item, tlong) ::
+              nil);
+  fn_temps := ((_t'2, tlong) :: (_t'1, tlong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -104,7 +105,7 @@ Definition f_main := {|
       (Sassign (Evar _tail (tptr (Tstruct __Node noattr)))
         (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))
       (Ssequence
-        (Sset _item (Ecast (Econst_int (Int.repr 1) tint) tlong))
+        (Sassign (Evar _item tlong) (Econst_int (Int.repr 1) tint))
         (Ssequence
           (Scall None
             (Evar _add_hd (Tfunction
@@ -140,8 +141,8 @@ Definition f_main := {|
                      (tptr (tptr (Tstruct __Node noattr)))) ::
                    (Eaddrof (Evar _tail (tptr (Tstruct __Node noattr)))
                      (tptr (tptr (Tstruct __Node noattr)))) :: nil))
-                (Sset _item
-                  (Ebinop Omul (Etempvar _item tlong) (Etempvar _t'1 tlong)
+                (Sassign (Evar _item tlong)
+                  (Ebinop Omul (Evar _item tlong) (Etempvar _t'1 tlong)
                     tlong)))
               (Ssequence
                 (Ssequence
@@ -156,10 +157,10 @@ Definition f_main := {|
                        (tptr (tptr (Tstruct __Node noattr)))) ::
                      (Eaddrof (Evar _tail (tptr (Tstruct __Node noattr)))
                        (tptr (tptr (Tstruct __Node noattr)))) :: nil))
-                  (Sset _item
-                    (Ebinop Omul (Etempvar _item tlong) (Etempvar _t'2 tlong)
+                  (Sassign (Evar _item tlong)
+                    (Ebinop Omul (Evar _item tlong) (Etempvar _t'2 tlong)
                       tlong)))
-                (Sreturn (Some (Etempvar _item tlong))))))))))
+                (Sreturn (Some (Evar _item tlong))))))))))
   (Sreturn (Some (Econst_int (Int.repr 0) tint))))
 |}.
 

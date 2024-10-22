@@ -80,22 +80,20 @@ Section PROOF.
       i. rewrite H. hexploit match_mem_load; et.
   Qed.
 
-  Lemma step_store pstate f_table modl cprog sk_mem sk tge le tle e te m tm
+  Lemma step_store pstate f_table modl cprog sk_mem sk tge m tm
     (PSTATE: pstate "Mem"%string = m↑)
     (EQ: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
     (MM: match_mem sk tge m tm)
     chunk addr v
-    tf tcode tcont ktr b r mn
+    tstate ktr b r mn
     (NEXT: forall tm' m',
             Mem.storev chunk tm (map_val sk tge addr) (map_val sk tge v) = Some tm' ->
             match_mem sk tge m' tm' ->
             paco4
               (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, ()))
-              (State tf tcode tcont te tle tm))
+              tstate)
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
@@ -104,7 +102,7 @@ Section PROOF.
           (prog f_table)
           (transl_all mn (ccallU "store" (chunk, addr, v)))
           pstate);; ktr r0)
-      (State tf tcode tcont te tle tm).
+      tstate.
   Proof.
     unfold ccallU. sim_red. sim_tau. ss. sim_red. unfold storeF. sim_red. repeat (sim_tau; sim_red).
     rewrite PSTATE. sim_red. unfold unwrapU. remove_UBcase. repeat (sim_tau; sim_red). rewrite Any.upcast_downcast.
@@ -115,22 +113,20 @@ Section PROOF.
     - hexploit match_mem_store; et. i. des. eapplyf NEXT; et.
   Qed.
 
-  Lemma step_memcpy pstate f_table modl cprog sk_mem sk tge le tle e te m tm
+  Lemma step_memcpy pstate f_table modl cprog sk_mem sk tge m tm
     (PSTATE: pstate "Mem"%string = m↑)
     (EQ: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
     (MM: match_mem sk tge m tm)
     al sz vp v
-    tf tcode tcont ktr b r mn
+    tstate ktr b r mn
     (NEXT: forall tm' m',
             extcall_memcpy_sem sz al tge [map_val sk tge vp; map_val sk tge v] tm E0 Vundef tm' ->
             match_mem sk tge m' tm' ->
             paco4
               (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, Vundef))
-              (State tf tcode tcont te tle tm))
+              tstate)
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
@@ -139,7 +135,7 @@ Section PROOF.
           (prog f_table)
           (transl_all mn (ccallU "memcpy" (al, sz, [vp; v])))
           pstate);; ktr r0)
-      (State tf tcode tcont te tle tm).
+      tstate.
   Proof.
     unfold ccallU. sim_red. sim_tau. ss. sim_red. destruct dec.
     - sim_red. sim_tau. sim_red. hexploit NEXT; et. { econs 2. et. }
@@ -585,23 +581,21 @@ Section PROOF.
     ss. clarify.
   Qed.
 
-  Lemma step_assign_loc pstate f_table modl cprog sk_mem sk tge le tle e te m tm ce tce
+  Lemma step_assign_loc pstate f_table modl cprog sk_mem sk tge m tm ce tce
     (PSTATE: pstate "Mem"%string = m↑)
     (EQ: f_table = (ModL.add (Mem sk_mem) modl).(ModL.enclose))
     (MGE: match_ge sk tge)
-    (ME: match_e sk tge e te)
-    (MLE: match_le sk tge le tle)
     (MCE: match_ce ce tce)
     (MM: match_mem sk tge m tm)
     ty vp v
-    tf tcode tcont ktr b r mn
+    tstate ktr b r mn
     (NEXT: forall tm' m',
             match_mem sk tge m' tm' ->
             assign_loc tce ty tm (map_val sk tge vp) (map_val sk tge v) tm' ->
             paco4
               (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
               (ktr (update pstate "Mem" m'↑, ()))
-              (State tf tcode tcont te tle tm))
+              tstate)
 :
     paco4
       (_sim (ModL.compile (ModL.add (Mem sk_mem) modl)) (semantics3 cprog)) r true b
@@ -610,7 +604,7 @@ Section PROOF.
           (prog f_table)
           (transl_all mn (assign_loc_c ce ty vp v))
           pstate);; ktr r0)
-      (State tf tcode tcont te tle tm).
+      tstate.
   Proof.
     unfold assign_loc_c. des_ifs; try sim_red; try sim_triggerUB.
     - eapply step_store; et. i. eapply NEXT; et. econs; et.

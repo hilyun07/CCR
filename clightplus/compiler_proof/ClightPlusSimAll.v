@@ -128,6 +128,20 @@ Section PROOF.
       eapply IHvars; et. }
   Qed.
 
+  Lemma bind_parameters_determ vars
+    :
+      forall ge ee m il m0 m1
+              (BIND0: bind_parameters ge ee m il vars m0)
+              (BIND1: bind_parameters ge ee m il vars m1),
+        m0 = m1.
+  Proof.
+    induction vars; et.
+    { i. inv BIND0; inv BIND1; auto. }
+    { i. inv BIND0; inv BIND1; auto. rewriter.
+      assert (m3 = m4). 2:{ subst. eapply IHvars; et. }
+      clear - H4 H10. inv H4; inv H10; try solve [rewriter]; try nia. }
+  Qed.
+
   Lemma Clight_wf_semantics prog
     :
       wf_semantics (semantics3 prog).
@@ -339,8 +353,9 @@ Section PROOF.
         i. step. unfold Genv.find_funct_ptr in H13. des_ifs.
         change (Genv.globalenv _) with tge in Heq. rewrite Heq in E0. clarify.
         tgt_step. i. inv STEP. unfold hide in H.
-        inv H. inv H8. ss. rewrite <- GCEQ in H6.
-        determ alloc_variables_determ alloc_variables. wrap_up.
+        inv H. inv H8. ss. rewrite <- GCEQ in H4. rewrite <- GCEQ in H5.
+        determ alloc_variables_determ alloc_variables.
+        determ bind_parameters_determ bind_parameters. wrap_up.
         eapply CIH. clear PSTATE. econs; et.
         { instantiate (1 := update pstate "Mem" m'↑). et. }
         { econs; et. }
