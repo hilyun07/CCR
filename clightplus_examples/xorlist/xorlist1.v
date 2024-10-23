@@ -7,6 +7,7 @@ Require Import STB.
 Require Import Any.
 Require Import ModSem.
 Require Import ModSemE.
+Require Import ClightPlusExprgen.
 Require Import ClightPlusMemRA.
 Require Import ClightPlusMem1.
 From compcert Require Export Ctypes Values AST Memdata Integers.
@@ -133,6 +134,23 @@ Section PROP.
     - ss. des_ifs; et. iIntros "A".
       iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".
       iApply live_notundef. et.
+  Qed.
+
+  Lemma xorlist_hd_cast_to_ptr {eff} {K:eventE -< eff} q m_prev m_next hd_prev hd tl tl_next xs
+    : frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs ⊢ ⌜@cast_to_ptr eff K hd = Ret hd⌝.
+  Proof.
+    Local Transparent equiv_prov.
+    destruct xs.
+    - ss. iIntros "[A B]". iDestruct "B" as (ofs) "[B B']".  iApply _offset_ptr. et.
+    - ss. iIntros "A". destruct v; clarify.
+      iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".  iApply live_cast_ptr. et.
+    Local Opaque equiv_prov.
+  Qed.
+     
+  Lemma xorlist_tl_cast_to_ptr {eff} {K:eventE -< eff} q m_prev m_next hd_prev hd tl tl_next xs
+    : frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs ⊢ ⌜@cast_to_ptr eff K tl = Ret tl⌝.
+  Proof.
+    iIntros "A". iApply xorlist_hd_cast_to_ptr. iApply rev_xorlist. et.
   Qed.
 
   Lemma xorlist_tl_deen q m_prev m_next hd_prev hd tl tl_next xs

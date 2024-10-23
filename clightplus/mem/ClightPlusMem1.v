@@ -1110,6 +1110,19 @@ Section RULES.
     all: iDestruct "A" as "[_ [_ %]]"; clarify.
   Qed.
 
+  Lemma decode_encode_ptr_point
+      v m q mvs :
+    v (↦_m,q) mvs ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
+  Proof.
+    unfold Mptr. des_ifs.
+    pose proof (decode_encode_val_general v Mint64 Mint64).
+    unfold decode_encode_val in H0.
+    iIntros "A". unfold points_to, _has_offset.
+    destruct v; try solve [iDestruct "A" as "[A [A' %]]"; clarify];
+      des_ifs; rewrite H0; et.
+    all: iDestruct "A" as "[_ A]"; iDestruct "A" as (ofs) "[[_ [_ []]] _]".
+  Qed.
+
   Lemma decode_encode_ptr_live
       v m tg q :
     live_(m,tg,q) v ⊢ ⌜decode_val Mptr (encode_val Mptr v) = v⌝.
