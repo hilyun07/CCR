@@ -57,6 +57,7 @@ Section PROOF.
       ("main", fun_to_tgt "xorlist" (GlobalStb sk) (mk_specbody main_spec (cfunU main_body)))
       ("main", cfunU (decomp_func sk ce f_main)).
   Proof.
+    Local Opaque encode_val.
     eassert (_xor = _).
     { unfold _xor. vm_compute (Linking.link _ _). reflexivity. }
     rewrite H0 in *. clear H0. destruct Ctypes.link_build_composite_env. destruct a.
@@ -89,7 +90,7 @@ Section PROOF.
     iDestruct "PRE" as "[[% NULL] %]".
     des. clarify. hred_r. hred_l.
 
-    iApply isim_apc. iExists (Some (10%nat : Ord.t)).
+    iApply isim_apc. iExists (Some (30%nat : Ord.t)).
 
     iApply isim_ccallU_salloc; ss; oauto.
     iSplitL "INV"; iFrame.
@@ -116,22 +117,36 @@ Section PROOF.
     iPoseProof (sub_null_r with "tl_alloc") as "%". rename H4 into tl_sub_r.
     iPoseProof (live_has_offset with "hd_alloc") as "[hd_alloc hd_ofs]"; et.
 
+    iApply isim_ccallU_salloc; ss; oauto.
+    iSplitL "INV"; iFrame.
+    { iPureIntro. ss. }
+    iIntros (st_src1' st_tgt1' item_store m_item_store b_item_store) "[INV [[% item_point] item_alloc]]".
+    des. clarify. hred_r.
+    iPoseProof (live_trivial_offset with "item_alloc") as "[item_alloc item_equiv]"; et.
+    iPoseProof (equiv_dup with "item_equiv") as "[item_equiv item_equiv']".
+    iPoseProof (equiv_point_comm with "[item_point item_equiv']") as "item_point". { iFrame. }
+    remove_tau. unhide. remove_tau. unhide. remove_tau.
+    destruct Archi.ptr64 eqn:?; clarify. hred_r.
+
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV hd_point hd_ofs"; iFrame.
     { iExists _,_. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
-    iIntros (st_src2 st_tgt2) "[INV hd_point]".
-    unfold Mptr. rewrite Heqb1.
-    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
+    iIntros (st_src2 st_tgt2) "[INV hd_point]". hred_r.
+    remove_tau. unhide. remove_tau. unhide. remove_tau.
+    destruct Archi.ptr64 eqn:?; clarify. hred_r.
 
-    rewrite Heqb1. hred_r.
     iPoseProof (live_has_offset with "tl_alloc") as "[tl_alloc tl_ofs]"; et.
     iApply isim_ccallU_store; ss; oauto.
     iSplitL "INV tl_point tl_ofs"; iFrame.
     { iExists _,_. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
-    iIntros (st_src3 st_tgt3) "[INV tl_point]".
-    unfold Mptr. rewrite Heqb1. hred_r.
+    iIntros (st_src3 st_tgt3) "[INV tl_point]". hred_r.
     remove_tau. unhide. remove_tau. unhide. remove_tau.
-    unhide. remove_tau. unhide. remove_tau.
+    iPoseProof (live_has_offset with "item_alloc") as "[item_alloc item_ofs]"; et.
+    iApply isim_ccallU_store; ss; oauto.
+    iSplitL "INV item_point item_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. ss. unfold Mptr. des_ifs. ss. split; ss. exists 0. ss. }
+    iIntros (st_src3' st_tgt3') "[INV item_point]". hred_r.
+    remove_tau. unhide. remove_tau. unhide. remove_tau.
 
     hexploit SKINCLENV1.
     { instantiate (2:="add_hd"). et. }
@@ -146,10 +161,10 @@ Section PROOF.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p0. ss. }
       { ss. des_ifs_safe. destruct p0. ss. } }
-    { instantiate (1:=5). oauto. }
+    { instantiate (1:=23). oauto. }
     iPoseProof (live_has_offset with "hd_alloc") as "[hd_alloc hd_alloc_ofs]".
     iPoseProof (live_has_offset with "tl_alloc") as "[tl_alloc tl_alloc_ofs]".
-    iSplitR "hd_alloc tl_alloc".
+    iSplitR "hd_alloc tl_alloc item_alloc item_point item_equiv".
     { iFrame.
       instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Int64.repr (Int.signed (Int.repr 3)), [])). ss.
       iSplit; et. iSplit; et. unfold full_xorlist.
@@ -173,8 +188,8 @@ Section PROOF.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p0. ss. }
       { ss. des_ifs_safe. destruct p0. ss. } }
-    { instantiate (1:=4). oauto. }
-    iSplitR "hd_alloc tl_alloc".
+    { instantiate (1:=22). oauto. }
+    iSplitR "hd_alloc tl_alloc item_alloc item_point item_equiv".
     { iFrame.
       instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, Int64.repr (Int.signed (Int.repr 7)), _)). ss.
       iSplit; et. }
@@ -196,8 +211,8 @@ Section PROOF.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p. ss. }
       { ss. des_ifs_safe. destruct p. ss. } }
-    { instantiate (1:=3). oauto. }
-    iSplitR "hd_alloc tl_alloc".
+    { instantiate (1:=21). oauto. }
+    iSplitR "hd_alloc tl_alloc item_alloc item_point item_equiv".
     { iFrame.
       instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _)). ss.
       iSplit; et. }
@@ -205,9 +220,22 @@ Section PROOF.
     ss. iDestruct "POST" as "[[% X] %]".
     clarify. iExists _. iSplit; et.
     hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
-    unfold sem_mul_c. hred_r. rewrite Heqb1. hred_r.
+    unfold sem_mul_c. hred_r.
+    iPoseProof (live_has_offset with "item_alloc") as "[item_alloc item_ofs]"; et.
+    iApply isim_ccallU_load; ss; oauto.
+    iSplitL "INV item_point item_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. rewrite Memory.Mem.encode_val_change_check_false. splits; ss. exists 0. ss. }
+    iIntros (st_src4' st_tgt4') "[INV item_point]". hred_r. rewrite Heqb2. hred_r.
+    pose proof (decode_encode_val_general (Vlong (Int64.repr(Int.signed (Int.repr 1)))) Mint64 Mint64). unfold decode_encode_val in H6. rewrite H6. clear H6. 
+    replace (@cast_to_ptr Es _ _) with (@go Es _ (RetF (Vlong (Int64.repr (Int.signed (Int.repr 1)))))).  2:{ ss. } hred_r.
+    rewrite Heqb2. hred_r.
+    iPoseProof (live_has_offset with "item_alloc") as "[item_alloc item_ofs]"; et.
+    iApply isim_ccallU_store; ss; oauto.
+    iSplitL "INV item_point item_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length. splits; ss. exists 0. ss. }
+    iIntros (st_src5' st_tgt5') "[INV item_point]". hred_r. 
+    remove_tau. unhide. remove_tau. unhide. remove_tau. unhide.
     remove_tau. unhide. remove_tau.
-    unhide. remove_tau. unhide. remove_tau.
 
     set (("delete_tl", Gfun _)) in *.
 
@@ -225,18 +253,37 @@ Section PROOF.
       { eapply STBINCL. stb_tac. unfold xorStb. unseal "stb". ss. }
       { ss. des_ifs_safe. destruct p0. ss. }
       { ss. des_ifs_safe. destruct p0. ss. } }
-    { instantiate (1:=2). oauto. }
-    iSplitR "hd_alloc tl_alloc".
+    { instantiate (1:=18). oauto. }
+    iSplitR "hd_alloc tl_alloc item_alloc item_point item_equiv".
     { iFrame.
       instantiate (2:= (Vptr b Ptrofs.zero, Vptr b0 Ptrofs.zero, _)). ss.
       iSplit; et. }
     iIntros (st_src7 st_tgt7 ret_src ret_tgt) "[INV POST]".
     ss. iDestruct "POST" as "[[% X] %]".
     clarify. iExists _. iSplit; et.
-    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau.
-    unfold sem_mul_c. hred_r. rewrite Heqb1. hred_r.
-    remove_tau. unhide. remove_tau.
-    unhide. remove_tau. unhide. remove_tau.
+    hred_r. remove_tau. unhide. remove_tau. unhide. remove_tau. hred_r.
+    iPoseProof (live_has_offset with "item_alloc") as "[item_alloc item_ofs]"; et.
+    iApply isim_ccallU_load; ss; oauto.
+    iSplitL "INV item_point item_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. rewrite Memory.Mem.encode_val_change_check_false. splits; ss. exists 0. ss. }
+    iIntros (st_src6' st_tgt6') "[INV item_point]". hred_r.
+    unfold sem_mul_c. hred_r. rewrite Heqb2. hred_r.
+    epose proof (decode_encode_val_general (Vlong _) Mint64 Mint64). unfold decode_encode_val in H6. rewrite H6. clear H6.
+    set (Int64.mul _ _) as mull.
+    replace (@cast_to_ptr Es _ _) with (@go Es _ (RetF (Vlong mull))).  2:{ ss. } hred_r.
+    rewrite Heqb2. hred_r.
+    iPoseProof (live_has_offset with "item_alloc") as "[item_alloc item_ofs]"; et.
+    iApply isim_ccallU_store; ss; oauto.
+    iSplitL "INV item_point item_ofs"; iFrame.
+    { iExists _,_. iFrame. iPureIntro. rewrite encode_val_length. splits; ss. exists 0. ss. }
+    iIntros (st_src7' st_tgt7') "[INV item_point]". hred_r. 
+    remove_tau. unhide. remove_tau. unhide. remove_tau. unhide. unfold mull. clear mull.
+    iPoseProof (live_has_offset with "item_alloc") as "[item_alloc item_ofs]"; et.
+    iApply isim_ccallU_load; ss; oauto.
+    iSplitL "INV item_point item_ofs"; iFrame.
+    { iExists _. iFrame. iPureIntro. rewrite encode_val_length. rewrite Memory.Mem.encode_val_change_check_false. splits; ss. exists 0. ss. }
+    iIntros (st_src8' st_tgt8') "[INV item_point]". hred_r.
+    epose proof (decode_encode_val_general (Vlong _) Mint64 Mint64). unfold decode_encode_val in H6. rewrite H6. clear H6. hred_r.
 
     unfold full_xorlist.
     iDestruct "X" as (md m1 hd tl ofs ofs1) "[[[[[[D C] %] B] A] %] ?]".
@@ -255,6 +302,14 @@ Section PROOF.
     { destruct m. destruct md. ss. clarify. f_equal. apply proof_irr. }
     assert (m0 = m1).
     { destruct m0. destruct m1. ss. clarify. f_equal. apply proof_irr. }
+    clarify. iSplitL "INV item_point item_alloc"; iFrame.
+    { iExists _,_,_. iFrame. iPureIntro.
+      des. rewrite encode_val_length. unfold size_chunk_nat.
+      change (size_chunk Mptr) with 8%Z in *. splits; et. }
+    iIntros (st_src9' st_tgt9') "INV".
+    hred_r.
+
+    iApply isim_ccallU_sfree; ss; oauto.
     clarify. iSplitL "INV B tl_alloc"; iFrame.
     { iExists _,_,_. iFrame. iPureIntro.
       des. rewrite encode_val_length. unfold size_chunk_nat.
