@@ -56,22 +56,6 @@ Section PROP.
     | _ => False
     end%I.
 
-  Lemma unfold_frag_xorlist (q: Qp) (m_prev m_next: metadata) (hd_prev hd tl tl_next: val) (xs : list val) :
-  frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs =
-    match xs with
-    | [] => (hd_prev (≃_ m_prev) tl ** hd (≃_ m_next) tl_next)
-    | Vlong a :: xs' =>
-        ∃ i_prev i_next m_hd,
-          ⌜m_hd.(sz) = (size_chunk Mint64 + size_chunk Mptr)%Z⌝
-          ** hd_prev (≃_ m_prev) (Vptrofs i_prev)
-          ** live_(m_hd,Dynamic,q) hd
-          ** hd (↦_m_hd,q) (encode_val Mint64 (Vlong a) ++ encode_val Mptr (Vptrofs (Ptrofs.xor i_prev i_next)))
-          ** frag_xorlist q m_hd m_next hd (Vptrofs i_next) tl tl_next xs'
-    | _ => False
-    end%I.
-  Proof. des_ifs. Qed.
-
-
   Definition full_xorlist q hd_hdl tl_hdl xs : iProp :=
     (∃ m_hd_hdl m_tl_hdl hd tl ofs_hd_hdl ofs_tl_hdl,
     hd_hdl (↦_m_hd_hdl,q) (encode_val Mptr hd)
@@ -87,33 +71,25 @@ Section PROP.
       ⊢ frag_xorlist q m_next m_prev tl_next tl hd hd_prev (rev xs).
   Proof.
     ginduction xs; i; ss.
-    - iIntros "[A B]".
-      iPoseProof (equiv_sym with "A") as "A".
+    - iIntros "[A B]". iPoseProof (equiv_sym with "A") as "A".
       iPoseProof (equiv_sym with "B") as "B". iFrame.
-    - destruct a; try solve [iIntros "[]"].
-      iIntros "A".
+    - destruct a; try solve [iIntros "[]"]. iIntros "A".
       iDestruct "A" as (i_prev i_next m_hd) "[[[[% D] C] B] A]".
-      iPoseProof (IHxs with "A") as "A".
-      generalize (rev xs). i.
+      iPoseProof (IHxs with "A") as "A". generalize (rev xs). i.
       iStopProof. clear - H0. ginduction l; i; ss.
       + iIntros "[A [B [C [D E]]]]".
         iPoseProof (equiv_sym with "E") as "E".
-        iPoseProof (equiv_dup with "E") as "[E E']".
-        iCombine "E' B" as "B".
+        iPoseProof (equiv_dup with "E") as "[E E']". iCombine "E' B" as "B".
         iPoseProof (equiv_live_comm with "B") as "B".
-        iPoseProof (equiv_dup with "E") as "[E E']".
-        iCombine "E' C" as "C".
+        iPoseProof (equiv_dup with "E") as "[E E']". iCombine "E' C" as "C".
         iPoseProof (equiv_point_comm with "C") as "C".
         iPoseProof (equiv_sym with "A") as "A".
         iPoseProof (equiv_sym with "E") as "E".
-        rewrite Ptrofs.xor_commut.
-        iExists i_next,i_prev,_. iFrame.
-        et.
+        rewrite Ptrofs.xor_commut. iExists i_next,i_prev,_. iFrame. et.
       + iIntros "[A [B [C D]]]".
         destruct a; try solve [iDestruct "D" as "[]"].
         iDestruct "D" as (i_prev0 i_next0 m_hd0) "[[[[% G] D] E] F]".
-        iExists _,_,_. iFrame. iSplit; ss.
-        iApply IHl. { apply H0. } iFrame.
+        iExists _,_,_. iFrame. iSplit; ss. iApply IHl. { apply H0. } iFrame.
   Qed.
 
   Lemma xorlist_hd_deen q m_prev m_next hd_prev hd tl tl_next xs
@@ -139,8 +115,7 @@ Section PROP.
   Lemma xorlist_hd_cast_to_ptr {eff} {K:eventE -< eff} q m_prev m_next hd_prev hd tl tl_next xs
     : frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs ⊢ ⌜@cast_to_ptr eff K hd = Ret hd⌝.
   Proof.
-    Local Transparent equiv_prov.
-    destruct xs.
+    Local Transparent equiv_prov. destruct xs.
     - ss. iIntros "[A B]". iDestruct "B" as (ofs) "[B B']".  iApply _offset_ptr. et.
     - ss. iIntros "A". destruct v; clarify.
       iDestruct "A" as (i_prev i_next m_hd) "[[[_ A] _] _]".  iApply live_cast_ptr. et.
@@ -158,9 +133,7 @@ Section PROP.
   Proof.
     iIntros "A". iInduction xs as [|item xs'] "IH" forall (m_prev m_next hd_prev hd tl tl_next); ss.
     - iApply decode_encode_ptr_equiv. iApply equiv_sym. iDestruct "A" as "[$ _]".
-    - destruct item; clarify.
-      iDestruct "A" as (i_prev i_next m_hd) "[_ A]".
-      iApply "IH". et.
+    - destruct item; clarify. iDestruct "A" as (i_prev i_next m_hd) "[_ A]". iApply "IH". et.
   Qed.
 
   Lemma xorlist_tl_not_Vundef q m_prev m_next hd_prev hd tl tl_next xs
@@ -169,8 +142,7 @@ Section PROP.
     ginduction xs; i; ss.
     - ss. iIntros "[A B]". iApply equiv_notundef. iApply equiv_sym. et.
     - ss. iIntros "A". destruct a; clarify.
-      iDestruct "A" as (i_prev i_next m_hd) "[_ A]".
-      iApply IHxs. et.
+      iDestruct "A" as (i_prev i_next m_hd) "[_ A]". iApply IHxs. et.
   Qed.
 
   Lemma xorlist_hd_prev_replace q m_prev m_next hd_prev hd_prev' hd tl tl_next xs
@@ -187,8 +159,7 @@ Section PROP.
     : frag_xorlist q m_prev m_next hd_prev hd tl tl_next xs ** tl_next (≃_m_next) tl_next' ⊢ frag_xorlist q m_prev m_next hd_prev hd tl tl_next' xs.
   Proof.
     iIntros "[A B]". set xs at 1. rewrite <- (rev_involutive xs). unfold l.
-    iApply rev_xorlist. iApply xorlist_hd_prev_replace. iFrame.
-    iApply rev_xorlist. et.
+    iApply rev_xorlist. iApply xorlist_hd_prev_replace. iFrame. iApply rev_xorlist. et.
   Qed.
 
 End PROP.
