@@ -140,23 +140,23 @@ Section PROOF.
   Require Import ClightPlus2LBProof ClightPlus2ClightProof.
   From compcert Require Import Behaviors Compiler.
 
-  Theorem final_thm_asm prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight2_program prog = Errors.OK asm) :
+  Theorem final_thm_asm prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight_program prog = Errors.OK asm) :
     improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (Lowerbound.semantics asm).
   Proof.
     eapply improves2_program_observe_trans. apply final_thm; et.
-    eapply transf_clight2_program_preservation_lbd in COMP.
+    eapply transf_clight_program_preservation_lbd in COMP.
     unfold Complements.improves in *. i. hexploit COMP; et.
-    i. des. hexploit semantics2to3; et. i. des.
+    i. des. hexploit semantics1to3; et. i. des.
     esplits; et. eapply observation_improves_trans; et.
   Qed.
 
-  Theorem final_thm_asm_via_SSA prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight2_program_via_SSA prog = Errors.OK asm) :
+  Theorem final_thm_asm_via_SSA prog asm (LINK: xorlistall0._xor = Some prog) (COMP: transf_clight_program_via_SSA prog = Errors.OK asm) :
     improves2_program (ModL.compile (Mod.add_list (map SMod.to_src mds))) (Lowerbound.semantics asm).
   Proof.
     eapply improves2_program_observe_trans. apply final_thm; et.
-    eapply transf_clight2_program_via_SSA_preservation_lbd in COMP.
+    eapply transf_clight_program_via_SSA_preservation_lbd in COMP.
     unfold Complements.improves in *. i. hexploit COMP; et.
-    i. des. hexploit semantics2to3; et. i. des.
+    i. des. hexploit semantics1to3; et. i. des.
     esplits; et. eapply observation_improves_trans; et.
   Qed.
 
