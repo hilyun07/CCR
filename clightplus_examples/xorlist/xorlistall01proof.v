@@ -19,7 +19,10 @@ From Coq Require Import Program.
 From compcert Require Import Clightdefs.
 
 Require Import ClightPlusMem01Proof.
-Require Import xorlist01proof.
+Require Import xorlist01proof_add_hd.
+Require Import xorlist01proof_add_tl.
+Require Import xorlist01proof_delete_hd.
+Require Import xorlist01proof_delete_tl.
 Require Import main01proof.
 
 Section PROOF.
