@@ -64,7 +64,7 @@ Section PROOF.
     { reflexivity. }
     rewrite H0 in *. clear r H0.
     inversion VALID_comp. clear VALID_comp. subst. ss.
-    econstructor 1 with (wf := xorlist01proof.wf) (le := top2); et; ss; cycle 1.
+    econstructor 1 with (wf := xorlist01proof_add_hd.wf) (le := top2); et; ss; cycle 1.
     { eexists. econs. apply to_semantic. iIntros. et. }
     (* each functions has simulation relation *)
     unfold get_ce. simpl prog_comp_env.
